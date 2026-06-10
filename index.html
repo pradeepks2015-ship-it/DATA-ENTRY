@@ -4,7 +4,54 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Seoni Circle App Preview</title>
-    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Tailwind utility replacements - no CDN needed */
+        .flex{display:flex}.flex-col{flex-direction:column}.flex-wrap{flex-wrap:wrap}
+        .flex-grow{flex-grow:1}.flex-shrink-0{flex-shrink:0}.flex-1{flex:1}
+        .items-center{align-items:center}.items-start{align-items:flex-start}.items-end{align-items:flex-end}
+        .justify-center{justify-content:center}.justify-between{justify-content:space-between}.justify-end{justify-content:flex-end}
+        .gap-1{gap:4px}.gap-2{gap:8px}.gap-3{gap:12px}.gap-4{gap:16px}.gap-6{gap:24px}
+        .w-full{width:100%}.w-6{width:24px}.w-auto{width:auto}
+        .h-full{height:100%}.h-6{height:24px}.h-12{height:48px}
+        .h-\[52px\]{height:52px}
+        .max-w-\[260px\]{max-width:260px}.max-w-\[340px\]{max-width:340px}
+        .min-w-\[240px\]{min-width:240px}
+        .p-2{padding:8px}.p-4{padding:16px}
+        .px-2{padding-left:8px;padding-right:8px}.px-4{padding-left:16px;padding-right:16px}
+        .py-2{padding-top:8px;padding-bottom:8px}.py-4{padding-top:16px;padding-bottom:16px}
+        .py-8{padding-top:32px;padding-bottom:32px}.py-10{padding-top:40px;padding-bottom:40px}
+        .pt-2{padding-top:8px}.pb-2{padding-bottom:8px}
+        .m-0{margin:0}.mx-auto{margin-left:auto;margin-right:auto}
+        .mb-1{margin-bottom:4px}.mb-2{margin-bottom:8px}.mb-4{margin-bottom:16px}
+        .mt-2{margin-top:8px}.mt-4{margin-top:16px}
+        .text-center{text-align:center}.text-left{text-align:left}.text-right{text-align:right}
+        .text-sm{font-size:0.875rem}.text-lg{font-size:1.125rem}.text-xl{font-size:1.25rem}
+        .text-\[10px\]{font-size:10px}
+        .font-bold{font-weight:700}.font-black{font-weight:900}
+        .uppercase{text-transform:uppercase}
+        .relative{position:relative}.absolute{position:absolute}.fixed{position:fixed}
+        .inset-0{top:0;right:0;bottom:0;left:0}
+        .overflow-hidden{overflow:hidden}.overflow-y-auto{overflow-y:auto}
+        .cursor-pointer{cursor:pointer}
+        .border-none{border:none}
+        .border-2{border-width:2px}
+        .border-teal-600{border-color:#0d9488}
+        .rounded-xl{border-radius:12px}.rounded-full{border-radius:9999px}
+        .grid{display:grid}
+        .hidden{display:none}
+        /* Text colors */
+        .text-white{color:#ffffff}
+        .text-teal-600{color:#0d9488}.text-teal-900{color:#134e4a}
+        .text-red-500{color:#ef4444}
+        .text-rose-600{color:#e11d48}
+        .text-slate-400{color:#94a3b8}.text-slate-800{color:#1e293b}
+        .text-\[\#94a3b8\]{color:#94a3b8}
+        /* Spacing helpers used in template strings */
+        .blue-bold{font-weight:900;color:#1e40af}
+        /* Animate */
+        @keyframes pulse{0%,100%{opacity:1}50%{opacity:.5}}
+        .animate-pulse{animation:pulse 2s cubic-bezier(.4,0,.6,1) infinite}
+    </style>
     <link href="https://fonts.googleapis.com/css2?family=Righteous&family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
@@ -366,7 +413,7 @@
             </div>
             <div class="header-info">
                 <h1 id="main-header-title">SEONI CIRCLE</h1>
-                <p>DEVELOPED BY-AKHILESH PATIDAR (AE)</p>
+                
             </div>
         </header>
 
@@ -904,6 +951,27 @@
                     <input type="tel" id="new-mobile" class="teal-boundary-input" placeholder="Enter 10 Digit No..." oninput="this.value=this.value.replace(/[^0-9]/g,'').slice(0,10)">
                 </div>
                 <button id="submit-btn" class="submit-sync-btn" onclick="submitToSheet()">Submit</button>
+
+                <!-- MIS Report Section -->
+                <div style="width:100%; max-width:340px; margin: 18px auto 0 auto;">
+                    <div style="background: linear-gradient(135deg, #1e3a5f 0%, #1e40af 100%); border-radius: 18px; padding: 16px 18px; box-shadow: 0 8px 20px rgba(30,58,138,0.18);">
+                        <div style="font-size:12px; font-weight:900; color:#bfdbfe; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:10px; text-align:center;">📊 MIS Report</div>
+                        <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:10px;">
+                            <div>
+                                <div style="font-size:10px; font-weight:800; color:#93c5fd; text-transform:uppercase; margin-bottom:4px;">From Date</div>
+                                <input type="date" id="mis-from-date" style="width:100%; height:38px; border-radius:10px; border:1.5px solid #3b82f6; padding:0 8px; font-size:0.8rem; font-weight:700; color:#1e3a5f; background:#eff6ff; outline:none;">
+                            </div>
+                            <div>
+                                <div style="font-size:10px; font-weight:800; color:#93c5fd; text-transform:uppercase; margin-bottom:4px;">To Date</div>
+                                <input type="date" id="mis-to-date" style="width:100%; height:38px; border-radius:10px; border:1.5px solid #3b82f6; padding:0 8px; font-size:0.8rem; font-weight:700; color:#1e3a5f; background:#eff6ff; outline:none;">
+                            </div>
+                        </div>
+                        <button id="mis-pdf-btn" onclick="downloadMisReportPdf()" style="width:100%; height:44px; border:none; border-radius:12px; background:linear-gradient(135deg, #ef4444 0%, #b91c1c 100%); color:#ffffff; font-size:13px; font-weight:900; text-transform:uppercase; letter-spacing:0.5px; box-shadow:0 6px 14px rgba(239,68,68,0.3); cursor:pointer; display:flex; align-items:center; justify-content:center; gap:8px;">
+                            <svg width="16" height="16" fill="white" viewBox="0 0 24 24"><path d="M20 2H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-8.5 7.5c0 .83-.67 1.5-1.5 1.5H9v2H7.5V7H10c.83 0 1.5.67 1.5 1.5v1zm5 2c0 .83-.67 1.5-1.5 1.5h-2.5V7H15c.83 0 1.5.67 1.5 1.5v3zm4-3H19v1h1.5V11H19v2h-1.5V7h3v1.5zM9 9.5h1v-1H9v1zM4 6H2v14c0 1.1.9 2 2 2h14v-2H4V6zm10 5.5h1v-3h-1v3z"/></svg>
+                            Download PDF MIS Report
+                        </button>
+                    </div>
+                </div>
             </div>
         </main>
 
@@ -1125,6 +1193,11 @@
         document.addEventListener("DOMContentLoaded", () => {
             const today = new Date().toISOString().split("T")[0];
             document.getElementById("report-date").value = today;
+            // Default MIS date range: 1st of current month to today
+            const now = new Date();
+            const firstOfMonth = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,"0")}-01`;
+            if (document.getElementById("mis-from-date")) document.getElementById("mis-from-date").value = firstOfMonth;
+            if (document.getElementById("mis-to-date")) document.getElementById("mis-to-date").value = today;
             getAllDcConfigs().forEach(async ({ name, csvUrl }) => {
                 if (!csvUrl) return;
                 try {
@@ -1468,6 +1541,228 @@
             } finally {
                 document.getElementById("submit-btn").innerText = "Submit";
                 document.getElementById("submit-btn").disabled = false;
+            }
+        }
+
+        async function downloadMisReportPdf() {
+            const fromDate = document.getElementById("mis-from-date").value;
+            const toDate = document.getElementById("mis-to-date").value;
+            if (!fromDate || !toDate) return showToast("Pehle From aur To date select karein", false);
+            if (fromDate > toDate) return showToast("From date, To date se pehle honi chahiye", false);
+
+            const btn = document.getElementById("mis-pdf-btn");
+            btn.innerText = "Loading...";
+            btn.disabled = true;
+
+            try {
+                const apiUrl = `https://mpezccc.in/mppkvvcl/updatemobile?from=${fromDate}&to=${toDate}&format=json`;
+                let records = [];
+
+                try {
+                    const resp = await fetch(apiUrl, { headers: { "Accept": "application/json" } });
+                    if (resp.ok) {
+                        const contentType = resp.headers.get("content-type") || "";
+                        if (contentType.includes("json")) {
+                            const data = await resp.json();
+                            records = Array.isArray(data) ? data : (data.data || data.records || []);
+                        } else {
+                            const text = await resp.text();
+                            try { records = JSON.parse(text); } catch(_) {}
+                        }
+                    }
+                } catch(_) {}
+
+                // Format dates for display
+                const fmtDate = (iso) => {
+                    if (!iso) return "";
+                    const [y, m, d] = iso.split("-");
+                    return `${d}/${m}/${y}`;
+                };
+
+                const { jsPDF } = window.jspdf;
+                const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
+
+                // Header
+                doc.setFillColor(239, 68, 68);
+                doc.rect(0, 0, 210, 22, "F");
+                doc.setFontSize(13);
+                doc.setTextColor(255, 255, 255);
+                doc.setFont(undefined, "bold");
+                doc.text("MOBILE NO UPDATE MIS REPORT", 105, 10, { align: "center" });
+                doc.setFontSize(8);
+                doc.setFont(undefined, "normal");
+                doc.text(`SEONI CIRCLE  |  Period: ${fmtDate(fromDate)} to ${fmtDate(toDate)}`, 105, 17, { align: "center" });
+
+                // Date generated
+                doc.setTextColor(100);
+                doc.setFontSize(7);
+                doc.text(`Generated: ${new Date().toLocaleString("en-IN")}`, 200, 26, { align: "right" });
+
+                if (!records || records.length === 0) {
+                    // No records from API – pull from local Google Sheet summary instead
+                    const cloudData = await loadRemoteJson(`${scriptURL}?action=getSummary`);
+                    const fromTs = new Date(fromDate);
+                    const toTs = new Date(toDate);
+                    toTs.setHours(23, 59, 59, 999);
+
+                    const filtered = (Array.isArray(cloudData) ? cloudData : []).filter((u) => {
+                        if (!u.date) return false;
+                        const candidates = getProgressDateCandidates(u.date);
+                        return candidates.some((c) => {
+                            const parts = c.split("/");
+                            if (parts.length !== 3) return false;
+                            const d = new Date(`${parts[2]}-${parts[1]}-${parts[0]}`);
+                            return d >= fromTs && d <= toTs;
+                        });
+                    });
+
+                    // Group by DC
+                    const dcMap = {};
+                    filtered.forEach((u) => {
+                        const dc = (u.dc || "UNKNOWN").toUpperCase();
+                        if (!dcMap[dc]) dcMap[dc] = [];
+                        dcMap[dc].push(u);
+                    });
+
+                    // Summary table
+                    const summaryBody = Object.entries(dcMap).map(([dc, rows], i) => [
+                        i + 1, dc, rows.length
+                    ]);
+                    summaryBody.push(["", "GRAND TOTAL", filtered.length]);
+
+                    doc.autoTable({
+                        startY: 30,
+                        head: [["S.No.", "DC NAME", "MOBILE UPDATED COUNT"]],
+                        body: summaryBody,
+                        theme: "grid",
+                        headStyles: { fillColor: [239, 68, 68], textColor: 255, halign: "center", fontStyle: "bold" },
+                        columnStyles: { 0: { halign: "center", cellWidth: 15 }, 1: { halign: "left" }, 2: { halign: "center" } },
+                        footStyles: { fillColor: [241, 245, 249] },
+                        didParseCell(data) {
+                            if (data.section === "body" && data.row.index === summaryBody.length - 1) {
+                                data.cell.styles.fontStyle = "bold";
+                                data.cell.styles.textColor = [190, 18, 60];
+                                data.cell.styles.fillColor = [254, 226, 226];
+                            }
+                        }
+                    });
+
+                    // Detail table
+                    if (filtered.length > 0) {
+                        const detailY = doc.lastAutoTable.finalY + 8;
+                        doc.setFontSize(9);
+                        doc.setTextColor(30, 58, 138);
+                        doc.setFont(undefined, "bold");
+                        doc.text("DETAIL RECORDS", 14, detailY);
+
+                        const detailBody = filtered.map((u, i) => [
+                            i + 1,
+                            u.ivrs || "",
+                            u.name || "",
+                            (u.old_mobile || u.old || "N/A"),
+                            u.correct_mobile || "",
+                            (u.dc || "").toUpperCase(),
+                            u.date || ""
+                        ]);
+
+                        doc.autoTable({
+                            startY: detailY + 4,
+                            head: [["S.No.", "IVRS NO", "CONSUMER NAME", "OLD MOBILE", "NEW MOBILE", "DC", "DATE"]],
+                            body: detailBody,
+                            theme: "striped",
+                            headStyles: { fillColor: [30, 58, 138], textColor: 255, halign: "center", fontSize: 7, fontStyle: "bold" },
+                            bodyStyles: { fontSize: 7 },
+                            columnStyles: {
+                                0: { halign: "center", cellWidth: 10 },
+                                1: { halign: "center", cellWidth: 22 },
+                                2: { halign: "left", cellWidth: 38 },
+                                3: { halign: "center", cellWidth: 22 },
+                                4: { halign: "center", cellWidth: 22 },
+                                5: { halign: "center", cellWidth: 24 },
+                                6: { halign: "center", cellWidth: 22 }
+                            }
+                        });
+                    }
+                } else {
+                    // Records came from mpezccc API
+                    const dcMap = {};
+                    records.forEach((u) => {
+                        const dc = (u.dc_name || u.dc || u.DC || "UNKNOWN").toUpperCase();
+                        if (!dcMap[dc]) dcMap[dc] = [];
+                        dcMap[dc].push(u);
+                    });
+
+                    const summaryBody = Object.entries(dcMap).map(([dc, rows], i) => [i + 1, dc, rows.length]);
+                    summaryBody.push(["", "GRAND TOTAL", records.length]);
+
+                    doc.autoTable({
+                        startY: 30,
+                        head: [["S.No.", "DC NAME", "MOBILE UPDATED COUNT"]],
+                        body: summaryBody,
+                        theme: "grid",
+                        headStyles: { fillColor: [239, 68, 68], textColor: 255, halign: "center", fontStyle: "bold" },
+                        columnStyles: { 0: { halign: "center", cellWidth: 15 }, 1: { halign: "left" }, 2: { halign: "center" } },
+                        didParseCell(data) {
+                            if (data.section === "body" && data.row.index === summaryBody.length - 1) {
+                                data.cell.styles.fontStyle = "bold";
+                                data.cell.styles.textColor = [190, 18, 60];
+                                data.cell.styles.fillColor = [254, 226, 226];
+                            }
+                        }
+                    });
+
+                    const detailY = doc.lastAutoTable.finalY + 8;
+                    doc.setFontSize(9);
+                    doc.setTextColor(30, 58, 138);
+                    doc.setFont(undefined, "bold");
+                    doc.text("DETAIL RECORDS", 14, detailY);
+
+                    const detailBody = records.map((u, i) => [
+                        i + 1,
+                        u.ivrs_no || u.ivrs || u.IVRS || "",
+                        u.consumer_name || u.name || u.NAME || "",
+                        u.old_mobile || u.OLD_MOBILE || "N/A",
+                        u.new_mobile || u.correct_mobile || u.NEW_MOBILE || "",
+                        (u.dc_name || u.dc || u.DC || "").toUpperCase(),
+                        u.date || u.DATE || u.updated_date || ""
+                    ]);
+
+                    doc.autoTable({
+                        startY: detailY + 4,
+                        head: [["S.No.", "IVRS NO", "CONSUMER NAME", "OLD MOBILE", "NEW MOBILE", "DC", "DATE"]],
+                        body: detailBody,
+                        theme: "striped",
+                        headStyles: { fillColor: [30, 58, 138], textColor: 255, halign: "center", fontSize: 7, fontStyle: "bold" },
+                        bodyStyles: { fontSize: 7 },
+                        columnStyles: {
+                            0: { halign: "center", cellWidth: 10 },
+                            1: { halign: "center", cellWidth: 22 },
+                            2: { halign: "left", cellWidth: 38 },
+                            3: { halign: "center", cellWidth: 22 },
+                            4: { halign: "center", cellWidth: 22 },
+                            5: { halign: "center", cellWidth: 24 },
+                            6: { halign: "center", cellWidth: 22 }
+                        }
+                    });
+                }
+
+                // Footer on all pages
+                const totalPages = doc.internal.getNumberOfPages();
+                for (let i = 1; i <= totalPages; i++) {
+                    doc.setPage(i);
+                    doc.setFontSize(7);
+                    doc.setTextColor(150);
+                    doc.text(`Page ${i} of ${totalPages}  |  SEONI CIRCLE - Mobile No Update MIS Report`, 105, 290, { align: "center" });
+                }
+
+                const filename = `MIS_Mobile_Update_${fmtDate(fromDate).replace(/\//g,"-")}_to_${fmtDate(toDate).replace(/\//g,"-")}.pdf`;
+                doc.save(filename);
+                showToast("PDF Downloaded!", true);
+            } catch(e) {
+                showToast("Report generate karne mein error aaya", false);
+            } finally {
+                btn.innerHTML = '<svg width="16" height="16" fill="white" viewBox="0 0 24 24"><path d="M20 2H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-8.5 7.5c0 .83-.67 1.5-1.5 1.5H9v2H7.5V7H10c.83 0 1.5.67 1.5 1.5v1zm5 2c0 .83-.67 1.5-1.5 1.5h-2.5V7H15c.83 0 1.5.67 1.5 1.5v3zm4-3H19v1h1.5V11H19v2h-1.5V7h3v1.5zM9 9.5h1v-1H9v1zM4 6H2v14c0 1.1.9 2 2 2h14v-2H4V6zm10 5.5h1v-3h-1v3z"/></svg> Download PDF MIS Report';
+                btn.disabled = false;
             }
         }
 
@@ -2232,7 +2527,7 @@
             const valueLabel = summaryModule === "LOK_ADALAT" ? "TOTAL NOTICE" : "UPDATED MOBILE NO";
 
             if (fmt === "XLS") {
-                let csv = `DEVELOPED BY - AKHILESH PATIDAR (AE)\n${levelT} ${reportType} PROGRESS REPORT\n${dateLabel}\n${reportHeading}\n\n`;
+                let csv = `${levelT} ${reportType} PROGRESS REPORT\n${dateLabel}\n${reportHeading}\n\n`;
                 if (summaryModule === "LOK_ADALAT") {
                     csv += `${colLabel},${valueLabel},DISTRIBUTED NOTICE\n`;
                     uiListSummary.forEach((r) => {
@@ -2255,7 +2550,7 @@
                 const doc = new jsPDF();
                 doc.setFontSize(7);
                 doc.setTextColor(100);
-                doc.text("DEVELOPED BY - AKHILESH PATIDAR (AE)", 14, 10);
+                
                 doc.setFontSize(15);
                 doc.setTextColor(0);
                 doc.text(`${levelT} ${reportType} PROGRESS REPORT`, 105, 20, { align: "center" });
@@ -4676,7 +4971,7 @@
                 const doc = new jsPDF("l", "mm", "a4");
                 doc.setFontSize(7);
                 doc.setTextColor(100);
-                doc.text("DEVELOPED BY - AKHILESH PATIDAR (AE)", 14, 10);
+                
                 doc.setFontSize(15);
                 doc.setTextColor(0);
                 doc.text("FEEDER READING REPORT", 148, 18, { align: "center" });
@@ -4778,7 +5073,7 @@
                 const doc = new jsPDF("l", "mm", "a4");
                 doc.setFontSize(7);
                 doc.setTextColor(100);
-                doc.text("DEVELOPED BY - AKHILESH PATIDAR (AE)", 14, 10);
+                
                 doc.setFontSize(15);
                 doc.setTextColor(0);
                 doc.text("SHMS DAILY PROGRESS REPORT", 148, 18, { align: "center" });
