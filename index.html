@@ -3086,7 +3086,7 @@
             fallbackFeederRows.forEach((fb) => {
                 const key = `${normalizeFeederSubstationKey_(fb.substation)}|${fb.feeder.toUpperCase()}`;
                 if (!existingKeys.has(key)) {
-                    merged.push({ ...fb, "METER NO": fb.meterNo || "" });
+                    merged.push({ ...fb, "METER NO": fb.meterNo || "", feederType: "11 KV" });
                 }
             });
             return merged;
@@ -3252,29 +3252,29 @@
             if (!forceRefresh && peakLoadDataLoaded && peakLoadRows.length) return true;
             try {
                 const csvText = await loadRemoteText(peakLoadCsvUrl);
-                peakLoadRows = parsePeakLoadCsv(csvText);
+                peakLoadRows = mergeFallbackFeederRows_(parsePeakLoadCsv(csvText));
                 peakLoadDataLoaded = peakLoadRows.length > 0;
                 return peakLoadDataLoaded;
             } catch (_) {
                 try {
                     const feederLoaded = await loadFeederData(forceRefresh);
                     if (feederLoaded && feederRows.length) {
-                        peakLoadRows = feederRows
+                        peakLoadRows = mergeFallbackFeederRows_(feederRows
                             .filter((row) => !String(row.feeder || "").toUpperCase().includes("33"))
                             .map((row) => ({
                                 substation: String(row.substation || "").trim(),
                                 feeder: String(row.feeder || "").trim(),
                                 meterNo: String(row.meterNo || "").trim(),
                                 feederType: "11 KV"
-                            }));
+                            })));
                         peakLoadDataLoaded = peakLoadRows.length > 0;
                         return peakLoadDataLoaded;
                     }
                 } catch (_) {}
 
-                peakLoadRows = [];
-                peakLoadDataLoaded = false;
-                return false;
+                peakLoadRows = mergeFallbackFeederRows_([]);
+                peakLoadDataLoaded = peakLoadRows.length > 0;
+                return peakLoadDataLoaded;
             }
         }
 
