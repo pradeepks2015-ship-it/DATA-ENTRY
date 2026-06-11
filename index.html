@@ -461,6 +461,7 @@
                 <button class="dashboard-btn btn-feeder-light-pink" onclick="switchView('feeder-reading')">7. FEEDER READING</button>
                 <button class="dashboard-btn btn-stm-complaint" onclick="switchView('stm-complaint')">8. STM COMPLAINT</button>
                 <button class="dashboard-btn btn-daily-houry-peak-load" onclick="switchView('daily-hourly-peak-load')">9. DAILY HOURLY PEAK LOAD</button>
+                <button class="dashboard-btn" style="background: linear-gradient(135deg, #dc2626 0%, #7f1d1d 100%);" onclick="switchView('bijli-chori')">10. ⚠️ बिजली चोरी की जानकारी</button>
             </div>
         </main>
 
@@ -567,8 +568,12 @@
                                         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h3l2-2h6l2 2h3v11H4z"></path><circle cx="12" cy="13" r="3.5"></circle></svg>
                                         <span>Photo Select Kijiye</span>
                                     </label>
-                                    <input id="stm-complaint-photo" type="file" accept="image/*" style="display:none;" onchange="updateStmComplaintPhotoName()">
+                                    <input id="stm-complaint-photo" type="file" accept="image/*" capture="environment" style="display:none;" onchange="updateStmComplaintPhotoName()">
                                     <div id="stm-complaint-photo-name" style="margin-top:6px; font-size:11px; font-weight:800; color:#64748b; line-height:1.5;">Camera ya gallery dono se photo select kar sakte hain</div>
+                                    <div id="stm-complaint-photo-meta" class="photo-meta-box" style="display:none; margin-top:8px;">
+                                        <div id="stm-complaint-photo-latlong" class="photo-meta-row"><strong>Lat-Long:</strong> Not captured</div>
+                                        <div id="stm-complaint-photo-location" class="photo-meta-row"><strong>Location:</strong> Not captured</div>
+                                    </div>
                                 </div>
                                 <div style="display:flex; justify-content:center; width:100%; margin-top:14px;">
                                     <button id="stm-complaint-submit-btn" onclick="submitStmComplaintStub()" style="display:none; width:170px; height:40px; padding:0 18px; border:none; border-radius:999px; background:#000000; color:#ffffff; font-size:12px; font-weight:900; text-transform:uppercase; box-shadow:0 8px 18px rgba(15,23,42,0.18); line-height:1; text-align:center; align-items:center; justify-content:center; vertical-align:middle;">Submit</button>
@@ -1195,6 +1200,51 @@
             </div>
         </main>
 
+        <main id="bijli-chori-view" class="view">
+            <div class="title-box-container"><div class="title-box"><span class="title-text-bold">⚠️ बिजली चोरी की जानकारी</span></div></div>
+            <div class="search-panel">
+                <div id="bijli-chori-result-box" class="result-card-custom" style="display:block;">
+
+                    <!-- Consumer / Reference Info -->
+                    <div class="title-box-container" style="padding-top:0;"><div class="title-box" style="background-color:#fee2e2;"><span class="title-text-bold" style="color:#991b1b;">उपभोक्ता / स्थान विवरण</span></div></div>
+                    <input type="text" id="bc-ivrs" class="teal-boundary-input" placeholder="IVRS No / Account No (yadi ho)" style="margin-bottom:12px;">
+                    <input type="text" id="bc-name" class="teal-boundary-input" placeholder="Naam / Sthan ka Vivaran" style="margin-bottom:12px;">
+
+                    <!-- 3 Photo Upload Slots with GPS -->
+                    <div class="title-box-container" style="padding-top: 15px;"><div class="title-box" style="background-color:#fee2e2;"><span class="title-text-bold" style="color:#991b1b;">Photos with GPS Location (3 Photos)</span></div></div>
+                    <div id="bc-photo-slots"></div>
+
+                    <!-- Remark -->
+                    <div class="title-box-container" style="padding-top: 15px;"><div class="title-box" style="background-color: #fef3c7;"><span class="title-text-bold" style="color: #92400e;">Remark</span></div></div>
+                    <textarea id="bc-remark" class="teal-boundary-input" placeholder="Remark likhein..." style="min-height:78px; resize:vertical; padding:12px;"></textarea>
+
+                </div>
+                <button id="bc-submit-btn" class="submit-sync-btn" style="display:block;" onclick="submitBijliChoriEntry()">Submit</button>
+
+                <!-- MIS Report Section -->
+                <div style="width:100%; max-width:340px; margin: 18px auto 0 auto;">
+                    <div style="background: linear-gradient(135deg, #dc2626 0%, #7f1d1d 100%); border-radius: 18px; padding: 16px 18px; box-shadow: 0 8px 20px rgba(127,29,29,0.18);">
+                        <div style="font-size:12px; font-weight:900; color:#fee2e2; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:10px; text-align:center;">📊 MIS Report — बिजली चोरी की जानकारी</div>
+                        <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:10px;">
+                            <div>
+                                <div style="font-size:10px; font-weight:800; color:#fee2e2; text-transform:uppercase; margin-bottom:4px;">From Date</div>
+                                <input type="date" id="bc-mis-from-date" onchange="refreshBijliChoriMisTotal()" style="width:100%; height:38px; border-radius:10px; border:1.5px solid #dc2626; padding:0 8px; font-size:0.8rem; font-weight:700; color:#7f1d1d; background:#fef2f2; outline:none;">
+                            </div>
+                            <div>
+                                <div style="font-size:10px; font-weight:800; color:#fee2e2; text-transform:uppercase; margin-bottom:4px;">To Date</div>
+                                <input type="date" id="bc-mis-to-date" onchange="refreshBijliChoriMisTotal()" style="width:100%; height:38px; border-radius:10px; border:1.5px solid #dc2626; padding:0 8px; font-size:0.8rem; font-weight:700; color:#7f1d1d; background:#fef2f2; outline:none;">
+                            </div>
+                        </div>
+                        <div id="bc-mis-total-box" style="text-align:center; margin-bottom:10px; font-size:12px; font-weight:900; color:#fee2e2;">Total Entries: <span id="bc-mis-total">0</span></div>
+                        <button id="bc-mis-pdf-btn" onclick="downloadBijliChoriMisPdf()" style="width:100%; height:44px; border:none; border-radius:12px; background:linear-gradient(135deg, #ef4444 0%, #b91c1c 100%); color:#ffffff; font-size:13px; font-weight:900; text-transform:uppercase; letter-spacing:0.5px; box-shadow:0 6px 14px rgba(239,68,68,0.3); cursor:pointer; display:flex; align-items:center; justify-content:center; gap:8px;">
+                            <svg width="16" height="16" fill="white" viewBox="0 0 24 24"><path d="M20 2H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-8.5 7.5c0 .83-.67 1.5-1.5 1.5H9v2H7.5V7H10c.83 0 1.5.67 1.5 1.5v1zm5 2c0 .83-.67 1.5-1.5 1.5h-2.5V7H15c.83 0 1.5.67 1.5 1.5v3zm4-3H19v1h1.5V11H19v2h-1.5V7h3v1.5zM9 9.5h1v-1H9v1zM4 6H2v14c0 1.1.9 2 2 2h14v-2H4V6zm10 5.5h1v-3h-1v3z"/></svg>
+                            Download PDF MIS Report
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </main>
+
         <main id="court-case-view" class="view">
             <div class="title-box-container"><div class="title-box"><span class="title-text-bold">SEARCH CASE NUMBER</span></div></div>
             <div class="search-panel">
@@ -1381,13 +1431,20 @@
         let feederDataLoaded = false;
         // Fallback feeder rows used when the Google Sheet (feederCsvUrl) hasn't loaded yet.
         const fallbackFeederRows = [
-            { "33/11 KV SUBSTATION": "ADEGAON", "33 AND 11 KV FEEDER": "11KV ADEGAON MIX", substation: "ADEGAON", feeder: "11KV ADEGAON MIX", meterNo: "BS12774695" },
-            { "33/11 KV SUBSTATION": "ADEGAON", "33 AND 11 KV FEEDER": "11KV MADI (ADEGAON) MIX", substation: "ADEGAON", feeder: "11KV MADI (ADEGAON) MIX", meterNo: "BS12774693" },
-            { "33/11 KV SUBSTATION": "ADEGAON", "33 AND 11 KV FEEDER": "11KV BIBI DL", substation: "ADEGAON", feeder: "11KV BIBI DL", meterNo: "BS12774692" },
-            { "33/11 KV SUBSTATION": "ADEGAON", "33 AND 11 KV FEEDER": "11KV BIBI AG", substation: "ADEGAON", feeder: "11KV BIBI AG", meterNo: "BS12774694" },
-            { "33/11 KV SUBSTATION": "MADHI", "33 AND 11 KV FEEDER": "11 KV PATAN", substation: "MADHI", feeder: "11 KV PATAN", meterNo: "BS12775542" },
-            { "33/11 KV SUBSTATION": "MADHI", "33 AND 11 KV FEEDER": "11 KV MADHI", substation: "MADHI", feeder: "11 KV MADHI", meterNo: "BS12775541" },
-            { "33/11 KV SUBSTATION": "MADHI", "33 AND 11 KV FEEDER": "11 KV PINDRAI", substation: "MADHI", feeder: "11 KV PINDRAI", meterNo: "BS12775540" }
+            { "33/11 KV SUBSTATION": "ADEGAON", "33 AND 11 KV FEEDER": "11KV ADEGAON MIX", substation: "ADEGAON", feeder: "11KV ADEGAON MIX", meterNo: "BS12774695", mf: "3000" },
+            { "33/11 KV SUBSTATION": "ADEGAON", "33 AND 11 KV FEEDER": "11KV MADI (ADEGAON) MIX", substation: "ADEGAON", feeder: "11KV MADI (ADEGAON) MIX", meterNo: "BS12774693", mf: "4000" },
+            { "33/11 KV SUBSTATION": "ADEGAON", "33 AND 11 KV FEEDER": "11KV BIBI DL", substation: "ADEGAON", feeder: "11KV BIBI DL", meterNo: "BS12776368", mf: "4000" },
+            { "33/11 KV SUBSTATION": "ADEGAON", "33 AND 11 KV FEEDER": "11KV BIBI AG", substation: "ADEGAON", feeder: "11KV BIBI AG", meterNo: "BS12774694", mf: "4000" },
+            { "33/11 KV SUBSTATION": "ADEGAON", "33 AND 11 KV FEEDER": "11 KV MARHI MIX", substation: "ADEGAON", feeder: "11 KV MARHI MIX", meterNo: "BS12774693", mf: "4000" },
+            { "33/11 KV SUBSTATION": "ADEGAON", "33 AND 11 KV FEEDER": "ADEGAON-CB", substation: "ADEGAON", feeder: "ADEGAON-CB", meterNo: "BS12770679", mf: "4000" },
+            { "33/11 KV SUBSTATION": "MADHI", "33 AND 11 KV FEEDER": "11 KV PATAN", substation: "MADHI", feeder: "11 KV PATAN", meterNo: "BS12775542", mf: "4000" },
+            { "33/11 KV SUBSTATION": "MADHI", "33 AND 11 KV FEEDER": "11 KV MADHI", substation: "MADHI", feeder: "11 KV MADHI", meterNo: "BS12775541", mf: "4000" },
+            { "33/11 KV SUBSTATION": "MADHI", "33 AND 11 KV FEEDER": "11 KV PINDRAI", substation: "MADHI", feeder: "11 KV PINDRAI", meterNo: "BS12775540", mf: "4000" },
+            // 33 KV Feeders (MF readings)
+            { "33/11 KV SUBSTATION": "ADEGAON", "33 AND 11 KV FEEDER": "33KV ADEGAON", substation: "ADEGAON", feeder: "33KV ADEGAON", meterNo: "BS12775548", mf: "12000", feederType: "33 KV" },
+            { "33/11 KV SUBSTATION": "ADEGAON", "33 AND 11 KV FEEDER": "33KV ADEGAON-CHAMARI", substation: "ADEGAON", feeder: "33KV ADEGAON-CHAMARI", meterNo: "BS12775550", mf: "12000", feederType: "33 KV" },
+            { "33/11 KV SUBSTATION": "ADEGAON", "33 AND 11 KV FEEDER": "33KV MADI OUTGOING", substation: "ADEGAON", feeder: "33KV MADI OUTGOING", meterNo: "BS12776133", mf: "12000", feederType: "33 KV" },
+            { "33/11 KV SUBSTATION": "CHAMARI", "33 AND 11 KV FEEDER": "33KV ADEGAON (CHAMARI)", substation: "CHAMARI", feeder: "33KV ADEGAON (CHAMARI)", meterNo: "BS12775544", mf: "12000", feederType: "33 KV" }
         ];
         let peakLoadRows = [];
         let peakLoadDataLoaded = false;
@@ -1436,8 +1493,8 @@
         // localStorage has a tiny ~5-10MB shared limit; IndexedDB allows much larger storage
         // for entries that include base64 photo data.
         const IDB_DB_NAME = "seoni-circle-photo-store";
-        const IDB_DB_VERSION = 1;
-        const IDB_STORES = ["broken_pole", "pdc_nontraceable", "stm_complaint"];
+        const IDB_DB_VERSION = 2;
+        const IDB_STORES = ["broken_pole", "pdc_nontraceable", "stm_complaint", "bijli_chori"];
         let idbInstance = null;
 
         function openPhotoDb_() {
@@ -3529,6 +3586,8 @@
         }
 
         // ===== PDC / Non-Traceable feature =====
+        const pdcDefaultPhotoNames = ["उपभोक्ता का परिसर", "मौका पंचनामा", "", "", ""];
+
         function renderPdcPhotoSlots() {
             const container = document.getElementById("pdc-photo-slots");
             if (!container) return;
@@ -3548,6 +3607,18 @@
                         <div style="margin-top:8px;">
                             <img src="${slot.photoData}" style="width:100%; max-height:140px; object-fit:cover; border-radius:10px; border:1px solid #c7d2fe;">
                             <input type="text" value="${escapeHtml(slot.name || "")}" placeholder="Document Name (e.g. PDC Receipt, Site Photo)" oninput="updatePdcPhotoName(${idx}, this.value)" style="width:100%; margin-top:8px; height:40px; border-radius:10px; border:1.5px solid #c7d2fe; padding:0 10px; font-size:0.8rem; font-weight:700; color:#1e1b4b; background:#ffffff; outline:none;">
+                            <div class="photo-meta-box" style="display:block; margin-top:8px;">
+                                <div class="photo-meta-row"><strong>Lat-Long:</strong> ${slot.geo ? `${slot.geo.latitude}, ${slot.geo.longitude}` : "Not captured"}</div>
+                                <div class="photo-meta-row"><strong>Location:</strong> ${slot.geo ? (slot.geo.locationText || "GPS location captured") : "Not captured"}</div>
+                                ${slot.geo && isValidLatLon_(slot.geo.latitude, slot.geo.longitude) ? `
+                                    <div style="margin-top:8px;">
+                                        <a href="https://www.google.com/maps/dir/?api=1&destination=${slot.geo.latitude},${slot.geo.longitude}" target="_blank" rel="noopener" style="display:inline-flex; align-items:center; gap:6px; background:linear-gradient(135deg,#16a34a,#15803d); color:#fff; font-size:11px; font-weight:900; text-transform:uppercase; padding:8px 14px; border-radius:10px; text-decoration:none; box-shadow:0 4px 10px rgba(21,128,61,0.25);">
+                                            <svg width="14" height="14" fill="white" viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5A2.5 2.5 0 1 1 12 6.5a2.5 2.5 0 0 1 0 5z"/></svg>
+                                            Get Directions (Google Maps)
+                                        </a>
+                                    </div>
+                                ` : ""}
+                            </div>
                         </div>
                     ` : ""}
                 </div>
@@ -3560,10 +3631,35 @@
             try {
                 const photoData = await resizeImageForUpload(input.files[0]);
                 pdcPhotoSlots[idx] = {
-                    name: pdcPhotoSlots[idx]?.name || "",
-                    photoData
+                    name: pdcPhotoSlots[idx]?.name || pdcDefaultPhotoNames[idx] || "",
+                    photoData,
+                    geo: {
+                        latitude: "Fetching...",
+                        longitude: "Fetching...",
+                        locationText: "GPS location detect ki ja rahi hai"
+                    }
                 };
                 renderPdcPhotoSlots();
+
+                try {
+                    const position = await getCurrentPositionAsync();
+                    const latitude = position.coords.latitude.toFixed(6);
+                    const longitude = position.coords.longitude.toFixed(6);
+                    const locationText = await reverseGeocodeLocation(latitude, longitude);
+                    if (pdcPhotoSlots[idx]) {
+                        pdcPhotoSlots[idx].geo = { latitude, longitude, locationText };
+                        renderPdcPhotoSlots();
+                    }
+                } catch (_) {
+                    if (pdcPhotoSlots[idx]) {
+                        pdcPhotoSlots[idx].geo = {
+                            latitude: "Available nahi",
+                            longitude: "Available nahi",
+                            locationText: "GPS permission allow nahi hui ya signal weak tha"
+                        };
+                        renderPdcPhotoSlots();
+                    }
+                }
             } catch (_) {
                 showToast("Photo load karne mein error aaya", false);
             }
@@ -3622,7 +3718,13 @@
                     ivrs,
                     name,
                     remark,
-                    photos: photos.map((p) => ({ name: p.name || "", photo_data: p.photoData }))
+                    photos: photos.map((p) => ({
+                        name: p.name || "",
+                        photo_data: p.photoData,
+                        gps_latitude: p.geo?.latitude || "",
+                        gps_longitude: p.geo?.longitude || "",
+                        gps_location: p.geo?.locationText || ""
+                    }))
                 };
 
                 const saved = await savePdcEntry_(entry);
@@ -3741,12 +3843,12 @@
                     }
                 });
 
-                // Add photos with names on subsequent pages
+                // Add photos with names, GPS and location on subsequent pages
                 let photoY = doc.lastAutoTable.finalY + 8;
                 filtered.forEach((e, i) => {
                     (e.photos || []).forEach((p, pIdx) => {
                         if (!p.photo_data) return;
-                        if (photoY > 220) {
+                        if (photoY > 200) {
                             doc.addPage();
                             photoY = 14;
                         }
@@ -3758,6 +3860,21 @@
                         try {
                             doc.addImage(p.photo_data, "JPEG", 14, photoY + 2, 80, 60);
                         } catch (_) {}
+                        doc.setFontSize(7);
+                        doc.setFont(undefined, "normal");
+                        doc.setTextColor(80);
+                        const gpsLine = (p.gps_latitude && p.gps_longitude) ? `GPS: ${p.gps_latitude}, ${p.gps_longitude}` : "GPS: N/A";
+                        doc.text(gpsLine, 98, photoY + 8);
+                        const locLines = doc.splitTextToSize(`Location: ${p.gps_location || "N/A"}`, 95);
+                        doc.text(locLines, 98, photoY + 14);
+                        if (isValidLatLon_(p.gps_latitude, p.gps_longitude)) {
+                            const mapsUrl = `https://www.google.com/maps/dir/?api=1&destination=${p.gps_latitude},${p.gps_longitude}`;
+                            doc.setTextColor(21, 128, 61);
+                            doc.setFont(undefined, "bold");
+                            const linkY = photoY + 14 + (locLines.length * 3.5) + 4;
+                            doc.text("Open Map (Directions)", 98, linkY);
+                            doc.link(98, linkY - 3, 50, 5, { url: mapsUrl });
+                        }
                         photoY += 68;
                     });
                 });
@@ -3771,6 +3888,322 @@
                 }
 
                 const filename = `PDC_NonTraceable_MIS_${fmtDate(fromDate).replace(/\//g,"-")}_to_${fmtDate(toDate).replace(/\//g,"-")}.pdf`;
+                doc.save(filename);
+                showToast("PDF Downloaded!", true);
+            } catch (_) {
+                showToast("Report generate karne mein error aaya", false);
+            } finally {
+                btn.innerHTML = '<svg width="16" height="16" fill="white" viewBox="0 0 24 24"><path d="M20 2H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-8.5 7.5c0 .83-.67 1.5-1.5 1.5H9v2H7.5V7H10c.83 0 1.5.67 1.5 1.5v1zm5 2c0 .83-.67 1.5-1.5 1.5h-2.5V7H15c.83 0 1.5.67 1.5 1.5v3zm4-3H19v1h1.5V11H19v2h-1.5V7h3v1.5zM9 9.5h1v-1H9v1zM4 6H2v14c0 1.1.9 2 2 2h14v-2H4V6zm10 5.5h1v-3h-1v3z"/></svg> Download PDF MIS Report';
+                btn.disabled = false;
+            }
+        }
+
+
+        // ===== Bijli Chori Ki Jankari feature =====
+        let bcPhotoSlots = [null, null, null]; // each: { name, photoData, geo } or null
+        const bcDefaultPhotoNames = ["Photo 1 - Site / Connection", "Photo 2 - Evidence", "Photo 3 - Surrounding Area"];
+
+        function renderBcPhotoSlots() {
+            const container = document.getElementById("bc-photo-slots");
+            if (!container) return;
+            container.innerHTML = bcPhotoSlots.map((slot, idx) => `
+                <div style="border:1.6px solid #fecaca; border-radius:14px; padding:10px 12px; margin-bottom:10px; background:#fff5f5;">
+                    <div style="display:flex; align-items:center; justify-content:space-between; gap:8px;">
+                        <label for="bc-photo-${idx}" style="display:flex; align-items:center; gap:8px; cursor:pointer; font-size:0.78rem; font-weight:900; color:#991b1b; text-transform:uppercase;">
+                            <div style="width:32px; height:32px; border-radius:50%; background:linear-gradient(135deg,#ef4444,#7f1d1d); display:flex; align-items:center; justify-content:center; flex-shrink:0;">
+                                <svg width="16" height="16" fill="none" stroke="white" stroke-width="2.2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 8.5A2.5 2.5 0 0 1 5.5 6H8l1.3-1.6A2 2 0 0 1 10.86 4h2.28a2 2 0 0 1 1.56.74L16 6h2.5A2.5 2.5 0 0 1 21 8.5v8A2.5 2.5 0 0 1 18.5 19h-13A2.5 2.5 0 0 1 3 16.5z"></path><circle cx="12" cy="12.5" r="3.5"></circle></svg>
+                            </div>
+                            ${slot ? "Photo " + (idx + 1) + " (Tap to change)" : "Add Photo " + (idx + 1)}
+                        </label>
+                        ${slot ? `<button type="button" onclick="removeBcPhoto(${idx})" style="border:none; background:#fee2e2; color:#b91c1c; border-radius:999px; padding:6px 10px; font-size:0.66rem; font-weight:900; text-transform:uppercase;">Remove</button>` : ""}
+                    </div>
+                    <input type="file" id="bc-photo-${idx}" accept="image/*" capture="environment" style="display:none;" onchange="handleBcPhotoChange(${idx})">
+                    ${slot ? `
+                        <div style="margin-top:8px;">
+                            <img src="${slot.photoData}" style="width:100%; max-height:140px; object-fit:cover; border-radius:10px; border:1px solid #fecaca;">
+                            <input type="text" value="${escapeHtml(slot.name || "")}" placeholder="Photo Name (e.g. Site Photo, Evidence)" oninput="updateBcPhotoName(${idx}, this.value)" style="width:100%; margin-top:8px; height:40px; border-radius:10px; border:1.5px solid #fecaca; padding:0 10px; font-size:0.8rem; font-weight:700; color:#7f1d1d; background:#ffffff; outline:none;">
+                            <div class="photo-meta-box" style="display:block; margin-top:8px;">
+                                <div class="photo-meta-row"><strong>Lat-Long:</strong> ${slot.geo ? `${slot.geo.latitude}, ${slot.geo.longitude}` : "Not captured"}</div>
+                                <div class="photo-meta-row"><strong>Location:</strong> ${slot.geo ? (slot.geo.locationText || "GPS location captured") : "Not captured"}</div>
+                                ${slot.geo && isValidLatLon_(slot.geo.latitude, slot.geo.longitude) ? `
+                                    <div style="margin-top:8px;">
+                                        <a href="https://www.google.com/maps/dir/?api=1&destination=${slot.geo.latitude},${slot.geo.longitude}" target="_blank" rel="noopener" style="display:inline-flex; align-items:center; gap:6px; background:linear-gradient(135deg,#16a34a,#15803d); color:#fff; font-size:11px; font-weight:900; text-transform:uppercase; padding:8px 14px; border-radius:10px; text-decoration:none; box-shadow:0 4px 10px rgba(21,128,61,0.25);">
+                                            <svg width="14" height="14" fill="white" viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5A2.5 2.5 0 1 1 12 6.5a2.5 2.5 0 0 1 0 5z"/></svg>
+                                            Get Directions (Google Maps)
+                                        </a>
+                                    </div>
+                                ` : ""}
+                            </div>
+                        </div>
+                    ` : ""}
+                </div>
+            `).join("");
+        }
+
+        async function handleBcPhotoChange(idx) {
+            const input = document.getElementById(`bc-photo-${idx}`);
+            if (!input.files || !input.files[0]) return;
+            try {
+                const photoData = await resizeImageForUpload(input.files[0]);
+                bcPhotoSlots[idx] = {
+                    name: bcPhotoSlots[idx]?.name || bcDefaultPhotoNames[idx] || "",
+                    photoData,
+                    geo: {
+                        latitude: "Fetching...",
+                        longitude: "Fetching...",
+                        locationText: "GPS location detect ki ja rahi hai"
+                    }
+                };
+                renderBcPhotoSlots();
+
+                try {
+                    const position = await getCurrentPositionAsync();
+                    const latitude = position.coords.latitude.toFixed(6);
+                    const longitude = position.coords.longitude.toFixed(6);
+                    const locationText = await reverseGeocodeLocation(latitude, longitude);
+                    if (bcPhotoSlots[idx]) {
+                        bcPhotoSlots[idx].geo = { latitude, longitude, locationText };
+                        renderBcPhotoSlots();
+                    }
+                } catch (_) {
+                    if (bcPhotoSlots[idx]) {
+                        bcPhotoSlots[idx].geo = {
+                            latitude: "Available nahi",
+                            longitude: "Available nahi",
+                            locationText: "GPS permission allow nahi hui ya signal weak tha"
+                        };
+                        renderBcPhotoSlots();
+                    }
+                }
+            } catch (_) {
+                showToast("Photo load karne mein error aaya", false);
+            }
+        }
+
+        function updateBcPhotoName(idx, value) {
+            if (bcPhotoSlots[idx]) {
+                bcPhotoSlots[idx].name = value;
+            }
+        }
+
+        function removeBcPhoto(idx) {
+            bcPhotoSlots[idx] = null;
+            renderBcPhotoSlots();
+        }
+
+        async function getBijliChoriEntries_() {
+            const rows = await idbGetAll_("bijli_chori");
+            return rows.slice().sort((a, b) => (a.id || 0) - (b.id || 0));
+        }
+
+        async function saveBijliChoriEntry_(entry) {
+            try {
+                await idbAdd_("bijli_chori", entry);
+                const MAX_BC_ENTRIES = 500;
+                const all = await idbGetAll_("bijli_chori");
+                if (all.length > MAX_BC_ENTRIES) {
+                    await idbDeleteOldest_("bijli_chori", all.length - MAX_BC_ENTRIES);
+                    showToast(`Limit ${MAX_BC_ENTRIES} entries hai — sabse purani entry hata di gayi`, true);
+                }
+                return true;
+            } catch (_) {
+                return false;
+            }
+        }
+
+        async function submitBijliChoriEntry() {
+            const ivrs = document.getElementById("bc-ivrs").value.trim();
+            const name = document.getElementById("bc-name").value.trim();
+            const remark = document.getElementById("bc-remark").value.trim();
+            const photos = bcPhotoSlots.filter(Boolean);
+
+            if (!ivrs && !name) return showToast("IVRS No ya Naam/Sthan darj kariye", false);
+            if (!photos.length) return showToast("Kam se kam 1 photo add kariye", false);
+            if (!remark) return showToast("Remark darj kariye", false);
+
+            const submitBtn = document.getElementById("bc-submit-btn");
+            submitBtn.innerText = "Saving...";
+            submitBtn.disabled = true;
+
+            try {
+                const entry = {
+                    date: getCurrentDateDDMMYYYY(),
+                    dateKey: buildFeederDateKey_(getCurrentDateDDMMYYYY()),
+                    timestamp: new Date().toISOString(),
+                    dc_name: activeDC || "",
+                    ivrs,
+                    name,
+                    remark,
+                    photos: photos.map((p) => ({
+                        name: p.name || "",
+                        photo_data: p.photoData,
+                        gps_latitude: p.geo?.latitude || "",
+                        gps_longitude: p.geo?.longitude || "",
+                        gps_location: p.geo?.locationText || ""
+                    }))
+                };
+
+                const saved = await saveBijliChoriEntry_(entry);
+                if (!saved) {
+                    return showToast("Save karne mein error aaya, dobara try karein", false);
+                }
+
+                showToast("Entry Saved Successfully!", true);
+
+                // Reset form
+                document.getElementById("bc-ivrs").value = "";
+                document.getElementById("bc-name").value = "";
+                document.getElementById("bc-remark").value = "";
+                bcPhotoSlots = [null, null, null];
+                renderBcPhotoSlots();
+                await refreshBijliChoriMisTotal();
+            } catch (_) {
+                showToast("Save karne mein error aaya", false);
+            } finally {
+                submitBtn.innerText = "Submit";
+                submitBtn.disabled = false;
+            }
+        }
+
+        async function refreshBijliChoriMisTotal() {
+            const fromDate = document.getElementById("bc-mis-from-date")?.value;
+            const toDate = document.getElementById("bc-mis-to-date")?.value;
+            const totalNode = document.getElementById("bc-mis-total");
+            if (!totalNode) return;
+            const filtered = await filterBijliChoriEntries_(fromDate, toDate);
+            totalNode.innerText = filtered.length;
+        }
+
+        async function filterBijliChoriEntries_(fromDate, toDate) {
+            const entries = await getBijliChoriEntries_();
+            if (!fromDate || !toDate) return entries;
+            const fromTs = new Date(fromDate);
+            const toTs = new Date(toDate);
+            toTs.setHours(23, 59, 59, 999);
+            return entries.filter((e) => {
+                const parts = String(e.date || "").split(/[-/]/);
+                if (parts.length !== 3) return false;
+                const d = new Date(`${parts[2]}-${parts[1]}-${parts[0]}`);
+                return d >= fromTs && d <= toTs;
+            });
+        }
+
+        async function downloadBijliChoriMisPdf() {
+            const fromDate = document.getElementById("bc-mis-from-date").value;
+            const toDate = document.getElementById("bc-mis-to-date").value;
+            if (!fromDate || !toDate) return showToast("Pehle From aur To date select karein", false);
+            if (fromDate > toDate) return showToast("From date, To date se pehle honi chahiye", false);
+
+            const btn = document.getElementById("bc-mis-pdf-btn");
+            btn.innerText = "Generating...";
+            btn.disabled = true;
+
+            try {
+                const filtered = await filterBijliChoriEntries_(fromDate, toDate);
+                await refreshBijliChoriMisTotal();
+
+                const fmtDate = (iso) => {
+                    if (!iso) return "";
+                    const [y, m, d] = iso.split("-");
+                    return `${d}/${m}/${y}`;
+                };
+
+                const { jsPDF } = window.jspdf;
+                const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
+
+                // Header
+                doc.setFillColor(220, 38, 38);
+                doc.rect(0, 0, 210, 22, "F");
+                doc.setFontSize(13);
+                doc.setTextColor(255, 255, 255);
+                doc.setFont(undefined, "bold");
+                doc.text("BIJLI CHORI KI JANKARI MIS REPORT", 105, 10, { align: "center" });
+                doc.setFontSize(8);
+                doc.setFont(undefined, "normal");
+                doc.text(`DC: ${activeDC || "-"}  |  Period: ${fmtDate(fromDate)} to ${fmtDate(toDate)}`, 105, 17, { align: "center" });
+
+                doc.setTextColor(100);
+                doc.setFontSize(7);
+                doc.text(`Generated: ${new Date().toLocaleString("en-IN")}`, 200, 26, { align: "right" });
+
+                doc.setFontSize(10);
+                doc.setTextColor(220, 38, 38);
+                doc.setFont(undefined, "bold");
+                doc.text(`TOTAL ENTRIES: ${filtered.length}`, 14, 32);
+
+                const detailBody = filtered.map((e, i) => [
+                    i + 1,
+                    e.date || "",
+                    e.dc_name || "",
+                    e.ivrs || "",
+                    e.name || "",
+                    e.remark || "",
+                    String((e.photos || []).length)
+                ]);
+
+                doc.autoTable({
+                    startY: 38,
+                    head: [["S.No.", "Date", "DC", "IVRS/Acc No", "Name/Location", "Remark", "Photos"]],
+                    body: detailBody.length ? detailBody : [["-", "-", "-", "-", "No entries found", "-", "-"]],
+                    theme: "striped",
+                    headStyles: { fillColor: [220, 38, 38], textColor: 255, halign: "center", fontSize: 7, fontStyle: "bold" },
+                    bodyStyles: { fontSize: 7 },
+                    columnStyles: {
+                        0: { halign: "center", cellWidth: 10 },
+                        1: { halign: "center", cellWidth: 20 },
+                        2: { halign: "center", cellWidth: 22 },
+                        3: { halign: "center", cellWidth: 26 },
+                        4: { halign: "left", cellWidth: 36 },
+                        5: { halign: "left", cellWidth: 50 },
+                        6: { halign: "center", cellWidth: 12 }
+                    }
+                });
+
+                // Add photos with names, GPS and location on subsequent pages
+                let photoY = doc.lastAutoTable.finalY + 8;
+                filtered.forEach((e, i) => {
+                    (e.photos || []).forEach((p, pIdx) => {
+                        if (!p.photo_data) return;
+                        if (photoY > 200) {
+                            doc.addPage();
+                            photoY = 14;
+                        }
+                        doc.setFontSize(8);
+                        doc.setTextColor(30, 41, 59);
+                        doc.setFont(undefined, "bold");
+                        const label = `Entry ${i + 1} - ${e.date || ""} - ${e.name || e.ivrs || ""} - ${p.name || ("Photo " + (pIdx + 1))}`;
+                        doc.text(label, 14, photoY);
+                        try {
+                            doc.addImage(p.photo_data, "JPEG", 14, photoY + 2, 80, 60);
+                        } catch (_) {}
+                        doc.setFontSize(7);
+                        doc.setFont(undefined, "normal");
+                        doc.setTextColor(80);
+                        const gpsLine = (p.gps_latitude && p.gps_longitude) ? `GPS: ${p.gps_latitude}, ${p.gps_longitude}` : "GPS: N/A";
+                        doc.text(gpsLine, 98, photoY + 8);
+                        const locLines = doc.splitTextToSize(`Location: ${p.gps_location || "N/A"}`, 95);
+                        doc.text(locLines, 98, photoY + 14);
+                        if (isValidLatLon_(p.gps_latitude, p.gps_longitude)) {
+                            const mapsUrl = `https://www.google.com/maps/dir/?api=1&destination=${p.gps_latitude},${p.gps_longitude}`;
+                            doc.setTextColor(21, 128, 61);
+                            doc.setFont(undefined, "bold");
+                            const linkY = photoY + 14 + (locLines.length * 3.5) + 4;
+                            doc.text("Open Map (Directions)", 98, linkY);
+                            doc.link(98, linkY - 3, 50, 5, { url: mapsUrl });
+                        }
+                        photoY += 68;
+                    });
+                });
+
+                const totalPages = doc.internal.getNumberOfPages();
+                for (let i = 1; i <= totalPages; i++) {
+                    doc.setPage(i);
+                    doc.setFontSize(7);
+                    doc.setTextColor(150);
+                    doc.text(`Page ${i} of ${totalPages}  |  Bijli Chori Ki Jankari MIS Report`, 105, 290, { align: "center" });
+                }
+
+                const filename = `Bijli_Chori_MIS_${fmtDate(fromDate).replace(/\//g,"-")}_to_${fmtDate(toDate).replace(/\//g,"-")}.pdf`;
                 doc.save(filename);
                 showToast("PDF Downloaded!", true);
             } catch (_) {
@@ -3872,10 +4305,12 @@
                     color: [192, 138, 87],
                     fromId: "stm-mis-from-date",
                     toId: "stm-mis-to-date",
-                    headers: ["Date", "Time", "Substation", "Shared At", "Calling Info", "Complaint Details", "Operator", "Mobile"],
+                    headers: ["Date", "Time", "Substation", "Shared At", "Calling Info", "Complaint Details", "Operator", "Mobile", "GPS Coordinates", "Location", "Photo"],
                     rowMapper: (r) => [
                         r.date || "", r.time || "", r.substation || "", r.information_shared_at || "",
-                        r.calling_info || "", r.complaint_details || "", r.operator_name || "", r.mobile_no || ""
+                        r.calling_info || "", r.complaint_details || "", r.operator_name || "", r.mobile_no || "",
+                        (r.gps_latitude && r.gps_longitude) ? `${r.gps_latitude}, ${r.gps_longitude}` : "N/A",
+                        r.gps_location || "", r.photo_data ? "Yes" : "No"
                     ],
                     fetcher: getStmMisRows_,
                     filename: "STM_Complaint_MIS"
@@ -4166,7 +4601,7 @@
             fallbackFeederRows.forEach((fb) => {
                 const key = `${normalizeFeederSubstationKey_(fb.substation)}|${fb.feeder.toUpperCase()}`;
                 if (!existingKeys.has(key)) {
-                    merged.push({ ...fb, "METER NO": fb.meterNo || "", feederType: "11 KV" });
+                    merged.push({ ...fb, "METER NO": fb.meterNo || "", feederType: fb.feederType || "11 KV" });
                 }
             });
             return merged;
@@ -5154,12 +5589,87 @@
             if (submitBtn) submitBtn.style.display = selectedStmComplaintSubstation && sharedMode && dateValue && timeValue && callingReady && complaintDetails ? "flex" : "none";
         }
 
-        function updateStmComplaintPhotoName() {
+        let stmComplaintGeoData = null;
+
+        function updateStmComplaintPhotoMetaUI() {
+            const metaBox = document.getElementById("stm-complaint-photo-meta");
+            const latLongNode = document.getElementById("stm-complaint-photo-latlong");
+            const locationNode = document.getElementById("stm-complaint-photo-location");
+            if (!metaBox || !latLongNode || !locationNode) return;
+            if (!stmComplaintGeoData) {
+                metaBox.style.display = "none";
+                latLongNode.innerHTML = "<strong>Lat-Long:</strong> Not captured";
+                locationNode.innerHTML = "<strong>Location:</strong> Not captured";
+                return;
+            }
+            metaBox.style.display = "block";
+            latLongNode.innerHTML = `<strong>Lat-Long:</strong> ${stmComplaintGeoData.latitude}, ${stmComplaintGeoData.longitude}`;
+            locationNode.innerHTML = `<strong>Location:</strong> ${stmComplaintGeoData.locationText || "GPS location captured"}`;
+        }
+
+        async function updateStmComplaintPhotoName() {
             const input = document.getElementById("stm-complaint-photo");
             const label = document.getElementById("stm-complaint-photo-name");
             const fileName = input?.files?.[0]?.name || "";
-            if (!label) return;
-            label.innerText = fileName || "Camera ya gallery dono se photo select kar sakte hain";
+            if (label) label.innerText = fileName || "Camera ya gallery dono se photo select kar sakte hain";
+
+            if (!input?.files?.[0]) {
+                stmComplaintGeoData = null;
+                updateStmComplaintPhotoMetaUI();
+                return;
+            }
+
+            try {
+                stmComplaintGeoData = {
+                    latitude: "Fetching...",
+                    longitude: "Fetching...",
+                    locationText: "GPS location detect ki ja rahi hai"
+                };
+                updateStmComplaintPhotoMetaUI();
+                const position = await getCurrentPositionAsync();
+                const latitude = position.coords.latitude.toFixed(6);
+                const longitude = position.coords.longitude.toFixed(6);
+                const locationText = await reverseGeocodeLocation(latitude, longitude);
+                stmComplaintGeoData = { latitude, longitude, locationText };
+                updateStmComplaintPhotoMetaUI();
+            } catch (_) {
+                stmComplaintGeoData = {
+                    latitude: "Available nahi",
+                    longitude: "Available nahi",
+                    locationText: "GPS permission allow nahi hui ya signal weak tha"
+                };
+                updateStmComplaintPhotoMetaUI();
+            }
+        }
+
+        function showStmShareOptions(encodedText, fallbackMobile) {
+            const existing = document.getElementById("stm-share-overlay");
+            if (existing) existing.remove();
+
+            const overlay = document.createElement("div");
+            overlay.id = "stm-share-overlay";
+            overlay.style.cssText = "position:fixed; inset:0; background:rgba(0,0,0,0.45); z-index:9999; display:flex; align-items:center; justify-content:center; padding:20px;";
+
+            const card = document.createElement("div");
+            card.style.cssText = "background:#ffffff; border-radius:18px; padding:18px; width:100%; max-width:320px; box-shadow:0 12px 30px rgba(0,0,0,0.25);";
+
+            card.innerHTML = `
+                <div style="font-size:14px; font-weight:900; color:#5b3a21; text-transform:uppercase; text-align:center; margin-bottom:14px;">Complaint New Adegaon DC ko bhejein</div>
+                <a href="https://wa.me/?text=${encodedText}" target="_blank" rel="noopener" style="display:flex; align-items:center; justify-content:center; gap:8px; width:100%; height:48px; border-radius:12px; background:linear-gradient(135deg,#25D366,#128C7E); color:#fff; font-size:13px; font-weight:900; text-transform:uppercase; text-decoration:none; margin-bottom:10px;">
+                    WhatsApp Group Pe Bhejein
+                </a>
+                <a href="sms:?body=${encodedText}" style="display:flex; align-items:center; justify-content:center; gap:8px; width:100%; height:48px; border-radius:12px; background:linear-gradient(135deg,#3b82f6,#1d4ed8); color:#fff; font-size:13px; font-weight:900; text-transform:uppercase; text-decoration:none; margin-bottom:10px;">
+                    Message (SMS) Bhejein
+                </a>
+                ${fallbackMobile ? `<a href="tel:${fallbackMobile}" style="display:flex; align-items:center; justify-content:center; gap:8px; width:100%; height:48px; border-radius:12px; background:linear-gradient(135deg,#f59e0b,#b45309); color:#fff; font-size:13px; font-weight:900; text-transform:uppercase; text-decoration:none; margin-bottom:10px;">Call Karein</a>` : ""}
+                <button onclick="document.getElementById('stm-share-overlay').remove()" style="width:100%; height:44px; border:none; border-radius:12px; background:#e2e8f0; color:#1e293b; font-size:13px; font-weight:900; text-transform:uppercase;">Band Karein</button>
+            `;
+
+            overlay.appendChild(card);
+            overlay.addEventListener("click", (e) => {
+                if (e.target === overlay) overlay.remove();
+            });
+            document.body.appendChild(overlay);
         }
 
         function formatStmComplaintTimeInput(input) {
@@ -5248,15 +5758,20 @@
                         operator_name: activeStmComplaintOperator.fullName || "",
                         mobile_no: activeStmComplaintOperator.mobileNo || "",
                         dc_name: activeDC || "",
+                        photo_data: photoBase64 || "",
+                        photo_name: photoName || "",
+                        gps_latitude: stmComplaintGeoData?.latitude || "",
+                        gps_longitude: stmComplaintGeoData?.longitude || "",
+                        gps_location: stmComplaintGeoData?.locationText || "",
                         timestamp: new Date().toISOString()
                     });
                 } catch (_) {}
                 refreshStmMisTotal();
 
-                // Open WhatsApp with complaint details so the operator can share to the ADEGAON DC group
+                // Open WhatsApp with complaint details so the operator can share to the New Adegaon DC group
                 try {
                     const waLines = [
-                        "*STM COMPLAINT - ADEGAON DC*",
+                        "*STM COMPLAINT - NEW ADEGAON DC*",
                         `Substation: ${selectedStmComplaintSubstation}`,
                         `Date: ${dateValue}  Time: ${timeValue}`,
                         `Information Shared At: ${sharedMode}`
@@ -5264,8 +5779,12 @@
                     if (sharedMode === "CALLING" && callingInfo) waLines.push(`Calling Info: ${callingInfo}`);
                     waLines.push(`Complaint: ${complaintDetails}`);
                     waLines.push(`Operator: ${activeStmComplaintOperator.fullName} (${activeStmComplaintOperator.mobileNo})`);
+                    if (stmComplaintGeoData && isValidLatLon_(stmComplaintGeoData.latitude, stmComplaintGeoData.longitude)) {
+                        waLines.push(`Location: ${stmComplaintGeoData.locationText || ""}`);
+                        waLines.push(`Map: https://www.google.com/maps/dir/?api=1&destination=${stmComplaintGeoData.latitude},${stmComplaintGeoData.longitude}`);
+                    }
                     const waText = encodeURIComponent(waLines.join("\n"));
-                    window.open(`https://wa.me/?text=${waText}`, "_blank");
+                    showStmShareOptions(waText, activeStmComplaintOperator.mobileNo || "");
                 } catch (_) {}
 
                 const sharedModeInput = document.getElementById("stm-complaint-shared-mode");
@@ -5283,6 +5802,8 @@
                 if (detailsInput) detailsInput.value = "";
                 if (photoInput) photoInput.value = "";
                 if (photoNameLabel) photoNameLabel.innerText = "Camera ya gallery dono se photo select kar sakte hain";
+                stmComplaintGeoData = null;
+                updateStmComplaintPhotoMetaUI();
                 populateStmComplaintSubstations();
                 updateStmComplaintProgressiveUi();
             } catch (error) {
@@ -8052,6 +8573,15 @@
                     renderPdcPhotoSlots();
                     refreshPdcMisTotal();
                 }
+                if (id === "bijli-chori") {
+                    const today = new Date().toISOString().split("T")[0];
+                    const now = new Date();
+                    const firstOfMonth = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,"0")}-01`;
+                    if (document.getElementById("bc-mis-from-date")) document.getElementById("bc-mis-from-date").value = firstOfMonth;
+                    if (document.getElementById("bc-mis-to-date")) document.getElementById("bc-mis-to-date").value = today;
+                    renderBcPhotoSlots();
+                    refreshBijliChoriMisTotal();
+                }
                 if (id === "mobile-update" && activeDC) {
                     ensureDcDataLoaded(activeDC);
                 }
@@ -8102,6 +8632,7 @@
                 if (id === "mobile-update") headerTitle = "UPDATE MOBILE NO";
                 if (id === "broken-pole") headerTitle = "BROKEN POLE / DAMAGE LINE";
                 if (id === "pdc-nontraceable") headerTitle = "PDC / NON-TRACEABLE";
+                if (id === "bijli-chori") headerTitle = "बिजली चोरी की जानकारी";
                 if (id === "summary") headerTitle = "PROGRESS REPORT";
                 document.getElementById("main-header-title").innerText = headerTitle;
                 const header = document.getElementById("app-header");
@@ -8188,7 +8719,7 @@
                 const label = document.getElementById("selected-dc-label");
                 if (label) label.innerText = "Choose DC Name...";
                 switchView("dc-selection");
-            } else if (act === "mobile-update-view" || act === "broken-pole-view" || act === "pdc-nontraceable-view") {
+            } else if (act === "mobile-update-view" || act === "broken-pole-view" || act === "pdc-nontraceable-view" || act === "bijli-chori-view") {
                 if (act === "mobile-update-view") {
                     resetForm(true);
                 }
