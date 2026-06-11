@@ -455,9 +455,10 @@
 
         <main id="dc-dashboard-view" class="view">
             <div class="px-2 py-8 flex flex-col gap-4">
-                <button class="dashboard-btn btn-green-fix" onclick="window.open('https://billing.mpez.co.in/', '_blank')">PAY & VIEW BIJLEE BILL</button>
+                <button class="dashboard-btn btn-green-fix" onclick="window.open('https://pradeepks2015-ship-it.github.io/ADEGAON/', '_blank')">VASOOLI TRACKER</button>
                 <button class="dashboard-btn btn-update-red" onclick="switchView('mobile-update')">Mobile No Update</button>
           <button class="dashboard-btn btn-court-case" onclick="switchView('court-case')" style="display:none;">Lok Adalat Notice</button>
+                <button class="dashboard-btn" style="background: linear-gradient(135deg, #f59e0b 0%, #b45309 100%);" onclick="switchView('broken-pole')">⚡ Broken Pole / Damage Line</button>
                 <button class="dashboard-btn btn-progress-black" onclick="askPassword('DC')">Daily Progress</button>
             </div>
         </main>
@@ -1008,6 +1009,60 @@
             </div>
         </main>
 
+        <main id="broken-pole-view" class="view">
+            <div class="title-box-container"><div class="title-box"><span class="title-text-bold">⚡ BROKEN POLE / DAMAGE LINE</span></div></div>
+            <div class="search-panel">
+                <div id="bp-result-box" class="result-card-custom" style="display:block;">
+
+                    <!-- Photo capture with GPS -->
+                    <div class="photo-upload-box">
+                        <label for="bp-photo" class="photo-upload-label">
+                            <div class="camera-icon-wrap">
+                                <svg width="24" height="24" fill="none" stroke="white" stroke-width="2.2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 8.5A2.5 2.5 0 0 1 5.5 6H8l1.3-1.6A2 2 0 0 1 10.86 4h2.28a2 2 0 0 1 1.56.74L16 6h2.5A2.5 2.5 0 0 1 21 8.5v8A2.5 2.5 0 0 1 18.5 19h-13A2.5 2.5 0 0 1 3 16.5z"></path><circle cx="12" cy="12.5" r="3.5"></circle></svg>
+                            </div>
+                            PHOTO OF BROKEN POLE / DAMAGE LINE
+                        </label>
+                        <input type="file" id="bp-photo" accept="image/*" capture="environment" style="display:none;" onchange="updateBrokenPolePhoto()">
+                        <div id="bp-photo-name" class="photo-file-name">No photo selected</div>
+                        <div id="bp-photo-meta" class="photo-meta-box" style="display:none;">
+                            <div id="bp-photo-latlong" class="photo-meta-row"><strong>Lat-Long:</strong> Not captured</div>
+                            <div id="bp-photo-location" class="photo-meta-row"><strong>Location:</strong> Not captured</div>
+                            <div id="bp-photo-directions" style="margin-top:8px;"></div>
+                        </div>
+                    </div>
+
+                    <!-- Remarks -->
+                    <div class="title-box-container" style="padding-top: 15px;"><div class="title-box" style="background-color: #fee2e2;"><span class="title-text-bold" style="color: #991b1b;">Remarks</span></div></div>
+                    <input type="text" id="bp-remark1" class="teal-boundary-input" placeholder="Remark 1 (e.g. Pole No / Feeder Name)" style="margin-bottom:12px;">
+                    <input type="text" id="bp-remark2" class="teal-boundary-input" placeholder="Remark 2 (e.g. Action Taken / Status)">
+
+                </div>
+                <button id="bp-submit-btn" class="submit-sync-btn" onclick="submitBrokenPoleEntry()">Submit</button>
+
+                <!-- MIS Report Section -->
+                <div style="width:100%; max-width:340px; margin: 18px auto 0 auto;">
+                    <div style="background: linear-gradient(135deg, #b45309 0%, #78350f 100%); border-radius: 18px; padding: 16px 18px; box-shadow: 0 8px 20px rgba(180,83,9,0.18);">
+                        <div style="font-size:12px; font-weight:900; color:#fde68a; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:10px; text-align:center;">📊 MIS Report — Broken Pole / Damage Line</div>
+                        <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:10px;">
+                            <div>
+                                <div style="font-size:10px; font-weight:800; color:#fde68a; text-transform:uppercase; margin-bottom:4px;">From Date</div>
+                                <input type="date" id="bp-mis-from-date" onchange="refreshBrokenPoleMisTotal()" style="width:100%; height:38px; border-radius:10px; border:1.5px solid #d97706; padding:0 8px; font-size:0.8rem; font-weight:700; color:#78350f; background:#fffbeb; outline:none;">
+                            </div>
+                            <div>
+                                <div style="font-size:10px; font-weight:800; color:#fde68a; text-transform:uppercase; margin-bottom:4px;">To Date</div>
+                                <input type="date" id="bp-mis-to-date" onchange="refreshBrokenPoleMisTotal()" style="width:100%; height:38px; border-radius:10px; border:1.5px solid #d97706; padding:0 8px; font-size:0.8rem; font-weight:700; color:#78350f; background:#fffbeb; outline:none;">
+                            </div>
+                        </div>
+                        <div id="bp-mis-total-box" style="text-align:center; margin-bottom:10px; font-size:12px; font-weight:900; color:#fef3c7;">Total Entries: <span id="bp-mis-total">0</span></div>
+                        <button id="bp-mis-pdf-btn" onclick="downloadBrokenPoleMisPdf()" style="width:100%; height:44px; border:none; border-radius:12px; background:linear-gradient(135deg, #ef4444 0%, #b91c1c 100%); color:#ffffff; font-size:13px; font-weight:900; text-transform:uppercase; letter-spacing:0.5px; box-shadow:0 6px 14px rgba(239,68,68,0.3); cursor:pointer; display:flex; align-items:center; justify-content:center; gap:8px;">
+                            <svg width="16" height="16" fill="white" viewBox="0 0 24 24"><path d="M20 2H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-8.5 7.5c0 .83-.67 1.5-1.5 1.5H9v2H7.5V7H10c.83 0 1.5.67 1.5 1.5v1zm5 2c0 .83-.67 1.5-1.5 1.5h-2.5V7H15c.83 0 1.5.67 1.5 1.5v3zm4-3H19v1h1.5V11H19v2h-1.5V7h3v1.5zM9 9.5h1v-1H9v1zM4 6H2v14c0 1.1.9 2 2 2h14v-2H4V6zm10 5.5h1v-3h-1v3z"/></svg>
+                            Download PDF MIS Report
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </main>
+
         <main id="court-case-view" class="view">
             <div class="title-box-container"><div class="title-box"><span class="title-text-bold">SEARCH CASE NUMBER</span></div></div>
             <div class="search-panel">
@@ -1249,6 +1304,8 @@
         const shmsRecentSubmittedTtlMs = 2 * 60 * 1000;
         const feederRecentSubmittedStorageKey = "seoni-circle-feeder-recent-submitted";
         const feederOperatorStorageKey = "feederOperatorProfile";
+        const brokenPoleStorageKey = "seoni-circle-broken-pole-entries";
+        let bpGeoData = null;
         const feederAlertStartDateKey = "2026-05-04";
         let mobileSubmittedSheetMap = {};
         let lokServedSheetMap = {};
@@ -2940,6 +2997,302 @@
                 reader.onerror = reject;
                 reader.readAsDataURL(file);
             });
+        }
+
+        // ===== Broken Pole / Damage Line feature =====
+        function updateBpPhotoMetaUI() {
+            const metaBox = document.getElementById("bp-photo-meta");
+            const latLongNode = document.getElementById("bp-photo-latlong");
+            const locationNode = document.getElementById("bp-photo-location");
+            const directionsNode = document.getElementById("bp-photo-directions");
+            if (!metaBox || !latLongNode || !locationNode) return;
+            if (!bpGeoData) {
+                metaBox.style.display = "none";
+                latLongNode.innerHTML = "<strong>Lat-Long:</strong> Not captured";
+                locationNode.innerHTML = "<strong>Location:</strong> Not captured";
+                if (directionsNode) directionsNode.innerHTML = "";
+                return;
+            }
+            metaBox.style.display = "block";
+            latLongNode.innerHTML = `<strong>Lat-Long:</strong> ${bpGeoData.latitude}, ${bpGeoData.longitude}`;
+            locationNode.innerHTML = `<strong>Location:</strong> ${bpGeoData.locationText || "GPS location captured"}`;
+            if (directionsNode) {
+                const lat = bpGeoData.latitude;
+                const lon = bpGeoData.longitude;
+                const isValidCoord = /^-?\d+(\.\d+)?$/.test(String(lat)) && /^-?\d+(\.\d+)?$/.test(String(lon));
+                if (isValidCoord) {
+                    const mapsUrl = `https://www.google.com/maps/dir/?api=1&destination=${lat},${lon}`;
+                    directionsNode.innerHTML = `<a href="${mapsUrl}" target="_blank" rel="noopener" style="display:inline-flex; align-items:center; gap:6px; background:linear-gradient(135deg,#16a34a,#15803d); color:#fff; font-size:11px; font-weight:900; text-transform:uppercase; padding:8px 14px; border-radius:10px; text-decoration:none; box-shadow:0 4px 10px rgba(21,128,61,0.25);">
+                        <svg width="14" height="14" fill="white" viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5A2.5 2.5 0 1 1 12 6.5a2.5 2.5 0 0 1 0 5z"/></svg>
+                        Get Directions (Google Maps)
+                    </a>`;
+                } else {
+                    directionsNode.innerHTML = "";
+                }
+            }
+        }
+
+        async function captureBpGeoLocation() {
+            try {
+                bpGeoData = {
+                    latitude: "Fetching...",
+                    longitude: "Fetching...",
+                    locationText: "GPS location detect ki ja rahi hai"
+                };
+                updateBpPhotoMetaUI();
+                const position = await getCurrentPositionAsync();
+                const latitude = position.coords.latitude.toFixed(6);
+                const longitude = position.coords.longitude.toFixed(6);
+                const locationText = await reverseGeocodeLocation(latitude, longitude);
+                bpGeoData = { latitude, longitude, locationText };
+                updateBpPhotoMetaUI();
+            } catch (_) {
+                bpGeoData = {
+                    latitude: "Available nahi",
+                    longitude: "Available nahi",
+                    locationText: "GPS permission allow nahi hui ya signal weak tha"
+                };
+                updateBpPhotoMetaUI();
+            }
+        }
+
+        async function updateBrokenPolePhoto() {
+            const input = document.getElementById("bp-photo");
+            const label = document.getElementById("bp-photo-name");
+            label.innerText = input.files && input.files[0] ? input.files[0].name : "No photo selected";
+            if (input.files && input.files[0]) {
+                await captureBpGeoLocation();
+            } else {
+                bpGeoData = null;
+                updateBpPhotoMetaUI();
+            }
+        }
+
+        function getBrokenPoleEntries_() {
+            try {
+                return JSON.parse(localStorage.getItem(brokenPoleStorageKey) || "[]");
+            } catch (_) {
+                return [];
+            }
+        }
+
+        function saveBrokenPoleEntries_(entries) {
+            try {
+                localStorage.setItem(brokenPoleStorageKey, JSON.stringify(entries));
+                return true;
+            } catch (_) {
+                return false;
+            }
+        }
+
+        async function submitBrokenPoleEntry() {
+            const photoInput = document.getElementById("bp-photo");
+            const remark1 = document.getElementById("bp-remark1").value.trim();
+            const remark2 = document.getElementById("bp-remark2").value.trim();
+
+            if (!photoInput.files || !photoInput.files[0]) return showToast("Photo select kariye", false);
+            if (!remark1) return showToast("Remark 1 darj kariye", false);
+
+            const submitBtn = document.getElementById("bp-submit-btn");
+            submitBtn.innerText = "Saving...";
+            submitBtn.disabled = true;
+
+            try {
+                const photoFile = photoInput.files[0];
+                const photoData = await resizeImageForUpload(photoFile);
+
+                const entry = {
+                    date: getCurrentDateDDMMYYYY(),
+                    timestamp: new Date().toISOString(),
+                    dc_name: activeDC || "",
+                    remark1,
+                    remark2,
+                    gps_latitude: bpGeoData?.latitude || "",
+                    gps_longitude: bpGeoData?.longitude || "",
+                    gps_location: bpGeoData?.locationText || "",
+                    photo_name: photoFile.name || "",
+                    photo_data: photoData
+                };
+
+                const entries = getBrokenPoleEntries_();
+                entries.push(entry);
+                const saved = saveBrokenPoleEntries_(entries);
+                if (!saved) {
+                    return showToast("Storage full hai — purani entries delete karein ya kam quality photo lें", false);
+                }
+
+                showToast("Entry Saved Successfully!", true);
+
+                // Reset form
+                document.getElementById("bp-photo").value = "";
+                document.getElementById("bp-photo-name").innerText = "No photo selected";
+                document.getElementById("bp-remark1").value = "";
+                document.getElementById("bp-remark2").value = "";
+                bpGeoData = null;
+                updateBpPhotoMetaUI();
+                refreshBrokenPoleMisTotal();
+            } catch (_) {
+                showToast("Save karne mein error aaya", false);
+            } finally {
+                submitBtn.innerText = "Submit";
+                submitBtn.disabled = false;
+            }
+        }
+
+        function isValidLatLon_(lat, lon) {
+            return /^-?\d+(\.\d+)?$/.test(String(lat)) && /^-?\d+(\.\d+)?$/.test(String(lon));
+        }
+
+        function refreshBrokenPoleMisTotal() {
+            const fromDate = document.getElementById("bp-mis-from-date")?.value;
+            const toDate = document.getElementById("bp-mis-to-date")?.value;
+            const totalNode = document.getElementById("bp-mis-total");
+            if (!totalNode) return;
+            const filtered = filterBrokenPoleEntries_(fromDate, toDate);
+            totalNode.innerText = filtered.length;
+        }
+
+        function filterBrokenPoleEntries_(fromDate, toDate) {
+            const entries = getBrokenPoleEntries_();
+            if (!fromDate || !toDate) return entries;
+            const fromTs = new Date(fromDate);
+            const toTs = new Date(toDate);
+            toTs.setHours(23, 59, 59, 999);
+            return entries.filter((e) => {
+                const parts = String(e.date || "").split("/");
+                if (parts.length !== 3) return false;
+                const d = new Date(`${parts[2]}-${parts[1]}-${parts[0]}`);
+                return d >= fromTs && d <= toTs;
+            });
+        }
+
+        async function downloadBrokenPoleMisPdf() {
+            const fromDate = document.getElementById("bp-mis-from-date").value;
+            const toDate = document.getElementById("bp-mis-to-date").value;
+            if (!fromDate || !toDate) return showToast("Pehle From aur To date select karein", false);
+            if (fromDate > toDate) return showToast("From date, To date se pehle honi chahiye", false);
+
+            const btn = document.getElementById("bp-mis-pdf-btn");
+            btn.innerText = "Generating...";
+            btn.disabled = true;
+
+            try {
+                const filtered = filterBrokenPoleEntries_(fromDate, toDate);
+                refreshBrokenPoleMisTotal();
+
+                const fmtDate = (iso) => {
+                    if (!iso) return "";
+                    const [y, m, d] = iso.split("-");
+                    return `${d}/${m}/${y}`;
+                };
+
+                const { jsPDF } = window.jspdf;
+                const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
+
+                // Header
+                doc.setFillColor(180, 83, 9);
+                doc.rect(0, 0, 210, 22, "F");
+                doc.setFontSize(13);
+                doc.setTextColor(255, 255, 255);
+                doc.setFont(undefined, "bold");
+                doc.text("BROKEN POLE / DAMAGE LINE MIS REPORT", 105, 10, { align: "center" });
+                doc.setFontSize(8);
+                doc.setFont(undefined, "normal");
+                doc.text(`DC: ${activeDC || "-"}  |  Period: ${fmtDate(fromDate)} to ${fmtDate(toDate)}`, 105, 17, { align: "center" });
+
+                doc.setTextColor(100);
+                doc.setFontSize(7);
+                doc.text(`Generated: ${new Date().toLocaleString("en-IN")}`, 200, 26, { align: "right" });
+
+                doc.setFontSize(10);
+                doc.setTextColor(180, 83, 9);
+                doc.setFont(undefined, "bold");
+                doc.text(`TOTAL ENTRIES: ${filtered.length}`, 14, 32);
+
+                const detailBody = filtered.map((e, i) => [
+                    i + 1,
+                    e.date || "",
+                    e.dc_name || "",
+                    e.remark1 || "",
+                    e.remark2 || "",
+                    (e.gps_latitude && e.gps_longitude) ? `${e.gps_latitude}, ${e.gps_longitude}` : "N/A",
+                    e.gps_location || "",
+                    isValidLatLon_(e.gps_latitude, e.gps_longitude) ? "Open Map" : "N/A"
+                ]);
+
+                doc.autoTable({
+                    startY: 38,
+                    head: [["S.No.", "Date", "DC", "Remark 1", "Remark 2", "GPS Coordinates", "Location", "Directions"]],
+                    body: detailBody.length ? detailBody : [["-", "-", "-", "No entries found", "-", "-", "-", "-"]],
+                    theme: "striped",
+                    headStyles: { fillColor: [180, 83, 9], textColor: 255, halign: "center", fontSize: 7, fontStyle: "bold" },
+                    bodyStyles: { fontSize: 7 },
+                    columnStyles: {
+                        0: { halign: "center", cellWidth: 9 },
+                        1: { halign: "center", cellWidth: 18 },
+                        2: { halign: "center", cellWidth: 18 },
+                        3: { halign: "left", cellWidth: 28 },
+                        4: { halign: "left", cellWidth: 28 },
+                        5: { halign: "center", cellWidth: 30 },
+                        6: { halign: "left", cellWidth: 32 },
+                        7: { halign: "center", cellWidth: 17, textColor: [21, 128, 61], fontStyle: "bold" }
+                    },
+                    didDrawCell: (data) => {
+                        if (data.section === "body" && data.column.index === 7) {
+                            const e = filtered[data.row.index];
+                            if (e && isValidLatLon_(e.gps_latitude, e.gps_longitude)) {
+                                const mapsUrl = `https://www.google.com/maps/dir/?api=1&destination=${e.gps_latitude},${e.gps_longitude}`;
+                                doc.link(data.cell.x, data.cell.y, data.cell.width, data.cell.height, { url: mapsUrl });
+                            }
+                        }
+                    }
+                });
+
+                // Add photos on subsequent pages
+                let photoY = doc.lastAutoTable.finalY + 8;
+                filtered.forEach((e, i) => {
+                    if (!e.photo_data) return;
+                    if (photoY > 220) {
+                        doc.addPage();
+                        photoY = 14;
+                    }
+                    doc.setFontSize(8);
+                    doc.setTextColor(30, 41, 59);
+                    doc.setFont(undefined, "bold");
+                    doc.text(`Photo ${i + 1} - ${e.date || ""} - ${e.remark1 || ""}`, 14, photoY);
+                    try {
+                        doc.addImage(e.photo_data, "JPEG", 14, photoY + 2, 80, 60);
+                    } catch (_) {}
+                    if (isValidLatLon_(e.gps_latitude, e.gps_longitude)) {
+                        const mapsUrl = `https://www.google.com/maps/dir/?api=1&destination=${e.gps_latitude},${e.gps_longitude}`;
+                        doc.setFontSize(8);
+                        doc.setTextColor(21, 128, 61);
+                        doc.setFont(undefined, "bold");
+                        doc.textWithLink("Get Directions (Google Maps)", 100, photoY + 12, { url: mapsUrl });
+                        doc.setTextColor(30, 41, 59);
+                        doc.setFont(undefined, "normal");
+                        doc.text(`Lat-Long: ${e.gps_latitude}, ${e.gps_longitude}`, 100, photoY + 20);
+                    }
+                    photoY += 68;
+                });
+
+                const totalPages = doc.internal.getNumberOfPages();
+                for (let i = 1; i <= totalPages; i++) {
+                    doc.setPage(i);
+                    doc.setFontSize(7);
+                    doc.setTextColor(150);
+                    doc.text(`Page ${i} of ${totalPages}  |  Broken Pole / Damage Line MIS Report`, 105, 290, { align: "center" });
+                }
+
+                const filename = `Broken_Pole_MIS_${fmtDate(fromDate).replace(/\//g,"-")}_to_${fmtDate(toDate).replace(/\//g,"-")}.pdf`;
+                doc.save(filename);
+                showToast("PDF Downloaded!", true);
+            } catch (_) {
+                showToast("Report generate karne mein error aaya", false);
+            } finally {
+                btn.innerHTML = '<svg width="16" height="16" fill="white" viewBox="0 0 24 24"><path d="M20 2H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-8.5 7.5c0 .83-.67 1.5-1.5 1.5H9v2H7.5V7H10c.83 0 1.5.67 1.5 1.5v1zm5 2c0 .83-.67 1.5-1.5 1.5h-2.5V7H15c.83 0 1.5.67 1.5 1.5v3zm4-3H19v1h1.5V11H19v2h-1.5V7h3v1.5zM9 9.5h1v-1H9v1zM4 6H2v14c0 1.1.9 2 2 2h14v-2H4V6zm10 5.5h1v-3h-1v3z"/></svg> Download PDF MIS Report';
+                btn.disabled = false;
+            }
         }
 
         function parseCourtCaseLine(line) {
@@ -6926,6 +7279,14 @@
                 }
                 if (id === "subdn-lakhnadon") {
                     activeSubDnDcs = subDnLakhnadonDcs;
+                }
+                if (id === "broken-pole") {
+                    const today = new Date().toISOString().split("T")[0];
+                    const now = new Date();
+                    const firstOfMonth = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,"0")}-01`;
+                    if (document.getElementById("bp-mis-from-date")) document.getElementById("bp-mis-from-date").value = firstOfMonth;
+                    if (document.getElementById("bp-mis-to-date")) document.getElementById("bp-mis-to-date").value = today;
+                    refreshBrokenPoleMisTotal();
                 }
                 if (id === "mobile-update" && activeDC) {
                     ensureDcDataLoaded(activeDC);
