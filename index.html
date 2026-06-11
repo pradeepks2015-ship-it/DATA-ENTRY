@@ -459,7 +459,7 @@
                 <button class="dashboard-btn btn-update-red" onclick="switchView('mobile-update')">Mobile No Update</button>
           <button class="dashboard-btn btn-court-case" onclick="switchView('court-case')" style="display:none;">Lok Adalat Notice</button>
                 <button class="dashboard-btn" style="background: linear-gradient(135deg, #f59e0b 0%, #b45309 100%);" onclick="switchView('broken-pole')">⚡ Broken Pole / Damage Line</button>
-                <button class="dashboard-btn btn-progress-black" onclick="askPassword('DC')">Daily Progress</button>
+                <button class="dashboard-btn" style="background: linear-gradient(135deg, #6366f1 0%, #312e81 100%);" onclick="switchView('pdc-nontraceable')">📄 PDC / NON-TRACEABLE</button>
             </div>
         </main>
 
@@ -1063,6 +1063,51 @@
             </div>
         </main>
 
+        <main id="pdc-nontraceable-view" class="view">
+            <div class="title-box-container"><div class="title-box"><span class="title-text-bold">📄 PDC / NON-TRACEABLE</span></div></div>
+            <div class="search-panel">
+                <div id="pdc-result-box" class="result-card-custom" style="display:block;">
+
+                    <!-- Consumer / Reference Info -->
+                    <div class="title-box-container" style="padding-top:0;"><div class="title-box" style="background-color:#e0e7ff;"><span class="title-text-bold" style="color:#312e81;">Consumer / Reference Details</span></div></div>
+                    <input type="text" id="pdc-ivrs" class="teal-boundary-input" placeholder="IVRS No / Account No" style="margin-bottom:12px;">
+                    <input type="text" id="pdc-name" class="teal-boundary-input" placeholder="Consumer Name" style="margin-bottom:12px;">
+
+                    <!-- 5 Photo Upload Slots -->
+                    <div class="title-box-container" style="padding-top: 15px;"><div class="title-box" style="background-color:#e0e7ff;"><span class="title-text-bold" style="color:#312e81;">Supporting Documents (Max 5 Photos)</span></div></div>
+                    <div id="pdc-photo-slots"></div>
+
+                    <!-- Remark -->
+                    <div class="title-box-container" style="padding-top: 15px;"><div class="title-box" style="background-color: #fee2e2;"><span class="title-text-bold" style="color: #991b1b;">Remark</span></div></div>
+                    <textarea id="pdc-remark" class="teal-boundary-input" placeholder="Remark likhein..." style="min-height:78px; resize:vertical; padding:12px;"></textarea>
+
+                </div>
+                <button id="pdc-submit-btn" class="submit-sync-btn" onclick="submitPdcEntry()">Submit</button>
+
+                <!-- MIS Report Section -->
+                <div style="width:100%; max-width:340px; margin: 18px auto 0 auto;">
+                    <div style="background: linear-gradient(135deg, #4338ca 0%, #1e1b4b 100%); border-radius: 18px; padding: 16px 18px; box-shadow: 0 8px 20px rgba(67,56,202,0.18);">
+                        <div style="font-size:12px; font-weight:900; color:#c7d2fe; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:10px; text-align:center;">📊 MIS Report — PDC / Non-Traceable</div>
+                        <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:10px;">
+                            <div>
+                                <div style="font-size:10px; font-weight:800; color:#c7d2fe; text-transform:uppercase; margin-bottom:4px;">From Date</div>
+                                <input type="date" id="pdc-mis-from-date" onchange="refreshPdcMisTotal()" style="width:100%; height:38px; border-radius:10px; border:1.5px solid #6366f1; padding:0 8px; font-size:0.8rem; font-weight:700; color:#1e1b4b; background:#eef2ff; outline:none;">
+                            </div>
+                            <div>
+                                <div style="font-size:10px; font-weight:800; color:#c7d2fe; text-transform:uppercase; margin-bottom:4px;">To Date</div>
+                                <input type="date" id="pdc-mis-to-date" onchange="refreshPdcMisTotal()" style="width:100%; height:38px; border-radius:10px; border:1.5px solid #6366f1; padding:0 8px; font-size:0.8rem; font-weight:700; color:#1e1b4b; background:#eef2ff; outline:none;">
+                            </div>
+                        </div>
+                        <div id="pdc-mis-total-box" style="text-align:center; margin-bottom:10px; font-size:12px; font-weight:900; color:#e0e7ff;">Total Entries: <span id="pdc-mis-total">0</span></div>
+                        <button id="pdc-mis-pdf-btn" onclick="downloadPdcMisPdf()" style="width:100%; height:44px; border:none; border-radius:12px; background:linear-gradient(135deg, #ef4444 0%, #b91c1c 100%); color:#ffffff; font-size:13px; font-weight:900; text-transform:uppercase; letter-spacing:0.5px; box-shadow:0 6px 14px rgba(239,68,68,0.3); cursor:pointer; display:flex; align-items:center; justify-content:center; gap:8px;">
+                            <svg width="16" height="16" fill="white" viewBox="0 0 24 24"><path d="M20 2H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-8.5 7.5c0 .83-.67 1.5-1.5 1.5H9v2H7.5V7H10c.83 0 1.5.67 1.5 1.5v1zm5 2c0 .83-.67 1.5-1.5 1.5h-2.5V7H15c.83 0 1.5.67 1.5 1.5v3zm4-3H19v1h1.5V11H19v2h-1.5V7h3v1.5zM9 9.5h1v-1H9v1zM4 6H2v14c0 1.1.9 2 2 2h14v-2H4V6zm10 5.5h1v-3h-1v3z"/></svg>
+                            Download PDF MIS Report
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </main>
+
         <main id="court-case-view" class="view">
             <div class="title-box-container"><div class="title-box"><span class="title-text-bold">SEARCH CASE NUMBER</span></div></div>
             <div class="search-panel">
@@ -1305,7 +1350,9 @@
         const feederRecentSubmittedStorageKey = "seoni-circle-feeder-recent-submitted";
         const feederOperatorStorageKey = "feederOperatorProfile";
         const brokenPoleStorageKey = "seoni-circle-broken-pole-entries";
+        const pdcStorageKey = "seoni-circle-pdc-nontraceable-entries";
         let bpGeoData = null;
+        let pdcPhotoSlots = [null, null, null, null, null]; // each: { name, photoData } or null
         const feederAlertStartDateKey = "2026-05-04";
         let mobileSubmittedSheetMap = {};
         let lokServedSheetMap = {};
@@ -2991,7 +3038,11 @@
                         ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
                         resolve(canvas.toDataURL("image/jpeg", quality));
                     };
-                    img.onerror = reject;
+                    img.onerror = () => {
+                        // Fallback: image format not decodable by <img> (e.g. HEIC).
+                        // Use the raw file data URL as-is so the entry still saves.
+                        resolve(reader.result);
+                    };
                     img.src = reader.result;
                 };
                 reader.onerror = reject;
@@ -3099,7 +3150,7 @@
 
             try {
                 const photoFile = photoInput.files[0];
-                const photoData = await resizeImageForUpload(photoFile);
+                const photoData = await resizeImageForUpload(photoFile, 900, 0.6);
 
                 const entry = {
                     date: getCurrentDateDDMMYYYY(),
@@ -3116,6 +3167,13 @@
 
                 const entries = getBrokenPoleEntries_();
                 entries.push(entry);
+
+                const MAX_BP_ENTRIES = 150;
+                if (entries.length > MAX_BP_ENTRIES) {
+                    entries.splice(0, entries.length - MAX_BP_ENTRIES);
+                    showToast(`Limit ${MAX_BP_ENTRIES} entries hai — sabse purani entry hata di gayi`, true);
+                }
+
                 const saved = saveBrokenPoleEntries_(entries);
                 if (!saved) {
                     return showToast("Storage full hai — purani entries delete karein ya kam quality photo lें", false);
@@ -3131,8 +3189,8 @@
                 bpGeoData = null;
                 updateBpPhotoMetaUI();
                 refreshBrokenPoleMisTotal();
-            } catch (_) {
-                showToast("Save karne mein error aaya", false);
+            } catch (err) {
+                showToast("Save error: " + (err && err.message ? err.message : String(err)), false);
             } finally {
                 submitBtn.innerText = "Submit";
                 submitBtn.disabled = false;
@@ -3294,6 +3352,259 @@
                 btn.disabled = false;
             }
         }
+
+        // ===== PDC / Non-Traceable feature =====
+        function renderPdcPhotoSlots() {
+            const container = document.getElementById("pdc-photo-slots");
+            if (!container) return;
+            container.innerHTML = pdcPhotoSlots.map((slot, idx) => `
+                <div style="border:1.6px solid #c7d2fe; border-radius:14px; padding:10px 12px; margin-bottom:10px; background:#f5f3ff;">
+                    <div style="display:flex; align-items:center; justify-content:space-between; gap:8px;">
+                        <label for="pdc-photo-${idx}" style="display:flex; align-items:center; gap:8px; cursor:pointer; font-size:0.78rem; font-weight:900; color:#312e81; text-transform:uppercase;">
+                            <div style="width:32px; height:32px; border-radius:50%; background:linear-gradient(135deg,#6366f1,#312e81); display:flex; align-items:center; justify-content:center; flex-shrink:0;">
+                                <svg width="16" height="16" fill="none" stroke="white" stroke-width="2.2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 8.5A2.5 2.5 0 0 1 5.5 6H8l1.3-1.6A2 2 0 0 1 10.86 4h2.28a2 2 0 0 1 1.56.74L16 6h2.5A2.5 2.5 0 0 1 21 8.5v8A2.5 2.5 0 0 1 18.5 19h-13A2.5 2.5 0 0 1 3 16.5z"></path><circle cx="12" cy="12.5" r="3.5"></circle></svg>
+                            </div>
+                            ${slot ? "Photo " + (idx + 1) + " (Tap to change)" : "Add Photo " + (idx + 1)}
+                        </label>
+                        ${slot ? `<button type="button" onclick="removePdcPhoto(${idx})" style="border:none; background:#fee2e2; color:#b91c1c; border-radius:999px; padding:6px 10px; font-size:0.66rem; font-weight:900; text-transform:uppercase;">Remove</button>` : ""}
+                    </div>
+                    <input type="file" id="pdc-photo-${idx}" accept="image/*" capture="environment" style="display:none;" onchange="handlePdcPhotoChange(${idx})">
+                    ${slot ? `
+                        <div style="margin-top:8px;">
+                            <img src="${slot.photoData}" style="width:100%; max-height:140px; object-fit:cover; border-radius:10px; border:1px solid #c7d2fe;">
+                            <input type="text" value="${escapeHtml(slot.name || "")}" placeholder="Document Name (e.g. PDC Receipt, Site Photo)" oninput="updatePdcPhotoName(${idx}, this.value)" style="width:100%; margin-top:8px; height:40px; border-radius:10px; border:1.5px solid #c7d2fe; padding:0 10px; font-size:0.8rem; font-weight:700; color:#1e1b4b; background:#ffffff; outline:none;">
+                        </div>
+                    ` : ""}
+                </div>
+            `).join("");
+        }
+
+        async function handlePdcPhotoChange(idx) {
+            const input = document.getElementById(`pdc-photo-${idx}`);
+            if (!input.files || !input.files[0]) return;
+            try {
+                const photoData = await resizeImageForUpload(input.files[0]);
+                pdcPhotoSlots[idx] = {
+                    name: pdcPhotoSlots[idx]?.name || "",
+                    photoData
+                };
+                renderPdcPhotoSlots();
+            } catch (_) {
+                showToast("Photo load karne mein error aaya", false);
+            }
+        }
+
+        function updatePdcPhotoName(idx, value) {
+            if (pdcPhotoSlots[idx]) {
+                pdcPhotoSlots[idx].name = value;
+            }
+        }
+
+        function removePdcPhoto(idx) {
+            pdcPhotoSlots[idx] = null;
+            renderPdcPhotoSlots();
+        }
+
+        function getPdcEntries_() {
+            try {
+                return JSON.parse(localStorage.getItem(pdcStorageKey) || "[]");
+            } catch (_) {
+                return [];
+            }
+        }
+
+        function savePdcEntries_(entries) {
+            try {
+                localStorage.setItem(pdcStorageKey, JSON.stringify(entries));
+                return true;
+            } catch (_) {
+                return false;
+            }
+        }
+
+        async function submitPdcEntry() {
+            const ivrs = document.getElementById("pdc-ivrs").value.trim();
+            const name = document.getElementById("pdc-name").value.trim();
+            const remark = document.getElementById("pdc-remark").value.trim();
+            const photos = pdcPhotoSlots.filter(Boolean);
+
+            if (!ivrs && !name) return showToast("IVRS No ya Consumer Name darj kariye", false);
+            if (!photos.length) return showToast("Kam se kam 1 photo add kariye", false);
+            if (!remark) return showToast("Remark darj kariye", false);
+
+            const submitBtn = document.getElementById("pdc-submit-btn");
+            submitBtn.innerText = "Saving...";
+            submitBtn.disabled = true;
+
+            try {
+                const entry = {
+                    date: getCurrentDateDDMMYYYY(),
+                    timestamp: new Date().toISOString(),
+                    dc_name: activeDC || "",
+                    ivrs,
+                    name,
+                    remark,
+                    photos: photos.map((p) => ({ name: p.name || "", photo_data: p.photoData }))
+                };
+
+                const entries = getPdcEntries_();
+                entries.push(entry);
+                const saved = savePdcEntries_(entries);
+                if (!saved) {
+                    return showToast("Storage full hai — purani entries delete karein ya kam photo lें", false);
+                }
+
+                showToast("Entry Saved Successfully!", true);
+
+                // Reset form
+                document.getElementById("pdc-ivrs").value = "";
+                document.getElementById("pdc-name").value = "";
+                document.getElementById("pdc-remark").value = "";
+                pdcPhotoSlots = [null, null, null, null, null];
+                renderPdcPhotoSlots();
+                refreshPdcMisTotal();
+            } catch (_) {
+                showToast("Save karne mein error aaya", false);
+            } finally {
+                submitBtn.innerText = "Submit";
+                submitBtn.disabled = false;
+            }
+        }
+
+        function refreshPdcMisTotal() {
+            const fromDate = document.getElementById("pdc-mis-from-date")?.value;
+            const toDate = document.getElementById("pdc-mis-to-date")?.value;
+            const totalNode = document.getElementById("pdc-mis-total");
+            if (!totalNode) return;
+            const filtered = filterPdcEntries_(fromDate, toDate);
+            totalNode.innerText = filtered.length;
+        }
+
+        function filterPdcEntries_(fromDate, toDate) {
+            const entries = getPdcEntries_();
+            if (!fromDate || !toDate) return entries;
+            const fromTs = new Date(fromDate);
+            const toTs = new Date(toDate);
+            toTs.setHours(23, 59, 59, 999);
+            return entries.filter((e) => {
+                const parts = String(e.date || "").split("/");
+                if (parts.length !== 3) return false;
+                const d = new Date(`${parts[2]}-${parts[1]}-${parts[0]}`);
+                return d >= fromTs && d <= toTs;
+            });
+        }
+
+        async function downloadPdcMisPdf() {
+            const fromDate = document.getElementById("pdc-mis-from-date").value;
+            const toDate = document.getElementById("pdc-mis-to-date").value;
+            if (!fromDate || !toDate) return showToast("Pehle From aur To date select karein", false);
+            if (fromDate > toDate) return showToast("From date, To date se pehle honi chahiye", false);
+
+            const btn = document.getElementById("pdc-mis-pdf-btn");
+            btn.innerText = "Generating...";
+            btn.disabled = true;
+
+            try {
+                const filtered = filterPdcEntries_(fromDate, toDate);
+                refreshPdcMisTotal();
+
+                const fmtDate = (iso) => {
+                    if (!iso) return "";
+                    const [y, m, d] = iso.split("-");
+                    return `${d}/${m}/${y}`;
+                };
+
+                const { jsPDF } = window.jspdf;
+                const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
+
+                // Header
+                doc.setFillColor(67, 56, 202);
+                doc.rect(0, 0, 210, 22, "F");
+                doc.setFontSize(13);
+                doc.setTextColor(255, 255, 255);
+                doc.setFont(undefined, "bold");
+                doc.text("PDC / NON-TRACEABLE MIS REPORT", 105, 10, { align: "center" });
+                doc.setFontSize(8);
+                doc.setFont(undefined, "normal");
+                doc.text(`DC: ${activeDC || "-"}  |  Period: ${fmtDate(fromDate)} to ${fmtDate(toDate)}`, 105, 17, { align: "center" });
+
+                doc.setTextColor(100);
+                doc.setFontSize(7);
+                doc.text(`Generated: ${new Date().toLocaleString("en-IN")}`, 200, 26, { align: "right" });
+
+                doc.setFontSize(10);
+                doc.setTextColor(67, 56, 202);
+                doc.setFont(undefined, "bold");
+                doc.text(`TOTAL ENTRIES: ${filtered.length}`, 14, 32);
+
+                const detailBody = filtered.map((e, i) => [
+                    i + 1,
+                    e.date || "",
+                    e.dc_name || "",
+                    e.ivrs || "",
+                    e.name || "",
+                    e.remark || "",
+                    String((e.photos || []).length)
+                ]);
+
+                doc.autoTable({
+                    startY: 38,
+                    head: [["S.No.", "Date", "DC", "IVRS/Acc No", "Consumer Name", "Remark", "Docs"]],
+                    body: detailBody.length ? detailBody : [["-", "-", "-", "-", "No entries found", "-", "-"]],
+                    theme: "striped",
+                    headStyles: { fillColor: [67, 56, 202], textColor: 255, halign: "center", fontSize: 7, fontStyle: "bold" },
+                    bodyStyles: { fontSize: 7 },
+                    columnStyles: {
+                        0: { halign: "center", cellWidth: 10 },
+                        1: { halign: "center", cellWidth: 20 },
+                        2: { halign: "center", cellWidth: 22 },
+                        3: { halign: "center", cellWidth: 26 },
+                        4: { halign: "left", cellWidth: 36 },
+                        5: { halign: "left", cellWidth: 50 },
+                        6: { halign: "center", cellWidth: 12 }
+                    }
+                });
+
+                // Add photos with names on subsequent pages
+                let photoY = doc.lastAutoTable.finalY + 8;
+                filtered.forEach((e, i) => {
+                    (e.photos || []).forEach((p, pIdx) => {
+                        if (!p.photo_data) return;
+                        if (photoY > 220) {
+                            doc.addPage();
+                            photoY = 14;
+                        }
+                        doc.setFontSize(8);
+                        doc.setTextColor(30, 41, 59);
+                        doc.setFont(undefined, "bold");
+                        const label = `Entry ${i + 1} - ${e.date || ""} - ${e.name || e.ivrs || ""} - ${p.name || ("Doc " + (pIdx + 1))}`;
+                        doc.text(label, 14, photoY);
+                        try {
+                            doc.addImage(p.photo_data, "JPEG", 14, photoY + 2, 80, 60);
+                        } catch (_) {}
+                        photoY += 68;
+                    });
+                });
+
+                const totalPages = doc.internal.getNumberOfPages();
+                for (let i = 1; i <= totalPages; i++) {
+                    doc.setPage(i);
+                    doc.setFontSize(7);
+                    doc.setTextColor(150);
+                    doc.text(`Page ${i} of ${totalPages}  |  PDC / Non-Traceable MIS Report`, 105, 290, { align: "center" });
+                }
+
+                const filename = `PDC_NonTraceable_MIS_${fmtDate(fromDate).replace(/\//g,"-")}_to_${fmtDate(toDate).replace(/\//g,"-")}.pdf`;
+                doc.save(filename);
+                showToast("PDF Downloaded!", true);
+            } catch (_) {
+                showToast("Report generate karne mein error aaya", false);
+            } finally {
+                btn.innerHTML = '<svg width="16" height="16" fill="white" viewBox="0 0 24 24"><path d="M20 2H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-8.5 7.5c0 .83-.67 1.5-1.5 1.5H9v2H7.5V7H10c.83 0 1.5.67 1.5 1.5v1zm5 2c0 .83-.67 1.5-1.5 1.5h-2.5V7H15c.83 0 1.5.67 1.5 1.5v3zm4-3H19v1h1.5V11H19v2h-1.5V7h3v1.5zM9 9.5h1v-1H9v1zM4 6H2v14c0 1.1.9 2 2 2h14v-2H4V6zm10 5.5h1v-3h-1v3z"/></svg> Download PDF MIS Report';
+                btn.disabled = false;
+            }
+        }
+
 
         function parseCourtCaseLine(line) {
             const cols = line.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/).map((item) => item.replace(/^"|"$/g, "").trim());
@@ -7287,6 +7598,15 @@
                     if (document.getElementById("bp-mis-from-date")) document.getElementById("bp-mis-from-date").value = firstOfMonth;
                     if (document.getElementById("bp-mis-to-date")) document.getElementById("bp-mis-to-date").value = today;
                     refreshBrokenPoleMisTotal();
+                }
+                if (id === "pdc-nontraceable") {
+                    const today = new Date().toISOString().split("T")[0];
+                    const now = new Date();
+                    const firstOfMonth = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,"0")}-01`;
+                    if (document.getElementById("pdc-mis-from-date")) document.getElementById("pdc-mis-from-date").value = firstOfMonth;
+                    if (document.getElementById("pdc-mis-to-date")) document.getElementById("pdc-mis-to-date").value = today;
+                    renderPdcPhotoSlots();
+                    refreshPdcMisTotal();
                 }
                 if (id === "mobile-update" && activeDC) {
                     ensureDcDataLoaded(activeDC);
