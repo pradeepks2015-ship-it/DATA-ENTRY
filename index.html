@@ -3022,15 +3022,15 @@
             if (!forceRefresh && shmsDataLoaded && shmsRows.length) return true;
             try {
                 const csvText = await loadRemoteText(shmsCsvUrl);
-                shmsRows = parseShmsCsv(csvText);
+                shmsRows = mergeFallbackFeederRows_(parseShmsCsv(csvText));
                 shmsSubstations = Array.from(new Set(shmsRows.map((row) => row.substation).filter(Boolean)));
                 shmsDataLoaded = shmsRows.length > 0;
                 return shmsDataLoaded;
             } catch (_) {
-                shmsRows = [];
-                shmsSubstations = [];
-                shmsDataLoaded = false;
-                return false;
+                shmsRows = mergeFallbackFeederRows_([]);
+                shmsSubstations = Array.from(new Set(shmsRows.map((row) => row.substation).filter(Boolean)));
+                shmsDataLoaded = shmsRows.length > 0;
+                return shmsDataLoaded;
             }
         }
 
