@@ -483,10 +483,14 @@
                                 </div>
                             </div>
                             <div id="stm-mis-total-box" style="text-align:center; margin-bottom:10px; font-size:12px; font-weight:900; color:#fde8d2;">Total Complaints: <span id="stm-mis-total">0</span></div>
-                            <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
+                            <div id="stm-storage-counter" style="text-align:center; margin-bottom:10px; font-size:11px; font-weight:800; color:#fde8d2;">Storage: <span id="stm-storage-used">0</span> / <span id="stm-storage-limit">0</span> entries saved</div>
+                            <button type="button" onclick="toggleEntriesList('stm_complaint')" style="width:100%; height:42px; border:none; border-radius:12px; background:rgba(255,255,255,0.18); color:#fde8d2; font-size:12px; font-weight:900; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:10px;">📂 Saved Entries Dekhein / Hatayein</button>
+                            <div id="entries-list-stm_complaint" style="display:none; margin-bottom:10px;"></div>
+                            <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:8px;">
                                 <button onclick="downloadModuleMisReport('stm','EXCEL')" style="height:42px; border:none; border-radius:12px; background:linear-gradient(135deg,#16a34a,#15803d); color:#fff; font-size:12px; font-weight:900; text-transform:uppercase;">Excel</button>
-                                <button onclick="downloadModuleMisReport('stm','PDF')" style="height:42px; border:none; border-radius:12px; background:linear-gradient(135deg,#ef4444,#b91c1c); color:#fff; font-size:12px; font-weight:900; text-transform:uppercase;">PDF</button>
+                                <button onclick="downloadModuleMisReport('stm','PDF')" style="height:42px; border:none; border-radius:12px; background:linear-gradient(135deg,#ef4444,#b91c1c); color:#fff; font-size:12px; font-weight:900; text-transform:uppercase;">PDF (Table)</button>
                             </div>
+                            <button onclick="downloadStmPhotoMisPdf()" style="width:100%; height:42px; border:none; border-radius:12px; background:linear-gradient(135deg,#7c3aed,#4c1d95); color:#fff; font-size:12px; font-weight:900; text-transform:uppercase;">📷 PDF with Photos</button>
                         </div>
                     </div>
 
@@ -1146,6 +1150,9 @@
                             </div>
                         </div>
                         <div id="bp-mis-total-box" style="text-align:center; margin-bottom:10px; font-size:12px; font-weight:900; color:#fef3c7;">Total Entries: <span id="bp-mis-total">0</span></div>
+                        <div id="bp-storage-counter" style="text-align:center; margin-bottom:10px; font-size:11px; font-weight:800; color:#fef3c7;">Storage: <span id="bp-storage-used">0</span> / <span id="bp-storage-limit">0</span> photos saved</div>
+                        <button type="button" onclick="toggleEntriesList('broken_pole')" style="width:100%; height:42px; border:none; border-radius:12px; background:rgba(255,255,255,0.18); color:#fffbeb; font-size:12px; font-weight:900; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:10px;">📂 Saved Entries Dekhein / Hatayein</button>
+                        <div id="entries-list-broken_pole" style="display:none; margin-bottom:10px;"></div>
                         <button id="bp-mis-pdf-btn" onclick="downloadBrokenPoleMisPdf()" style="width:100%; height:44px; border:none; border-radius:12px; background:linear-gradient(135deg, #ef4444 0%, #b91c1c 100%); color:#ffffff; font-size:13px; font-weight:900; text-transform:uppercase; letter-spacing:0.5px; box-shadow:0 6px 14px rgba(239,68,68,0.3); cursor:pointer; display:flex; align-items:center; justify-content:center; gap:8px;">
                             <svg width="16" height="16" fill="white" viewBox="0 0 24 24"><path d="M20 2H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-8.5 7.5c0 .83-.67 1.5-1.5 1.5H9v2H7.5V7H10c.83 0 1.5.67 1.5 1.5v1zm5 2c0 .83-.67 1.5-1.5 1.5h-2.5V7H15c.83 0 1.5.67 1.5 1.5v3zm4-3H19v1h1.5V11H19v2h-1.5V7h3v1.5zM9 9.5h1v-1H9v1zM4 6H2v14c0 1.1.9 2 2 2h14v-2H4V6zm10 5.5h1v-3h-1v3z"/></svg>
                             Download PDF MIS Report
@@ -1191,6 +1198,9 @@
                             </div>
                         </div>
                         <div id="pdc-mis-total-box" style="text-align:center; margin-bottom:10px; font-size:12px; font-weight:900; color:#e0e7ff;">Total Entries: <span id="pdc-mis-total">0</span></div>
+                        <div id="pdc-storage-counter" style="text-align:center; margin-bottom:10px; font-size:11px; font-weight:800; color:#e0e7ff;">Storage: <span id="pdc-storage-used">0</span> / <span id="pdc-storage-limit">0</span> entries saved</div>
+                        <button type="button" onclick="toggleEntriesList('pdc_nontraceable')" style="width:100%; height:42px; border:none; border-radius:12px; background:rgba(255,255,255,0.18); color:#e0e7ff; font-size:12px; font-weight:900; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:10px;">📂 Saved Entries Dekhein / Hatayein</button>
+                        <div id="entries-list-pdc_nontraceable" style="display:none; margin-bottom:10px;"></div>
                         <button id="pdc-mis-pdf-btn" onclick="downloadPdcMisPdf()" style="width:100%; height:44px; border:none; border-radius:12px; background:linear-gradient(135deg, #ef4444 0%, #b91c1c 100%); color:#ffffff; font-size:13px; font-weight:900; text-transform:uppercase; letter-spacing:0.5px; box-shadow:0 6px 14px rgba(239,68,68,0.3); cursor:pointer; display:flex; align-items:center; justify-content:center; gap:8px;">
                             <svg width="16" height="16" fill="white" viewBox="0 0 24 24"><path d="M20 2H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-8.5 7.5c0 .83-.67 1.5-1.5 1.5H9v2H7.5V7H10c.83 0 1.5.67 1.5 1.5v1zm5 2c0 .83-.67 1.5-1.5 1.5h-2.5V7H15c.83 0 1.5.67 1.5 1.5v3zm4-3H19v1h1.5V11H19v2h-1.5V7h3v1.5zM9 9.5h1v-1H9v1zM4 6H2v14c0 1.1.9 2 2 2h14v-2H4V6zm10 5.5h1v-3h-1v3z"/></svg>
                             Download PDF MIS Report
@@ -1236,6 +1246,9 @@
                             </div>
                         </div>
                         <div id="bc-mis-total-box" style="text-align:center; margin-bottom:10px; font-size:12px; font-weight:900; color:#fee2e2;">Total Entries: <span id="bc-mis-total">0</span></div>
+                        <div id="bc-storage-counter" style="text-align:center; margin-bottom:10px; font-size:11px; font-weight:800; color:#fee2e2;">Storage: <span id="bc-storage-used">0</span> / <span id="bc-storage-limit">0</span> entries saved</div>
+                        <button type="button" onclick="toggleEntriesList('bijli_chori')" style="width:100%; height:42px; border:none; border-radius:12px; background:rgba(255,255,255,0.18); color:#fee2e2; font-size:12px; font-weight:900; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:10px;">📂 Saved Entries Dekhein / Hatayein</button>
+                        <div id="entries-list-bijli_chori" style="display:none; margin-bottom:10px;"></div>
                         <button id="bc-mis-pdf-btn" onclick="downloadBijliChoriMisPdf()" style="width:100%; height:44px; border:none; border-radius:12px; background:linear-gradient(135deg, #ef4444 0%, #b91c1c 100%); color:#ffffff; font-size:13px; font-weight:900; text-transform:uppercase; letter-spacing:0.5px; box-shadow:0 6px 14px rgba(239,68,68,0.3); cursor:pointer; display:flex; align-items:center; justify-content:center; gap:8px;">
                             <svg width="16" height="16" fill="white" viewBox="0 0 24 24"><path d="M20 2H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-8.5 7.5c0 .83-.67 1.5-1.5 1.5H9v2H7.5V7H10c.83 0 1.5.67 1.5 1.5v1zm5 2c0 .83-.67 1.5-1.5 1.5h-2.5V7H15c.83 0 1.5.67 1.5 1.5v3zm4-3H19v1h1.5V11H19v2h-1.5V7h3v1.5zM9 9.5h1v-1H9v1zM4 6H2v14c0 1.1.9 2 2 2h14v-2H4V6zm10 5.5h1v-3h-1v3z"/></svg>
                             Download PDF MIS Report
@@ -1495,7 +1508,35 @@
         const IDB_DB_NAME = "seoni-circle-photo-store";
         const IDB_DB_VERSION = 2;
         const IDB_STORES = ["broken_pole", "pdc_nontraceable", "stm_complaint", "bijli_chori"];
+        // Max entries allowed per store (raised from 500 to 2000 - photos are resized small,
+        // so 2000 entries comfortably fits within typical IndexedDB quotas on mobile browsers).
+        const IDB_STORE_LIMITS = {
+            broken_pole: 2000,
+            pdc_nontraceable: 2000,
+            stm_complaint: 2000,
+            bijli_chori: 2000
+        };
         let idbInstance = null;
+
+        // Shows a warning toast when a store is nearing its limit, so the user can
+        // download the MIS report and clear old entries before data starts getting removed.
+        async function checkStoreCapacityWarning_(storeName, labelHi) {
+            try {
+                const limit = IDB_STORE_LIMITS[storeName] || 2000;
+                const count = await idbCount_(storeName);
+                const pct = count / limit;
+                if (pct >= 1) {
+                    showToast(`${labelHi}: Limit (${limit}) full ho gayi hai! Pehle MIS report download karke purani entries delete karein.`, false);
+                } else if (pct >= 0.95) {
+                    showToast(`${labelHi}: ${count}/${limit} entries ho gayi hain. Jald hi MIS report download karke purani entries delete karein.`, false);
+                } else if (pct >= 0.8) {
+                    showToast(`${labelHi}: ${count}/${limit} entries ho gayi hain (80% full).`, true);
+                }
+                return count;
+            } catch (_) {
+                return 0;
+            }
+        }
 
         function openPhotoDb_() {
             return new Promise((resolve, reject) => {
@@ -1542,6 +1583,36 @@
                 req.onsuccess = () => resolve(req.result);
                 req.onerror = () => reject(req.error);
             });
+        }
+
+        async function idbDelete_(storeName, id) {
+            try {
+                const db = await openPhotoDb_();
+                const tx = db.transaction(storeName, "readwrite");
+                const store = tx.objectStore(storeName);
+                store.delete(id);
+                return new Promise((resolve) => {
+                    tx.oncomplete = () => resolve(true);
+                    tx.onerror = () => resolve(false);
+                });
+            } catch (_) {
+                return false;
+            }
+        }
+
+        async function idbCount_(storeName) {
+            try {
+                const db = await openPhotoDb_();
+                return await new Promise((resolve, reject) => {
+                    const tx = db.transaction(storeName, "readonly");
+                    const store = tx.objectStore(storeName);
+                    const req = store.count();
+                    req.onsuccess = () => resolve(req.result || 0);
+                    req.onerror = () => reject(req.error);
+                });
+            } catch (_) {
+                return 0;
+            }
         }
 
         async function idbDeleteOldest_(storeName, count) {
@@ -3356,12 +3427,13 @@
         async function saveBrokenPoleEntry_(entry) {
             try {
                 await idbAdd_("broken_pole", entry);
-                const MAX_BP_ENTRIES = 500;
-                const all = await idbGetAll_("broken_pole");
-                if (all.length > MAX_BP_ENTRIES) {
-                    await idbDeleteOldest_("broken_pole", all.length - MAX_BP_ENTRIES);
+                const MAX_BP_ENTRIES = IDB_STORE_LIMITS.broken_pole;
+                const count = await idbCount_("broken_pole");
+                if (count > MAX_BP_ENTRIES) {
+                    await idbDeleteOldest_("broken_pole", count - MAX_BP_ENTRIES);
                     showToast(`Limit ${MAX_BP_ENTRIES} entries hai — sabse purani entry hata di gayi`, true);
                 }
+                await checkStoreCapacityWarning_("broken_pole", "Broken Pole");
                 return true;
             } catch (_) {
                 return false;
@@ -3414,6 +3486,10 @@
                 bpGeoData = null;
                 updateBpPhotoMetaUI();
                 await refreshBrokenPoleMisTotal();
+                await refreshStorageCounter_("broken_pole");
+                if (document.getElementById("entries-list-broken_pole")?.style.display !== "none") {
+                    await renderEntriesList_("broken_pole");
+                }
             } catch (err) {
                 showToast("Save error: " + (err && err.message ? err.message : String(err)), false);
             } finally {
@@ -3684,12 +3760,13 @@
         async function savePdcEntry_(entry) {
             try {
                 await idbAdd_("pdc_nontraceable", entry);
-                const MAX_PDC_ENTRIES = 500;
-                const all = await idbGetAll_("pdc_nontraceable");
-                if (all.length > MAX_PDC_ENTRIES) {
-                    await idbDeleteOldest_("pdc_nontraceable", all.length - MAX_PDC_ENTRIES);
+                const MAX_PDC_ENTRIES = IDB_STORE_LIMITS.pdc_nontraceable;
+                const count = await idbCount_("pdc_nontraceable");
+                if (count > MAX_PDC_ENTRIES) {
+                    await idbDeleteOldest_("pdc_nontraceable", count - MAX_PDC_ENTRIES);
                     showToast(`Limit ${MAX_PDC_ENTRIES} entries hai — sabse purani entry hata di gayi`, true);
                 }
+                await checkStoreCapacityWarning_("pdc_nontraceable", "PDC / Non-Traceable");
                 return true;
             } catch (_) {
                 return false;
@@ -3741,6 +3818,10 @@
                 pdcPhotoSlots = [null, null, null, null, null];
                 renderPdcPhotoSlots();
                 await refreshPdcMisTotal();
+                await refreshStorageCounter_("pdc_nontraceable");
+                if (document.getElementById("entries-list-pdc_nontraceable")?.style.display !== "none") {
+                    await renderEntriesList_("pdc_nontraceable");
+                }
             } catch (_) {
                 showToast("Save karne mein error aaya", false);
             } finally {
@@ -3999,12 +4080,13 @@
         async function saveBijliChoriEntry_(entry) {
             try {
                 await idbAdd_("bijli_chori", entry);
-                const MAX_BC_ENTRIES = 500;
-                const all = await idbGetAll_("bijli_chori");
-                if (all.length > MAX_BC_ENTRIES) {
-                    await idbDeleteOldest_("bijli_chori", all.length - MAX_BC_ENTRIES);
+                const MAX_BC_ENTRIES = IDB_STORE_LIMITS.bijli_chori;
+                const count = await idbCount_("bijli_chori");
+                if (count > MAX_BC_ENTRIES) {
+                    await idbDeleteOldest_("bijli_chori", count - MAX_BC_ENTRIES);
                     showToast(`Limit ${MAX_BC_ENTRIES} entries hai — sabse purani entry hata di gayi`, true);
                 }
+                await checkStoreCapacityWarning_("bijli_chori", "Bijli Chori Ki Jankari");
                 return true;
             } catch (_) {
                 return false;
@@ -4057,6 +4139,10 @@
                 bcPhotoSlots = [null, null, null];
                 renderBcPhotoSlots();
                 await refreshBijliChoriMisTotal();
+                await refreshStorageCounter_("bijli_chori");
+                if (document.getElementById("entries-list-bijli_chori")?.style.display !== "none") {
+                    await renderEntriesList_("bijli_chori");
+                }
             } catch (_) {
                 showToast("Save karne mein error aaya", false);
             } finally {
@@ -4215,6 +4301,221 @@
         }
 
 
+        // ===== Generic Saved Entries List / View / Delete (all photo-store tabs) =====
+        const ENTRY_STORE_CONFIG = {
+            broken_pole: {
+                label: "Broken Pole / Damage Line",
+                accent: "#b45309",
+                getEntries: getBrokenPoleEntries_,
+                getThumb: (e) => e.photo_data || "",
+                getTitle: (e) => `${e.date || ""} — ${e.remark1 || "Entry"}`,
+                getSubtitle: (e) => e.remark2 || (e.gps_location || ""),
+                refreshFn: () => refreshBrokenPoleMisTotal()
+            },
+            pdc_nontraceable: {
+                label: "PDC / Non-Traceable",
+                accent: "#4338ca",
+                getEntries: getPdcEntries_,
+                getThumb: (e) => (e.photos && e.photos[0] && e.photos[0].photo_data) || "",
+                getTitle: (e) => `${e.date || ""} — ${e.name || e.ivrs || "Entry"}`,
+                getSubtitle: (e) => `${e.ivrs ? "IVRS: " + e.ivrs + " | " : ""}${(e.photos || []).length} photo(s)`,
+                refreshFn: () => refreshPdcMisTotal()
+            },
+            stm_complaint: {
+                label: "STM Complaint",
+                accent: "#c08a57",
+                getEntries: async () => {
+                    const rows = await idbGetAll_("stm_complaint");
+                    return rows.slice().sort((a, b) => (a.id || 0) - (b.id || 0));
+                },
+                getThumb: (e) => e.photo_data || "",
+                getTitle: (e) => `${e.date || ""} ${e.time || ""} — ${e.substation || "Entry"}`,
+                getSubtitle: (e) => e.complaint_details || "",
+                refreshFn: () => refreshStmMisTotal()
+            },
+            bijli_chori: {
+                label: "बिजली चोरी की जानकारी",
+                accent: "#dc2626",
+                getEntries: getBijliChoriEntries_,
+                getThumb: (e) => (e.photos && e.photos[0] && e.photos[0].photo_data) || "",
+                getTitle: (e) => `${e.date || ""} — ${e.name || e.ivrs || "Entry"}`,
+                getSubtitle: (e) => `${(e.photos || []).length} photo(s) | ${e.remark || ""}`,
+                refreshFn: () => refreshBijliChoriMisTotal()
+            }
+        };
+
+        async function refreshStorageCounter_(storeName) {
+            const config = ENTRY_STORE_CONFIG[storeName];
+            if (!config) return;
+            const usedNode = document.getElementById(`${storageCounterPrefix_(storeName)}-storage-used`);
+            const limitNode = document.getElementById(`${storageCounterPrefix_(storeName)}-storage-limit`);
+            if (!usedNode || !limitNode) return;
+            const count = await idbCount_(storeName);
+            const limit = IDB_STORE_LIMITS[storeName] || 2000;
+            usedNode.innerText = count;
+            limitNode.innerText = limit;
+            const wrapper = document.getElementById(`${storageCounterPrefix_(storeName)}-storage-counter`);
+            if (wrapper) {
+                if (count / limit >= 0.95) {
+                    wrapper.style.color = "#fee2e2";
+                    wrapper.style.fontWeight = "900";
+                } 
+            }
+        }
+
+        function storageCounterPrefix_(storeName) {
+            const map = {
+                broken_pole: "bp",
+                pdc_nontraceable: "pdc",
+                stm_complaint: "stm",
+                bijli_chori: "bc"
+            };
+            return map[storeName] || storeName;
+        }
+
+        async function toggleEntriesList(storeName) {
+            const container = document.getElementById(`entries-list-${storeName}`);
+            if (!container) return;
+            const isOpen = container.style.display !== "none";
+            if (isOpen) {
+                container.style.display = "none";
+                container.innerHTML = "";
+                return;
+            }
+            container.style.display = "block";
+            container.innerHTML = `<div style="text-align:center; padding:14px; font-size:12px; font-weight:800; color:#ffffff;">Loading...</div>`;
+            await renderEntriesList_(storeName);
+        }
+
+        async function renderEntriesList_(storeName) {
+            const config = ENTRY_STORE_CONFIG[storeName];
+            const container = document.getElementById(`entries-list-${storeName}`);
+            if (!config || !container) return;
+
+            const entries = await config.getEntries();
+            const sorted = entries.slice().reverse(); // newest first
+
+            if (!sorted.length) {
+                container.innerHTML = `<div style="text-align:center; padding:14px; font-size:12px; font-weight:800; color:#ffffff; background:rgba(0,0,0,0.12); border-radius:12px;">Koi saved entry nahi hai.</div>`;
+                return;
+            }
+
+            container.innerHTML = `
+                <div style="background:rgba(255,255,255,0.92); border-radius:14px; padding:8px; max-height:340px; overflow-y:auto;">
+                    ${sorted.map((e) => {
+                        const thumb = config.getThumb(e) || "";
+                        return `
+                        <div style="display:flex; align-items:center; gap:10px; padding:8px; border-bottom:1px solid #e5e7eb;">
+                            ${thumb ? `<img src="${thumb}" style="width:46px; height:46px; object-fit:cover; border-radius:8px; border:1px solid #e5e7eb; flex-shrink:0;">` : `<div style="width:46px; height:46px; border-radius:8px; background:#f1f5f9; flex-shrink:0;"></div>`}
+                            <div style="flex:1; min-width:0;">
+                                <div style="font-size:11px; font-weight:900; color:#1e293b; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${escapeHtml(config.getTitle(e))}</div>
+                                <div style="font-size:10px; font-weight:700; color:#64748b; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${escapeHtml(config.getSubtitle(e))}</div>
+                            </div>
+                            <button onclick="viewEntryDetail_('${storeName}', ${e.id})" style="border:none; background:#e0f2fe; color:#075985; border-radius:999px; padding:6px 10px; font-size:10px; font-weight:900; text-transform:uppercase; flex-shrink:0;">View</button>
+                            <button onclick="deleteEntryConfirm_('${storeName}', ${e.id})" style="border:none; background:#fee2e2; color:#b91c1c; border-radius:999px; padding:6px 10px; font-size:10px; font-weight:900; text-transform:uppercase; flex-shrink:0;">Delete</button>
+                        </div>`;
+                    }).join("")}
+                </div>
+            `;
+        }
+
+        async function viewEntryDetail_(storeName, id) {
+            const config = ENTRY_STORE_CONFIG[storeName];
+            if (!config) return;
+            const entries = await config.getEntries();
+            const entry = entries.find((e) => e.id === id);
+            if (!entry) return showToast("Entry nahi mili", false);
+
+            const overlay = document.createElement("div");
+            overlay.id = "entry-detail-overlay";
+            overlay.style.cssText = "position:fixed; inset:0; background:rgba(0,0,0,0.55); z-index:9999; display:flex; align-items:center; justify-content:center; padding:16px;";
+
+            let bodyHtml = "";
+            if (storeName === "broken_pole") {
+                bodyHtml = `
+                    ${entry.photo_data ? `<img src="${entry.photo_data}" style="width:100%; max-height:240px; object-fit:cover; border-radius:10px; margin-bottom:8px;">` : ""}
+                    <div class="photo-meta-row"><strong>Date:</strong> ${escapeHtml(entry.date || "")}</div>
+                    <div class="photo-meta-row"><strong>Remark 1:</strong> ${escapeHtml(entry.remark1 || "")}</div>
+                    <div class="photo-meta-row"><strong>Remark 2:</strong> ${escapeHtml(entry.remark2 || "")}</div>
+                    <div class="photo-meta-row"><strong>GPS:</strong> ${escapeHtml((entry.gps_latitude && entry.gps_longitude) ? `${entry.gps_latitude}, ${entry.gps_longitude}` : "N/A")}</div>
+                    <div class="photo-meta-row"><strong>Location:</strong> ${escapeHtml(entry.gps_location || "N/A")}</div>
+                    ${isValidLatLon_(entry.gps_latitude, entry.gps_longitude) ? `<div style="margin-top:8px;"><a href="https://www.google.com/maps/dir/?api=1&destination=${entry.gps_latitude},${entry.gps_longitude}" target="_blank" rel="noopener" style="display:inline-flex; align-items:center; gap:6px; background:linear-gradient(135deg,#16a34a,#15803d); color:#fff; font-size:11px; font-weight:900; text-transform:uppercase; padding:8px 14px; border-radius:10px; text-decoration:none;">Get Directions</a></div>` : ""}
+                `;
+            } else if (storeName === "pdc_nontraceable" || storeName === "bijli_chori") {
+                bodyHtml = `
+                    <div class="photo-meta-row"><strong>Date:</strong> ${escapeHtml(entry.date || "")}</div>
+                    <div class="photo-meta-row"><strong>${storeName === "pdc_nontraceable" ? "IVRS/Acc No" : "IVRS/Ref"}:</strong> ${escapeHtml(entry.ivrs || "")}</div>
+                    <div class="photo-meta-row"><strong>${storeName === "pdc_nontraceable" ? "Consumer Name" : "Naam/Sthan"}:</strong> ${escapeHtml(entry.name || "")}</div>
+                    <div class="photo-meta-row"><strong>Remark:</strong> ${escapeHtml(entry.remark || "")}</div>
+                    ${(entry.photos || []).map((p, idx) => `
+                        <div style="margin-top:10px; padding-top:10px; border-top:1px solid #e5e7eb;">
+                            <div style="font-size:11px; font-weight:900; color:#1e293b; margin-bottom:6px;">${escapeHtml(p.name || ("Photo " + (idx + 1)))}</div>
+                            ${p.photo_data ? `<img src="${p.photo_data}" style="width:100%; max-height:200px; object-fit:cover; border-radius:10px; margin-bottom:6px;">` : ""}
+                            <div class="photo-meta-row"><strong>GPS:</strong> ${escapeHtml((p.gps_latitude && p.gps_longitude) ? `${p.gps_latitude}, ${p.gps_longitude}` : "N/A")}</div>
+                            <div class="photo-meta-row"><strong>Location:</strong> ${escapeHtml(p.gps_location || "N/A")}</div>
+                            ${isValidLatLon_(p.gps_latitude, p.gps_longitude) ? `<div style="margin-top:6px;"><a href="https://www.google.com/maps/dir/?api=1&destination=${p.gps_latitude},${p.gps_longitude}" target="_blank" rel="noopener" style="display:inline-flex; align-items:center; gap:6px; background:linear-gradient(135deg,#16a34a,#15803d); color:#fff; font-size:11px; font-weight:900; text-transform:uppercase; padding:8px 14px; border-radius:10px; text-decoration:none;">Get Directions</a></div>` : ""}
+                        </div>
+                    `).join("")}
+                `;
+            } else if (storeName === "stm_complaint") {
+                bodyHtml = `
+                    ${entry.photo_data ? `<img src="${entry.photo_data}" style="width:100%; max-height:240px; object-fit:cover; border-radius:10px; margin-bottom:8px;">` : ""}
+                    <div class="photo-meta-row"><strong>Date:</strong> ${escapeHtml(entry.date || "")} ${escapeHtml(entry.time || "")}</div>
+                    <div class="photo-meta-row"><strong>Substation:</strong> ${escapeHtml(entry.substation || "")}</div>
+                    <div class="photo-meta-row"><strong>Shared At:</strong> ${escapeHtml(entry.information_shared_at || "")}</div>
+                    ${entry.calling_info ? `<div class="photo-meta-row"><strong>Calling Info:</strong> ${escapeHtml(entry.calling_info)}</div>` : ""}
+                    <div class="photo-meta-row"><strong>Complaint:</strong> ${escapeHtml(entry.complaint_details || "")}</div>
+                    <div class="photo-meta-row"><strong>Operator:</strong> ${escapeHtml(entry.operator_name || "")} (${escapeHtml(entry.mobile_no || "")})</div>
+                    <div class="photo-meta-row"><strong>GPS:</strong> ${escapeHtml((entry.gps_latitude && entry.gps_longitude) ? `${entry.gps_latitude}, ${entry.gps_longitude}` : "N/A")}</div>
+                    <div class="photo-meta-row"><strong>Location:</strong> ${escapeHtml(entry.gps_location || "N/A")}</div>
+                    ${isValidLatLon_(entry.gps_latitude, entry.gps_longitude) ? `<div style="margin-top:8px;"><a href="https://www.google.com/maps/dir/?api=1&destination=${entry.gps_latitude},${entry.gps_longitude}" target="_blank" rel="noopener" style="display:inline-flex; align-items:center; gap:6px; background:linear-gradient(135deg,#16a34a,#15803d); color:#fff; font-size:11px; font-weight:900; text-transform:uppercase; padding:8px 14px; border-radius:10px; text-decoration:none;">Get Directions</a></div>` : ""}
+                `;
+            }
+
+            const card = document.createElement("div");
+            card.style.cssText = "background:#ffffff; border-radius:18px; padding:16px; width:100%; max-width:360px; max-height:85vh; overflow-y:auto; box-shadow:0 12px 30px rgba(0,0,0,0.25);";
+            card.innerHTML = `
+                <div style="font-size:14px; font-weight:900; color:#1e293b; text-transform:uppercase; text-align:center; margin-bottom:12px;">${escapeHtml(ENTRY_STORE_CONFIG[storeName].label)} — Entry Detail</div>
+                ${bodyHtml}
+                <button onclick="document.getElementById('entry-detail-overlay').remove()" style="width:100%; height:44px; border:none; border-radius:12px; background:#e2e8f0; color:#1e293b; font-size:13px; font-weight:900; text-transform:uppercase; margin-top:12px;">Band Karein</button>
+            `;
+            overlay.appendChild(card);
+            overlay.addEventListener("click", (e) => { if (e.target === overlay) overlay.remove(); });
+            document.body.appendChild(overlay);
+        }
+
+        function deleteEntryConfirm_(storeName, id) {
+            const overlay = document.createElement("div");
+            overlay.id = "entry-delete-overlay";
+            overlay.style.cssText = "position:fixed; inset:0; background:rgba(0,0,0,0.55); z-index:9999; display:flex; align-items:center; justify-content:center; padding:20px;";
+            const card = document.createElement("div");
+            card.style.cssText = "background:#ffffff; border-radius:18px; padding:18px; width:100%; max-width:300px; box-shadow:0 12px 30px rgba(0,0,0,0.25); text-align:center;";
+            card.innerHTML = `
+                <div style="font-size:14px; font-weight:900; color:#b91c1c; text-transform:uppercase; margin-bottom:10px;">Entry Delete Karein?</div>
+                <div style="font-size:12px; font-weight:700; color:#475569; margin-bottom:16px;">Yeh entry permanently delete ho jayegi. Pehle MIS report download kar lein agar zaroorat ho.</div>
+                <div style="display:flex; gap:10px;">
+                    <button onclick="document.getElementById('entry-delete-overlay').remove()" style="flex:1; height:44px; border:none; border-radius:12px; background:#e2e8f0; color:#1e293b; font-size:12px; font-weight:900; text-transform:uppercase;">Cancel</button>
+                    <button onclick="confirmDeleteEntry_('${storeName}', ${id})" style="flex:1; height:44px; border:none; border-radius:12px; background:#ef4444; color:#fff; font-size:12px; font-weight:900; text-transform:uppercase;">Delete</button>
+                </div>
+            `;
+            overlay.appendChild(card);
+            overlay.addEventListener("click", (e) => { if (e.target === overlay) overlay.remove(); });
+            document.body.appendChild(overlay);
+        }
+
+        async function confirmDeleteEntry_(storeName, id) {
+            const overlay = document.getElementById("entry-delete-overlay");
+            if (overlay) overlay.remove();
+            const ok = await idbDelete_(storeName, id);
+            if (!ok) return showToast("Delete karne mein error aaya", false);
+            showToast("Entry delete ho gayi", true);
+            const config = ENTRY_STORE_CONFIG[storeName];
+            await renderEntriesList_(storeName);
+            await refreshStorageCounter_(storeName);
+            if (config?.refreshFn) await config.refreshFn();
+        }
+
+
         function setDefaultMisDates_(fromId, toId) {
             const fromInput = document.getElementById(fromId);
             const toInput = document.getElementById(toId);
@@ -4296,6 +4597,117 @@
             if (!totalNode) return;
             const rows = await getStmMisRows_(fromDate, toDate);
             totalNode.innerText = rows.length;
+        }
+
+        async function downloadStmPhotoMisPdf() {
+            const fromDate = document.getElementById("stm-mis-from-date")?.value;
+            const toDate = document.getElementById("stm-mis-to-date")?.value;
+            if (!fromDate || !toDate) return showToast("Pehle From aur To date select karein", false);
+            if (fromDate > toDate) return showToast("From date, To date se pehle honi chahiye", false);
+
+            showToast("Report taiyar ho raha hai...", true);
+
+            try {
+                const filtered = await getStmMisRows_(fromDate, toDate);
+
+                const fmtDate = (iso) => {
+                    if (!iso) return "";
+                    const [y, m, d] = iso.split("-");
+                    return `${d}/${m}/${y}`;
+                };
+
+                const { jsPDF } = window.jspdf;
+                const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
+
+                doc.setFillColor(192, 138, 87);
+                doc.rect(0, 0, 210, 22, "F");
+                doc.setFontSize(13);
+                doc.setTextColor(255, 255, 255);
+                doc.setFont(undefined, "bold");
+                doc.text("STM COMPLAINT MIS REPORT (WITH PHOTOS)", 105, 10, { align: "center" });
+                doc.setFontSize(8);
+                doc.setFont(undefined, "normal");
+                doc.text(`DC: ${activeDC || "-"}  |  Period: ${fmtDate(fromDate)} to ${fmtDate(toDate)}`, 105, 17, { align: "center" });
+
+                doc.setTextColor(100);
+                doc.setFontSize(7);
+                doc.text(`Generated: ${new Date().toLocaleString("en-IN")}`, 200, 26, { align: "right" });
+
+                doc.setFontSize(10);
+                doc.setTextColor(192, 138, 87);
+                doc.setFont(undefined, "bold");
+                doc.text(`TOTAL ENTRIES: ${filtered.length}`, 14, 32);
+
+                let y = 40;
+                if (!filtered.length) {
+                    doc.setFontSize(10);
+                    doc.setTextColor(100);
+                    doc.setFont(undefined, "normal");
+                    doc.text("No entries found", 14, y);
+                } else {
+                    filtered.forEach((e, i) => {
+                        if (y > 200) {
+                            doc.addPage();
+                            y = 14;
+                        }
+                        doc.setFontSize(9);
+                        doc.setTextColor(30, 41, 59);
+                        doc.setFont(undefined, "bold");
+                        doc.text(`Entry ${i + 1}: ${e.date || ""} ${e.time || ""} — ${e.substation || ""}`, 14, y);
+                        y += 5;
+                        doc.setFontSize(7);
+                        doc.setFont(undefined, "normal");
+                        const detailLines = doc.splitTextToSize(
+                            `Shared At: ${e.information_shared_at || ""}${e.calling_info ? "  |  Calling Info: " + e.calling_info : ""}\n` +
+                            `Complaint: ${e.complaint_details || ""}\n` +
+                            `Operator: ${e.operator_name || ""} (${e.mobile_no || ""})`,
+                            180
+                        );
+                        doc.text(detailLines, 14, y);
+                        y += detailLines.length * 3.5 + 2;
+
+                        if (e.photo_data) {
+                            try {
+                                doc.addImage(e.photo_data, "JPEG", 14, y, 80, 60);
+                            } catch (_) {}
+                            doc.setFontSize(7);
+                            doc.setTextColor(80);
+                            const gpsLine = (e.gps_latitude && e.gps_longitude) ? `GPS: ${e.gps_latitude}, ${e.gps_longitude}` : "GPS: N/A";
+                            doc.text(gpsLine, 98, y + 6);
+                            const locLines = doc.splitTextToSize(`Location: ${e.gps_location || "N/A"}`, 95);
+                            doc.text(locLines, 98, y + 12);
+                            if (isValidLatLon_(e.gps_latitude, e.gps_longitude)) {
+                                const mapsUrl = `https://www.google.com/maps/dir/?api=1&destination=${e.gps_latitude},${e.gps_longitude}`;
+                                doc.setTextColor(21, 128, 61);
+                                doc.setFont(undefined, "bold");
+                                const linkY = y + 12 + (locLines.length * 3.5) + 4;
+                                doc.text("Open Map (Directions)", 98, linkY);
+                                doc.link(98, linkY - 3, 50, 5, { url: mapsUrl });
+                            }
+                            y += 66;
+                        } else {
+                            y += 6;
+                        }
+                        doc.setDrawColor(220);
+                        doc.line(14, y, 196, y);
+                        y += 6;
+                    });
+                }
+
+                const totalPages = doc.internal.getNumberOfPages();
+                for (let i = 1; i <= totalPages; i++) {
+                    doc.setPage(i);
+                    doc.setFontSize(7);
+                    doc.setTextColor(150);
+                    doc.text(`Page ${i} of ${totalPages}  |  STM Complaint MIS Report`, 105, 290, { align: "center" });
+                }
+
+                const filename = `STM_Complaint_Photo_MIS_${fmtDate(fromDate).replace(/\//g,"-")}_to_${fmtDate(toDate).replace(/\//g,"-")}.pdf`;
+                doc.save(filename);
+                showToast("PDF Downloaded!", true);
+            } catch (_) {
+                showToast("Report generate karne mein error aaya", false);
+            }
         }
 
         function getMisModuleConfig_(moduleType) {
@@ -5765,8 +6177,19 @@
                         gps_location: stmComplaintGeoData?.locationText || "",
                         timestamp: new Date().toISOString()
                     });
+                    const MAX_STM_ENTRIES = IDB_STORE_LIMITS.stm_complaint;
+                    const stmCount = await idbCount_("stm_complaint");
+                    if (stmCount > MAX_STM_ENTRIES) {
+                        await idbDeleteOldest_("stm_complaint", stmCount - MAX_STM_ENTRIES);
+                        showToast(`Limit ${MAX_STM_ENTRIES} entries hai — sabse purani entry hata di gayi`, true);
+                    }
+                    await checkStoreCapacityWarning_("stm_complaint", "STM Complaint");
                 } catch (_) {}
                 refreshStmMisTotal();
+                refreshStorageCounter_("stm_complaint");
+                if (document.getElementById("entries-list-stm_complaint")?.style.display !== "none") {
+                    renderEntriesList_("stm_complaint");
+                }
 
                 // Open WhatsApp with complaint details so the operator can share to the New Adegaon DC group
                 try {
@@ -8563,6 +8986,9 @@
                     if (document.getElementById("bp-mis-from-date")) document.getElementById("bp-mis-from-date").value = firstOfMonth;
                     if (document.getElementById("bp-mis-to-date")) document.getElementById("bp-mis-to-date").value = today;
                     refreshBrokenPoleMisTotal();
+                    refreshStorageCounter_("broken_pole");
+                    const bpEntriesList = document.getElementById("entries-list-broken_pole");
+                    if (bpEntriesList) { bpEntriesList.style.display = "none"; bpEntriesList.innerHTML = ""; }
                 }
                 if (id === "pdc-nontraceable") {
                     const today = new Date().toISOString().split("T")[0];
@@ -8572,6 +8998,9 @@
                     if (document.getElementById("pdc-mis-to-date")) document.getElementById("pdc-mis-to-date").value = today;
                     renderPdcPhotoSlots();
                     refreshPdcMisTotal();
+                    refreshStorageCounter_("pdc_nontraceable");
+                    const pdcEntriesList = document.getElementById("entries-list-pdc_nontraceable");
+                    if (pdcEntriesList) { pdcEntriesList.style.display = "none"; pdcEntriesList.innerHTML = ""; }
                 }
                 if (id === "bijli-chori") {
                     const today = new Date().toISOString().split("T")[0];
@@ -8581,6 +9010,9 @@
                     if (document.getElementById("bc-mis-to-date")) document.getElementById("bc-mis-to-date").value = today;
                     renderBcPhotoSlots();
                     refreshBijliChoriMisTotal();
+                    refreshStorageCounter_("bijli_chori");
+                    const bcEntriesList = document.getElementById("entries-list-bijli_chori");
+                    if (bcEntriesList) { bcEntriesList.style.display = "none"; bcEntriesList.innerHTML = ""; }
                 }
                 if (id === "mobile-update" && activeDC) {
                     ensureDcDataLoaded(activeDC);
@@ -8604,6 +9036,9 @@
                     initStmComplaintSignup();
                     setDefaultMisDates_("stm-mis-from-date", "stm-mis-to-date");
                     refreshStmMisTotal();
+                    refreshStorageCounter_("stm_complaint");
+                    const stmEntriesList = document.getElementById("entries-list-stm_complaint");
+                    if (stmEntriesList) { stmEntriesList.style.display = "none"; stmEntriesList.innerHTML = ""; }
                 }
                 if (id === "shms-progress") {
                     initShmsProgressDashboard();
