@@ -55,6 +55,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Righteous&family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <style>
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; outline: none; }
         :root {
@@ -446,44 +447,23 @@
                     <div id="dc-menu" class="dropdown-menu"></div>
                 </div>
             </div>
-            <div id="lakhnadon-special-actions" class="px-2" style="display: none;">
-                <button class="dashboard-btn bg-cyan-grad" onclick="switchView('subdn-chhapara')">SUB DN CHHAPARA</button>
-                <button class="dashboard-btn bg-orange-grad" style="margin-top:14px;" onclick="switchView('subdn-lakhnadon')">SUB DN LAKHNADON</button>
-            </div>
             <button class="small-bottom-btn" onclick="askPassword('DIVISION')">DIVISION DAILY PROGRESS</button>
         </main>
 
         <main id="dc-dashboard-view" class="view">
             <div class="px-2 py-8 flex flex-col gap-4">
-                <button class="dashboard-btn btn-green-fix" onclick="window.open('https://pradeepks2015-ship-it.github.io/ADEGAON/', '_blank')">VASOOLI TRACKER</button>
-                <button class="dashboard-btn btn-update-red" onclick="switchView('mobile-update')">Mobile No Update</button>
+                <button class="dashboard-btn btn-green-fix" onclick="window.open('https://pradeepks2015-ship-it.github.io/ADEGAON/', '_blank')">1. VASOOLI TRACKER</button>
+                <button class="dashboard-btn btn-update-red" onclick="switchView('mobile-update')">2. Mobile No Update</button>
           <button class="dashboard-btn btn-court-case" onclick="switchView('court-case')" style="display:none;">Lok Adalat Notice</button>
-                <button class="dashboard-btn" style="background: linear-gradient(135deg, #f59e0b 0%, #b45309 100%);" onclick="switchView('broken-pole')">⚡ Broken Pole / Damage Line</button>
-                <button class="dashboard-btn" style="background: linear-gradient(135deg, #6366f1 0%, #312e81 100%);" onclick="switchView('pdc-nontraceable')">📄 PDC / NON-TRACEABLE</button>
+                <button class="dashboard-btn" style="background: linear-gradient(135deg, #f59e0b 0%, #b45309 100%);" onclick="switchView('broken-pole')">3. ⚡ Broken Pole / Damage Line</button>
+                <button class="dashboard-btn" style="background: linear-gradient(135deg, #6366f1 0%, #312e81 100%);" onclick="switchView('pdc-nontraceable')">4. 📄 PDC / NON-TRACEABLE</button>
+                <button class="dashboard-btn bg-cyan-grad" onclick="askPassword('STOCK')">5. STOCK MATERIAL</button>
+                <button class="dashboard-btn bg-indigo-grad" onclick="switchView('shms-entry')">6. SHMS ENTRY</button>
+                <button class="dashboard-btn btn-feeder-light-pink" onclick="switchView('feeder-reading')">7. FEEDER READING</button>
+                <button class="dashboard-btn btn-stm-complaint" onclick="switchView('stm-complaint')">8. STM COMPLAINT</button>
+                <button class="dashboard-btn btn-daily-houry-peak-load" onclick="switchView('daily-hourly-peak-load')">9. DAILY HOURLY PEAK LOAD</button>
             </div>
         </main>
-
-        <main id="subdn-chhapara-view" class="view">
-                <div class="px-2 py-8 flex flex-col gap-4">
-                    <button class="dashboard-btn bg-cyan-grad" onclick="askPassword('STOCK')">STOCK MATERIAL</button>
-                    <button class="dashboard-btn bg-indigo-grad" onclick="switchView('shms-entry')">SHMS ENTRY</button>
-                    <button class="dashboard-btn btn-feeder-light-pink" onclick="switchView('feeder-reading')">FEEDER READING</button>
-                    <button class="dashboard-btn btn-stm-complaint" onclick="switchView('stm-complaint')">STM COMPLAINT</button>
-                    <button class="dashboard-btn btn-daily-houry-peak-load" onclick="switchView('daily-hourly-peak-load')">DAILY HOURLY PEAK LOAD</button>
-                    <button class="dashboard-btn btn-progress-black" onclick="switchView('shms-progress')" style="width:72%; min-height:54px; margin:0 auto; display:block; font-size:1.05rem;">DAILY PROGRESS</button>
-                </div>
-            </main>
-
-        <main id="subdn-lakhnadon-view" class="view">
-                <div class="px-2 py-8 flex flex-col gap-4">
-                    <button class="dashboard-btn bg-orange-grad" onclick="askPassword('STOCK')">STOCK MATERIAL</button>
-                    <button class="dashboard-btn bg-indigo-grad" onclick="switchView('shms-entry')">SHMS ENTRY</button>
-                    <button class="dashboard-btn btn-feeder-light-pink" onclick="switchView('feeder-reading')">FEEDER READING</button>
-                    <button class="dashboard-btn btn-stm-complaint" onclick="switchView('stm-complaint')">STM COMPLAINT</button>
-                    <button class="dashboard-btn btn-daily-houry-peak-load" onclick="switchView('daily-hourly-peak-load')">DAILY HOURLY PEAK LOAD</button>
-                    <button class="dashboard-btn btn-progress-black" onclick="switchView('shms-progress')" style="width:72%; min-height:54px; margin:0 auto; display:block; font-size:1.05rem;">DAILY PROGRESS</button>
-                </div>
-            </main>
 
         <main id="stm-complaint-view" class="view">
             <div class="search-panel">
@@ -582,6 +562,27 @@
         <main id="feeder-reading-view" class="view">
             <div class="search-panel">
                 <div style="display:flex; flex-direction:column; gap:14px; width:100%;">
+                    <!-- MIS Report Widget -->
+                    <div style="width:100%; max-width:340px; margin:0 auto;">
+                        <div style="background: linear-gradient(135deg, #ec4899 0%, #9d174d 100%); border-radius: 18px; padding: 16px 18px; box-shadow: 0 8px 20px rgba(157,23,77,0.18);">
+                            <div style="font-size:12px; font-weight:900; color:#fce7f3; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:10px; text-align:center;">📊 Feeder Reading MIS Report</div>
+                            <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:10px;">
+                                <div>
+                                    <div style="font-size:10px; font-weight:800; color:#fce7f3; text-transform:uppercase; margin-bottom:4px;">From Date</div>
+                                    <input type="date" id="feeder-mis-from-date" style="width:100%; height:38px; border-radius:10px; border:1.5px solid #ec4899; padding:0 8px; font-size:0.8rem; font-weight:700; color:#831843; background:#fdf2f8; outline:none;">
+                                </div>
+                                <div>
+                                    <div style="font-size:10px; font-weight:800; color:#fce7f3; text-transform:uppercase; margin-bottom:4px;">To Date</div>
+                                    <input type="date" id="feeder-mis-to-date" style="width:100%; height:38px; border-radius:10px; border:1.5px solid #ec4899; padding:0 8px; font-size:0.8rem; font-weight:700; color:#831843; background:#fdf2f8; outline:none;">
+                                </div>
+                            </div>
+                            <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
+                                <button onclick="downloadModuleMisReport('feeder','EXCEL')" style="height:42px; border:none; border-radius:12px; background:linear-gradient(135deg,#16a34a,#15803d); color:#fff; font-size:12px; font-weight:900; text-transform:uppercase;">Excel</button>
+                                <button onclick="downloadModuleMisReport('feeder','PDF')" style="height:42px; border:none; border-radius:12px; background:linear-gradient(135deg,#ef4444,#b91c1c); color:#fff; font-size:12px; font-weight:900; text-transform:uppercase;">PDF</button>
+                            </div>
+                        </div>
+                    </div>
+
                     <div id="feeder-operator-login-block" style="display:none; width:100%; max-width:340px; margin:0 auto;">
                         <div style="background:#ffffff; border:1.5px solid #fbcfe8; border-radius:18px; padding:16px 14px; box-shadow:0 10px 30px rgba(190,24,93,0.08);">
                             <div style="font-size:14px; font-weight:900; text-transform:uppercase; color:#9d174d; text-align:center; margin-bottom:10px;">Operator Signup</div>
@@ -633,6 +634,27 @@
         <main id="daily-hourly-peak-load-view" class="view">
             <div class="search-panel">
                 <div style="display:flex; flex-direction:column; gap:14px; width:100%;">
+                    <!-- MIS Report Widget -->
+                    <div style="width:100%; max-width:340px; margin:0 auto;">
+                        <div style="background: linear-gradient(135deg, #16a34a 0%, #14532d 100%); border-radius: 18px; padding: 16px 18px; box-shadow: 0 8px 20px rgba(20,83,45,0.18);">
+                            <div style="font-size:12px; font-weight:900; color:#bbf7d0; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:10px; text-align:center;">📊 Peak Load MIS Report</div>
+                            <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:10px;">
+                                <div>
+                                    <div style="font-size:10px; font-weight:800; color:#bbf7d0; text-transform:uppercase; margin-bottom:4px;">From Date</div>
+                                    <input type="date" id="peakload-mis-from-date" style="width:100%; height:38px; border-radius:10px; border:1.5px solid #16a34a; padding:0 8px; font-size:0.8rem; font-weight:700; color:#14532d; background:#f0fdf4; outline:none;">
+                                </div>
+                                <div>
+                                    <div style="font-size:10px; font-weight:800; color:#bbf7d0; text-transform:uppercase; margin-bottom:4px;">To Date</div>
+                                    <input type="date" id="peakload-mis-to-date" style="width:100%; height:38px; border-radius:10px; border:1.5px solid #16a34a; padding:0 8px; font-size:0.8rem; font-weight:700; color:#14532d; background:#f0fdf4; outline:none;">
+                                </div>
+                            </div>
+                            <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
+                                <button onclick="downloadModuleMisReport('peakload','EXCEL')" style="height:42px; border:none; border-radius:12px; background:linear-gradient(135deg,#16a34a,#15803d); color:#fff; font-size:12px; font-weight:900; text-transform:uppercase;">Excel</button>
+                                <button onclick="downloadModuleMisReport('peakload','PDF')" style="height:42px; border:none; border-radius:12px; background:linear-gradient(135deg,#ef4444,#b91c1c); color:#fff; font-size:12px; font-weight:900; text-transform:uppercase;">PDF</button>
+                            </div>
+                        </div>
+                    </div>
+
                     <div id="peak-load-operator-login-block" style="display:none; width:100%; max-width:340px; margin:0 auto;">
                         <div style="background:#ffffff; border:1.5px solid #bbf7d0; border-radius:18px; padding:16px 14px; box-shadow:0 10px 30px rgba(22,163,74,0.08);">
                             <div style="font-size:14px; font-weight:900; text-transform:uppercase; color:#166534; text-align:center; margin-bottom:10px;">Operator Signup</div>
@@ -706,6 +728,27 @@
         <main id="shms-entry-view" class="view">
             <div class="search-panel">
                 <div style="display:flex; flex-direction:column; gap:14px; width:100%;">
+                    <!-- MIS Report Widget -->
+                    <div style="width:100%; max-width:340px; margin:0 auto;">
+                        <div style="background: linear-gradient(135deg, #4338ca 0%, #1e1b4b 100%); border-radius: 18px; padding: 16px 18px; box-shadow: 0 8px 20px rgba(67,56,202,0.18);">
+                            <div style="font-size:12px; font-weight:900; color:#c7d2fe; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:10px; text-align:center;">📊 SHMS Entry MIS Report</div>
+                            <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:10px;">
+                                <div>
+                                    <div style="font-size:10px; font-weight:800; color:#c7d2fe; text-transform:uppercase; margin-bottom:4px;">From Date</div>
+                                    <input type="date" id="shms-mis-from-date" style="width:100%; height:38px; border-radius:10px; border:1.5px solid #6366f1; padding:0 8px; font-size:0.8rem; font-weight:700; color:#1e1b4b; background:#eef2ff; outline:none;">
+                                </div>
+                                <div>
+                                    <div style="font-size:10px; font-weight:800; color:#c7d2fe; text-transform:uppercase; margin-bottom:4px;">To Date</div>
+                                    <input type="date" id="shms-mis-to-date" style="width:100%; height:38px; border-radius:10px; border:1.5px solid #6366f1; padding:0 8px; font-size:0.8rem; font-weight:700; color:#1e1b4b; background:#eef2ff; outline:none;">
+                                </div>
+                            </div>
+                            <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
+                                <button onclick="downloadModuleMisReport('shms','EXCEL')" style="height:42px; border:none; border-radius:12px; background:linear-gradient(135deg,#16a34a,#15803d); color:#fff; font-size:12px; font-weight:900; text-transform:uppercase;">Excel</button>
+                                <button onclick="downloadModuleMisReport('shms','PDF')" style="height:42px; border:none; border-radius:12px; background:linear-gradient(135deg,#ef4444,#b91c1c); color:#fff; font-size:12px; font-weight:900; text-transform:uppercase;">PDF</button>
+                            </div>
+                        </div>
+                    </div>
+
                     <div id="shms-operator-login-block" style="display:none; width:100%; max-width:340px; margin:0 auto;">
                         <div style="background:#ffffff; border:1.5px solid #c7d2fe; border-radius:18px; padding:16px 14px; box-shadow:0 10px 30px rgba(67,56,202,0.08);">
                             <div style="font-size:14px; font-weight:900; text-transform:uppercase; color:#312e81; text-align:center; margin-bottom:10px;">Operator Signup</div>
@@ -809,6 +852,26 @@
 
         <main id="stock-material-view" class="view">
             <div class="stock-wrap">
+                <!-- MIS Report Widget -->
+                <div style="width:100%; max-width:340px; margin:0 auto 14px auto;">
+                    <div style="background: linear-gradient(135deg, #06b6d4 0%, #155e75 100%); border-radius: 18px; padding: 16px 18px; box-shadow: 0 8px 20px rgba(21,94,117,0.18);">
+                        <div style="font-size:12px; font-weight:900; color:#cffafe; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:10px; text-align:center;">📊 Stock Material MIS Report</div>
+                        <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:10px;">
+                            <div>
+                                <div style="font-size:10px; font-weight:800; color:#cffafe; text-transform:uppercase; margin-bottom:4px;">From Date</div>
+                                <input type="date" id="stock-mis-from-date" style="width:100%; height:38px; border-radius:10px; border:1.5px solid #06b6d4; padding:0 8px; font-size:0.8rem; font-weight:700; color:#155e75; background:#ecfeff; outline:none;">
+                            </div>
+                            <div>
+                                <div style="font-size:10px; font-weight:800; color:#cffafe; text-transform:uppercase; margin-bottom:4px;">To Date</div>
+                                <input type="date" id="stock-mis-to-date" style="width:100%; height:38px; border-radius:10px; border:1.5px solid #06b6d4; padding:0 8px; font-size:0.8rem; font-weight:700; color:#155e75; background:#ecfeff; outline:none;">
+                            </div>
+                        </div>
+                        <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
+                            <button onclick="downloadModuleMisReport('stock','EXCEL')" style="height:42px; border:none; border-radius:12px; background:linear-gradient(135deg,#16a34a,#15803d); color:#fff; font-size:12px; font-weight:900; text-transform:uppercase;">Excel</button>
+                            <button onclick="downloadModuleMisReport('stock','PDF')" style="height:42px; border:none; border-radius:12px; background:linear-gradient(135deg,#ef4444,#b91c1c); color:#fff; font-size:12px; font-weight:900; text-transform:uppercase;">PDF</button>
+                        </div>
+                    </div>
+                </div>
                 <div class="stock-top-actions">
                     <button class="stock-top-btn form-green" onclick="openStockSection('material-receive')">Receive</button>
                     <button class="stock-top-btn form-red" onclick="openStockSection('material-issue')">Issue</button>
@@ -1024,6 +1087,9 @@
                         </label>
                         <input type="file" id="bp-photo" accept="image/*" capture="environment" style="display:none;" onchange="updateBrokenPolePhoto()">
                         <div id="bp-photo-name" class="photo-file-name">No photo selected</div>
+                        <div id="bp-photo-preview-wrap" style="display:none; margin-top:10px;">
+                            <img id="bp-photo-preview" src="" style="width:100%; max-height:220px; object-fit:cover; border-radius:12px; border:1.5px solid #fed7aa;">
+                        </div>
                         <div id="bp-photo-meta" class="photo-meta-box" style="display:none;">
                             <div id="bp-photo-latlong" class="photo-meta-row"><strong>Lat-Long:</strong> Not captured</div>
                             <div id="bp-photo-location" class="photo-meta-row"><strong>Location:</strong> Not captured</div>
@@ -1194,17 +1260,9 @@
                 colorClass: "bg-orange-grad",
                 themeColor: "#f59e0b",
                 themeGradient: "linear-gradient(135deg, #f59e0b 0%, #d97706 100%)",
-                showSpecialActions: true,
+                showSpecialActions: false,
                 dcs: [
-                    { name: "ADEGAON", csvUrl: "https://docs.google.com/spreadsheets/d/e/2PACX-1vTMkEMNGnfv0_jHM12lAl34sD8kJLWPbLuA8WGhKH_smPfH3aDdmVrwbtyyPJZuD6KK4m6quw-q9MWN/pub?output=csv" },
-                    { name: "CHHAPARA-1", csvUrl: "https://docs.google.com/spreadsheets/d/e/2PACX-1vQCqVfz1_zR2sJfe9LP_UptL1BdVfrisq60Snnd0sh94FDzrjMTwFUq5HD_7W-B_gMUaFBIVSdwZDGd/pub?output=csv" },
-                    { name: "CHHAPARA-2", csvUrl: "https://docs.google.com/spreadsheets/d/e/2PACX-1vQHvHOehoWyr2bzp64NeuDZbf7D6vVv3NrmmI2JGPLXYN9Qrhol-0Ti520uk9HSqI6uWKg_KUiQ32tr/pub?output=csv" },
-                    { name: "DHANORA", csvUrl: "https://docs.google.com/spreadsheets/d/e/2PACX-1vRm09i9bR8bIyWqZ82_MVLxrSoC-LL-sxw9-V8BXnOBjZDekPzBydAYw5Q9bJZaXe8bjFOfa_WYcZer/pub?output=csv" },
-                    { name: "DHUMA", csvUrl: "https://docs.google.com/spreadsheets/d/e/2PACX-1vTLZb7N8resS05d0x0Txuh38Th4_bHXBHDBcKNc_mrJaqeYe0FyzdpbctR0r6xhtCFpNLuXN_737the/pub?output=csv" },
-                    { name: "GANESHGANJ", csvUrl: "https://docs.google.com/spreadsheets/d/e/2PACX-1vSpKAgJ9I3cus_l-QbagEIsaM8kmIZrkV0cYc00lnOg_MAXJZXrIzJC9QghdStYz0g-yWbtUKjn4uFI/pub?output=csv" },
-                    { name: "GHANSORE", csvUrl: "https://docs.google.com/spreadsheets/d/e/2PACX-1vSoRVa5mLGf7Mnz_2ZoPvbK5WO3Ew3I8YTRJDV6KFKd9CLv2fUAzkrmz8vcOGUwtrIVQ-jr4yt4Yy-D/pub?output=csv" },
-                    { name: "KEDARPUR", csvUrl: "https://docs.google.com/spreadsheets/d/e/2PACX-1vTBdrZyG4W8F0sR5lCoTxfTC9J15m86DRo2GXLwAI_HM3TBua4zFYq96qu_Obu6DjhWp6hK-TZNFaVr/pub?output=csv" },
-                    { name: "LAKHNADON", csvUrl: "https://docs.google.com/spreadsheets/d/e/2PACX-1vTGixc1ReIutuAxRbMRTF29ZLd0v2DrcSgFFC6uw-ppBtvNkBa6rMJtqA37oGx2JAWgi-aXVhXVE8vq/pub?output=csv" }
+                    { name: "ADEGAON", csvUrl: "https://docs.google.com/spreadsheets/d/e/2PACX-1vTMkEMNGnfv0_jHM12lAl34sD8kJLWPbLuA8WGhKH_smPfH3aDdmVrwbtyyPJZuD6KK4m6quw-q9MWN/pub?output=csv" }
                 ]
             }
         };
@@ -1337,9 +1395,8 @@
         const peakLoadOperatorStorageKey = "dailyHourlyPeakLoadOperatorProfile";
         const peakLoadSubmissionStorageKey = "dailyHourlyPeakLoadSubmissionDrafts";
         let selectedStmComplaintSubstation = "";
-        const subDnChhaparaDcs = ["CHHAPARA-1", "CHHAPARA-2", "GANESHGANJ", "MAINTENANCE TEAM", "OTHER"];
-        const subDnLakhnadonDcs = ["ADEGAON", "DHUMA", "LAKHNADON", "KEDARPUR", "GHANSORE", "DHANORA", "MAINTENANCE TEAM", "OTHER"];
-        let activeSubDnDcs = subDnChhaparaDcs;
+        const adegaonIssueDcs = ["ADEGAON", "MAINTENANCE TEAM", "OTHER"];
+        let activeSubDnDcs = adegaonIssueDcs;
         const courtServedStorageKey = "seoni-circle-lok-adalat-served";
         const mobileUpdateStorageKey = "seoni-circle-mobile-updated";
         const courtCaseCacheStorageKey = "seoni-circle-lok-adalat-csv-cache";
@@ -1413,7 +1470,6 @@
             document.documentElement.style.setProperty("--theme-color", divisionConfig?.themeColor || "#0d9488");
             document.documentElement.style.setProperty("--theme-grad", divisionConfig?.themeGradient || "linear-gradient(135deg, #0d9488 0%, #0f766e 100%)");
             switchView("dc-selection");
-            document.getElementById("lakhnadon-special-actions").style.display = divisionConfig?.showSpecialActions ? "block" : "none";
             const menu = document.getElementById("dc-menu");
             menu.innerHTML = "";
             getDivisionDcNames(activeDiv).forEach((dc) => {
@@ -3110,10 +3166,23 @@
         async function updateBrokenPolePhoto() {
             const input = document.getElementById("bp-photo");
             const label = document.getElementById("bp-photo-name");
+            const previewWrap = document.getElementById("bp-photo-preview-wrap");
+            const previewImg = document.getElementById("bp-photo-preview");
             label.innerText = input.files && input.files[0] ? input.files[0].name : "No photo selected";
             if (input.files && input.files[0]) {
+                // Show photo preview immediately
+                try {
+                    const reader = new FileReader();
+                    reader.onload = () => {
+                        previewImg.src = reader.result;
+                        previewWrap.style.display = "block";
+                    };
+                    reader.readAsDataURL(input.files[0]);
+                } catch (_) {}
                 await captureBpGeoLocation();
             } else {
+                previewWrap.style.display = "none";
+                previewImg.src = "";
                 bpGeoData = null;
                 updateBpPhotoMetaUI();
             }
@@ -3184,6 +3253,8 @@
                 // Reset form
                 document.getElementById("bp-photo").value = "";
                 document.getElementById("bp-photo-name").innerText = "No photo selected";
+                document.getElementById("bp-photo-preview-wrap").style.display = "none";
+                document.getElementById("bp-photo-preview").src = "";
                 document.getElementById("bp-remark1").value = "";
                 document.getElementById("bp-remark2").value = "";
                 bpGeoData = null;
@@ -3605,6 +3676,216 @@
             }
         }
 
+
+        function setDefaultMisDates_(fromId, toId) {
+            const fromInput = document.getElementById(fromId);
+            const toInput = document.getElementById(toId);
+            if (!fromInput || !toInput) return;
+            if (fromInput.value && toInput.value) return;
+            const today = new Date().toISOString().split("T")[0];
+            const now = new Date();
+            const firstOfMonth = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,"0")}-01`;
+            fromInput.value = firstOfMonth;
+            toInput.value = today;
+        }
+
+        // ===== Generic Module MIS Reports (SHMS / Feeder / Peak Load / Stock) =====
+        function misDateInRange_(dateKey, fromDate, toDate) {
+            if (!dateKey) return false;
+            if (!fromDate || !toDate) return true;
+            return dateKey >= fromDate && dateKey <= toDate;
+        }
+
+        async function getShmsMisRows_(fromDate, toDate) {
+            await loadShmsProgressData(true);
+            const rows = mergeShmsProgressRows_(shmsProgressRows, getRecentShmsSubmittedRows_());
+            return rows.filter((r) => misDateInRange_(r.dateKey, fromDate, toDate));
+        }
+
+        async function getFeederMisRows_(fromDate, toDate) {
+            await loadFeederReportData(true);
+            const rows = getAllFeederHistoryEntries_();
+            return rows.filter((r) => {
+                const dateKey = buildFeederDateKey_(r["DATE(DD/MM/YYY)"] || r.date || "");
+                return misDateInRange_(dateKey, fromDate, toDate);
+            });
+        }
+
+        async function getPeakLoadMisRows_(fromDate, toDate) {
+            const rows = [];
+            try {
+                const stored = JSON.parse(localStorage.getItem(peakLoadSubmissionStorageKey) || "[]");
+                (Array.isArray(stored) ? stored : []).forEach((submission) => {
+                    const dateKey = buildFeederDateKey_(submission.date || "");
+                    if (!misDateInRange_(dateKey, fromDate, toDate)) return;
+                    (submission.entries || []).forEach((entry) => {
+                        (entry.loads || []).forEach((load) => {
+                            rows.push({
+                                substation: submission.substation || "",
+                                feeder: entry.feeder || "",
+                                meterNo: entry.meter_no || "",
+                                date: submission.date || "",
+                                time: load.time || "",
+                                peakLoad: load.value || "",
+                                operatorName: submission.operator_name || ""
+                            });
+                        });
+                    });
+                });
+            } catch (_) {}
+            return rows;
+        }
+
+        async function getStockMisRows_(fromDate, toDate) {
+            return (Array.isArray(stockMovements) ? stockMovements : []).filter((r) => {
+                const dateKey = buildFeederDateKey_(r.date || "");
+                return misDateInRange_(dateKey, fromDate, toDate);
+            });
+        }
+
+        function getMisModuleConfig_(moduleType) {
+            const configs = {
+                shms: {
+                    title: "SHMS ENTRY MIS REPORT",
+                    color: [67, 56, 202],
+                    fromId: "shms-mis-from-date",
+                    toId: "shms-mis-to-date",
+                    headers: ["Substation", "Feeder", "Event Type", "Date", "Time From", "Time To", "Duration", "Reason", "Meter No", "Operator", "Mobile"],
+                    rowMapper: (r) => [
+                        r.substation || "", r.feeder || "", r.eventType || "", r.date || "",
+                        r.timeFrom || "", r.timeTo || "", r.totalDuration || "", r.reason || "",
+                        r.meterNo || "", r.operatorName || "", r.operatorMobile || ""
+                    ],
+                    fetcher: getShmsMisRows_,
+                    filename: "SHMS_Entry_MIS"
+                },
+                feeder: {
+                    title: "FEEDER READING MIS REPORT",
+                    color: [157, 23, 77],
+                    fromId: "feeder-mis-from-date",
+                    toId: "feeder-mis-to-date",
+                    headers: ["Substation", "Feeder", "Meter No", "Previous Reading", "Current Reading", "MF", "Consumption", "DC Name", "Date", "Time"],
+                    rowMapper: (r) => [
+                        r["33/11 KV SUBSTATION"] || "", r["33 AND 11 KV FEEDER"] || "", r["METER NO"] || "",
+                        r["PREVIUS READING"] || "", r["CURRENT READING"] || "", r["MF"] || "",
+                        r["CONSUMPTION"] || "", r["DC NAME"] || "", r["DATE(DD/MM/YYY)"] || "", r["TIME(HH/MM)"] || ""
+                    ],
+                    fetcher: getFeederMisRows_,
+                    filename: "Feeder_Reading_MIS"
+                },
+                peakload: {
+                    title: "DAILY HOURLY PEAK LOAD MIS REPORT",
+                    color: [21, 128, 61],
+                    fromId: "peakload-mis-from-date",
+                    toId: "peakload-mis-to-date",
+                    headers: ["Substation", "Feeder", "Meter No", "Date", "Time", "Peak Load (A)", "Operator"],
+                    rowMapper: (r) => [
+                        r.substation || "", r.feeder || "", r.meterNo || "", r.date || "", r.time || "", String(r.peakLoad || ""), r.operatorName || ""
+                    ],
+                    fetcher: getPeakLoadMisRows_,
+                    filename: "Daily_Hourly_Peak_Load_MIS"
+                },
+                stock: {
+                    title: "STOCK MATERIAL MIS REPORT",
+                    color: [21, 94, 117],
+                    fromId: "stock-mis-from-date",
+                    toId: "stock-mis-to-date",
+                    headers: ["Type", "Material", "Quantity", "Date", "Note"],
+                    rowMapper: (r) => [r.type || "", r.material || "", String(r.qty || ""), r.date || "", r.note || ""],
+                    fetcher: getStockMisRows_,
+                    filename: "Stock_Material_MIS"
+                }
+            };
+            return configs[moduleType] || null;
+        }
+
+        async function downloadModuleMisReport(moduleType, format) {
+            const config = getMisModuleConfig_(moduleType);
+            if (!config) return;
+
+            const fromInput = document.getElementById(config.fromId);
+            const toInput = document.getElementById(config.toId);
+            const fromDate = fromInput?.value || "";
+            const toDate = toInput?.value || "";
+            if (fromDate && toDate && fromDate > toDate) {
+                return showToast("From date, To date se pehle honi chahiye", false);
+            }
+
+            showToast("Report taiyar ho raha hai...", true);
+
+            let rows = [];
+            try {
+                rows = await config.fetcher(fromDate, toDate);
+            } catch (_) {
+                rows = [];
+            }
+
+            const fmtDate = (iso) => {
+                if (!iso) return "";
+                const [y, m, d] = iso.split("-");
+                return `${d}/${m}/${y}`;
+            };
+            const periodLabel = (fromDate && toDate) ? `${fmtDate(fromDate)} to ${fmtDate(toDate)}` : "All Records";
+
+            if (format === "EXCEL") {
+                try {
+                    const wsData = [config.headers, ...rows.map(config.rowMapper)];
+                    const ws = XLSX.utils.aoa_to_sheet(wsData);
+                    const wb = XLSX.utils.book_new();
+                    XLSX.utils.book_append_sheet(wb, ws, "MIS Report");
+                    const filename = `${config.filename}_${(fromDate || "all").replace(/-/g,"")}_${(toDate || "all").replace(/-/g,"")}.xlsx`;
+                    XLSX.writeFile(wb, filename);
+                    showToast("Excel Downloaded!", true);
+                } catch (_) {
+                    showToast("Excel generate karne mein error aaya", false);
+                }
+            } else {
+                try {
+                    const { jsPDF } = window.jspdf;
+                    const doc = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" });
+
+                    doc.setFillColor(...config.color);
+                    doc.rect(0, 0, 297, 18, "F");
+                    doc.setFontSize(13);
+                    doc.setTextColor(255, 255, 255);
+                    doc.setFont(undefined, "bold");
+                    doc.text(config.title, 148.5, 8, { align: "center" });
+                    doc.setFontSize(8);
+                    doc.setFont(undefined, "normal");
+                    doc.text(`DC: ${activeDC || "-"}  |  Period: ${periodLabel}`, 148.5, 14, { align: "center" });
+
+                    doc.setTextColor(100);
+                    doc.setFontSize(7);
+                    doc.text(`Generated: ${new Date().toLocaleString("en-IN")}  |  Total Records: ${rows.length}`, 287, 22, { align: "right" });
+
+                    doc.autoTable({
+                        startY: 26,
+                        margin: { left: 5, right: 5 },
+                        tableWidth: "auto",
+                        head: [config.headers],
+                        body: rows.length ? rows.map(config.rowMapper) : [config.headers.map((_, i) => i === 0 ? "No records found" : "-")],
+                        theme: "striped",
+                        headStyles: { fillColor: config.color, textColor: 255, halign: "center", fontSize: 7, fontStyle: "bold" },
+                        bodyStyles: { fontSize: 7 },
+                        styles: { halign: "center", overflow: "linebreak", cellWidth: "wrap" }
+                    });
+
+                    const totalPages = doc.internal.getNumberOfPages();
+                    for (let i = 1; i <= totalPages; i++) {
+                        doc.setPage(i);
+                        doc.setFontSize(7);
+                        doc.setTextColor(150);
+                        doc.text(`Page ${i} of ${totalPages}  |  ${config.title}`, 148.5, 205, { align: "center" });
+                    }
+
+                    const filename = `${config.filename}_${(fromDate || "all").replace(/-/g,"")}_${(toDate || "all").replace(/-/g,"")}.pdf`;
+                    doc.save(filename);
+                    showToast("PDF Downloaded!", true);
+                } catch (_) {
+                    showToast("PDF generate karne mein error aaya", false);
+                }
+            }
+        }
 
         function parseCourtCaseLine(line) {
             const cols = line.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/).map((item) => item.replace(/^"|"$/g, "").trim());
@@ -7563,7 +7844,8 @@
             document.getElementById("submit-btn").style.display = "none";
             if (!keepDc) {
                 activeDC = "";
-                document.getElementById("selected-dc-label").innerText = "Choose DC Name...";
+                const label = document.getElementById("selected-dc-label");
+                if (label) label.innerText = "Choose DC Name...";
             }
         }
 
@@ -7585,12 +7867,6 @@
             const target = document.getElementById(id + "-view");
             if (target) {
                 target.classList.add("active");
-                if (id === "subdn-chhapara") {
-                    activeSubDnDcs = subDnChhaparaDcs;
-                }
-                if (id === "subdn-lakhnadon") {
-                    activeSubDnDcs = subDnLakhnadonDcs;
-                }
                 if (id === "broken-pole") {
                     const today = new Date().toISOString().split("T")[0];
                     const now = new Date();
@@ -7613,12 +7889,18 @@
                 }
                 if (id === "shms-entry") {
                     initShmsEntry();
+                    setDefaultMisDates_("shms-mis-from-date", "shms-mis-to-date");
                 }
                 if (id === "feeder-reading") {
                     initFeederReading();
+                    setDefaultMisDates_("feeder-mis-from-date", "feeder-mis-to-date");
                 }
                 if (id === "daily-hourly-peak-load") {
                     initDailyHourlyPeakLoad();
+                    setDefaultMisDates_("peakload-mis-from-date", "peakload-mis-to-date");
+                }
+                if (id === "stock-material") {
+                    setDefaultMisDates_("stock-mis-from-date", "stock-mis-to-date");
                 }
                 if (id === "stm-complaint") {
                     initStmComplaintSignup();
@@ -7633,7 +7915,6 @@
                 let headerTitle = "SEONI CIRCLE";
                 if (id === "dc-selection") headerTitle = activeDiv;
                 if (id === "dc-dashboard") headerTitle = `DC: ${activeDC}`;
-                if (id === "subdn-chhapara") headerTitle = "SUB DN CHHAPARA";
                 if (id === "feeder-reading") headerTitle = "FEEDER READING";
                 if (id === "daily-hourly-peak-load") headerTitle = "DAILY HOURLY PEAK LOAD";
                 if (id === "stm-complaint") headerTitle = "STM COMPLAINT";
@@ -7649,6 +7930,8 @@
                 if (id === "low-stock") headerTitle = "LOW STOCK";
                 if (id === "stock-report") headerTitle = "STOCK REPORT";
                 if (id === "mobile-update") headerTitle = "UPDATE MOBILE NO";
+                if (id === "broken-pole") headerTitle = "BROKEN POLE / DAMAGE LINE";
+                if (id === "pdc-nontraceable") headerTitle = "PDC / NON-TRACEABLE";
                 if (id === "summary") headerTitle = "PROGRESS REPORT";
                 document.getElementById("main-header-title").innerText = headerTitle;
                 const header = document.getElementById("app-header");
@@ -7711,10 +7994,9 @@
             const act = activeNode.id;
             if (act === "dc-selection-view") {
                 activeDC = "";
-                document.getElementById("selected-dc-label").innerText = "Choose DC Name...";
+                const label = document.getElementById("selected-dc-label");
+                if (label) label.innerText = "Choose DC Name...";
                 switchView("home");
-            } else if (act === "subdn-chhapara-view") {
-                switchView("dc-selection");
             } else if (act === "stock-material-view" || act === "shms-entry-view" || act === "shms-progress-view" || act === "shms-pending-view" || act === "feeder-reading-view" || act === "daily-hourly-peak-load-view" || act === "stm-complaint-view") {
                 if (act === "shms-entry-view") {
                     resetShmsForm();
@@ -7725,21 +8007,22 @@
                 if (act === "daily-hourly-peak-load-view") {
                     resetPeakLoadSelection();
                 }
-                switchView("subdn-chhapara");
+                switchView("dc-dashboard");
             } else if (act === "court-case-view") {
                 resetCourtCaseForm();
                 switchView("dc-dashboard");
             } else if (act === "material-list-view" || act === "material-receive-view" || act === "material-issue-view" || act === "live-stock-view" || act === "low-stock-view" || act === "stock-report-view") {
                 switchView("stock-material");
-            } else if (act === "dc-dashboard-view" || act === "mobile-update-view") {
+            } else if (act === "dc-dashboard-view") {
+                activeDC = "";
+                const label = document.getElementById("selected-dc-label");
+                if (label) label.innerText = "Choose DC Name...";
+                switchView("dc-selection");
+            } else if (act === "mobile-update-view" || act === "broken-pole-view" || act === "pdc-nontraceable-view") {
                 if (act === "mobile-update-view") {
-                    resetForm();
-                    switchView("dc-dashboard");
-                } else {
-                    activeDC = "";
-                    document.getElementById("selected-dc-label").innerText = "Choose DC Name...";
-                    switchView("dc-selection");
+                    resetForm(true);
                 }
+                switchView("dc-dashboard");
             } else if (act === "summary-view") {
                 if (activeViewLevel === "DC") switchView("dc-dashboard");
                 else if (activeViewLevel === "DIVISION") switchView("dc-selection");
@@ -7751,7 +8034,8 @@
 
         function changeTheme(c) {
             document.documentElement.style.setProperty("--theme-color", c);
-            document.getElementById("welcomeText").style.color = c;
+            const welcomeText = document.getElementById("welcomeText");
+            if (welcomeText) welcomeText.style.color = c;
         }
 
         function setMode(m) {
