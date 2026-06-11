@@ -654,6 +654,7 @@
                         </div>
                         <div id="feeder-status" class="feeder-status"></div>
                         <div id="feeder-list" class="feeder-list-wrap"></div>
+                        <div id="feeder-progressive-panel" class="feeder-list-wrap" style="margin-top:14px;"></div>
                         <button id="feeder-submit-btn" class="feeder-submit-btn" onclick="submitFeederReadings()">Submit</button>
                     </div>
                 </div>
@@ -1436,6 +1437,24 @@
             ],
             "11 KV PINDRAI": [
                 { dcName: "ADEGAON", percent: 100 }
+            ],
+            "ADEGAON-CB": [
+                { dcName: "ADEGAON", percent: 100 }
+            ],
+            "33KV ADEGAON": [
+                { dcName: "ADEGAON", percent: 100 }
+            ],
+            "33KV ADEGAON-CHAMARI": [
+                { dcName: "ADEGAON", percent: 100 }
+            ],
+            "33KV MADI OUTGOING": [
+                { dcName: "ADEGAON", percent: 100 }
+            ],
+            "33KV ADEGAON (CHAMARI)": [
+                { dcName: "ADEGAON", percent: 100 }
+            ],
+            "33KV MADHI INCOMING": [
+                { dcName: "ADEGAON", percent: 100 }
             ]
         };
         let feederRows = [];
@@ -1447,7 +1466,6 @@
             { "33/11 KV SUBSTATION": "ADEGAON", "33 AND 11 KV FEEDER": "11KV MADI (ADEGAON) MIX", substation: "ADEGAON", feeder: "11KV MADI (ADEGAON) MIX", meterNo: "BS12774693", mf: "4000" },
             { "33/11 KV SUBSTATION": "ADEGAON", "33 AND 11 KV FEEDER": "11KV BIBI DL", substation: "ADEGAON", feeder: "11KV BIBI DL", meterNo: "BS12776368", mf: "4000" },
             { "33/11 KV SUBSTATION": "ADEGAON", "33 AND 11 KV FEEDER": "11KV BIBI AG", substation: "ADEGAON", feeder: "11KV BIBI AG", meterNo: "BS12774694", mf: "4000" },
-            { "33/11 KV SUBSTATION": "ADEGAON", "33 AND 11 KV FEEDER": "11 KV MARHI MIX", substation: "ADEGAON", feeder: "11 KV MARHI MIX", meterNo: "BS12774693", mf: "4000" },
             { "33/11 KV SUBSTATION": "ADEGAON", "33 AND 11 KV FEEDER": "ADEGAON-CB", substation: "ADEGAON", feeder: "ADEGAON-CB", meterNo: "BS12770679", mf: "4000" },
             { "33/11 KV SUBSTATION": "MADHI", "33 AND 11 KV FEEDER": "11 KV PATAN", substation: "MADHI", feeder: "11 KV PATAN", meterNo: "BS12775542", mf: "4000" },
             { "33/11 KV SUBSTATION": "MADHI", "33 AND 11 KV FEEDER": "11 KV MADHI", substation: "MADHI", feeder: "11 KV MADHI", meterNo: "BS12775541", mf: "4000" },
@@ -1456,7 +1474,8 @@
             { "33/11 KV SUBSTATION": "ADEGAON", "33 AND 11 KV FEEDER": "33KV ADEGAON", substation: "ADEGAON", feeder: "33KV ADEGAON", meterNo: "BS12775548", mf: "12000", feederType: "33 KV" },
             { "33/11 KV SUBSTATION": "ADEGAON", "33 AND 11 KV FEEDER": "33KV ADEGAON-CHAMARI", substation: "ADEGAON", feeder: "33KV ADEGAON-CHAMARI", meterNo: "BS12775550", mf: "12000", feederType: "33 KV" },
             { "33/11 KV SUBSTATION": "ADEGAON", "33 AND 11 KV FEEDER": "33KV MADI OUTGOING", substation: "ADEGAON", feeder: "33KV MADI OUTGOING", meterNo: "BS12776133", mf: "12000", feederType: "33 KV" },
-            { "33/11 KV SUBSTATION": "CHAMARI", "33 AND 11 KV FEEDER": "33KV ADEGAON (CHAMARI)", substation: "CHAMARI", feeder: "33KV ADEGAON (CHAMARI)", meterNo: "BS12775544", mf: "12000", feederType: "33 KV" }
+            { "33/11 KV SUBSTATION": "CHAMARI", "33 AND 11 KV FEEDER": "33KV ADEGAON (CHAMARI)", substation: "CHAMARI", feeder: "33KV ADEGAON (CHAMARI)", meterNo: "BS12775544", mf: "12000", feederType: "33 KV" },
+            { "33/11 KV SUBSTATION": "MADHI", "33 AND 11 KV FEEDER": "33KV MADHI INCOMING", substation: "MADHI", feeder: "33KV MADHI INCOMING", meterNo: "BS12775543", mf: "12000", feederType: "33 KV" }
         ];
         let peakLoadRows = [];
         let peakLoadDataLoaded = false;
@@ -2911,6 +2930,157 @@
                 });
             const latest = matchedEntries[matchedEntries.length - 1];
             return latest ? String(latest["CURRENT READING"] || latest.current_reading || "").trim() : "";
+        }
+
+        // ===== Monthly Progressive Consumption (month-start to selected date) =====
+        function getFeederEntriesForFeederKey_(substationKey, feederKey) {
+            return getAllFeederHistoryEntries_().filter((entry) => {
+                const entrySubstationKey = normalizeFeederSubstationKey_(entry["33/11 KV SUBSTATION"] || entry.substation || "");
+                const entryFeederKey = String(entry["33 AND 11 KV FEEDER"] || entry.feeder || "").trim().toUpperCase();
+                return entrySubstationKey === substationKey && entryFeederKey === feederKey;
+            });
+        }
+
+        // Returns { monthStartPrevious, latestCurrent, mf, consumption, hasData } for a given
+        // feeder row, considering all entries within the same month (and year) as selectedDateKey,
+        // up to and including selectedDateKey.
+        function getFeederMonthlyProgress_(row, selectedDateKey) {
+            const targetKey = String(selectedDateKey || "").trim();
+            const result = { monthStartPrevious: null, latestCurrent: null, mf: Number(row?.mf || 0), consumption: 0, hasData: false };
+            if (!row || !targetKey) return result;
+            const monthPrefix = targetKey.slice(0, 7); // "YYYY-MM"
+            const substationKey = normalizeFeederSubstationKey_(row.substation || "");
+            const feederKey = String(row.feeder || "").trim().toUpperCase();
+
+            const monthEntries = getFeederEntriesForFeederKey_(substationKey, feederKey)
+                .map((entry) => ({
+                    dateKey: buildFeederDateKey_(entry["DATE(DD/MM/YYY)"] || entry["DATE(DD/MM/YYYY)"] || entry.date || ""),
+                    time: String(entry["TIME(HH/MM)"] || entry["TIME(HH:MM)"] || entry.time || ""),
+                    previous: Number(entry["PREVIUS READING"] || entry.previous_reading || 0),
+                    current: Number(entry["CURRENT READING"] || entry.current_reading || 0)
+                }))
+                .filter((e) => e.dateKey && e.dateKey.slice(0, 7) === monthPrefix && e.dateKey <= targetKey)
+                .sort((a, b) => {
+                    if (a.dateKey !== b.dateKey) return a.dateKey.localeCompare(b.dateKey);
+                    return a.time.localeCompare(b.time);
+                });
+
+            if (!monthEntries.length) return result;
+
+            result.monthStartPrevious = monthEntries[0].previous;
+            result.latestCurrent = monthEntries[monthEntries.length - 1].current;
+            result.hasData = true;
+            const diff = result.latestCurrent - result.monthStartPrevious;
+            result.consumption = Number((diff * result.mf).toFixed(2));
+            return result;
+        }
+
+        function getMonthYearLabel_(dateKey) {
+            const match = String(dateKey || "").match(/^(\d{4})-(\d{2})-(\d{2})$/);
+            if (!match) return "";
+            const months = ["January","February","March","April","May","June","July","August","September","October","November","December"];
+            const monthIdx = Number(match[2]) - 1;
+            return `${months[monthIdx] || match[2]} ${match[1]}`;
+        }
+
+        // Substations that have a "33/11 KV ... SS Consumption" resultant calculated from
+        // 33 KV incoming feeder meters (sum of progressive consumption of those meters).
+        const SUBSTATION_33KV_INCOMING_CONFIG = {
+            ADEGAON: {
+                label: "33/11KV ADEGAON SS CONSUMPTION",
+                meters: ["BS12775548", "BS12775550", "BS12776133"]
+            },
+            MADHI: {
+                label: "33/11KV MADHI SS CONSUMPTION",
+                meters: ["BS12775543"]
+            }
+        };
+
+        function renderFeederProgressivePanel_(rows, selectedDateKey) {
+            const panel = document.getElementById("feeder-progressive-panel");
+            if (!panel) return;
+            if (!rows.length || !selectedDateKey) {
+                panel.innerHTML = "";
+                return;
+            }
+
+            const monthLabel = getMonthYearLabel_(selectedDateKey);
+            const monthPrefix = selectedDateKey.slice(0, 7);
+            const fromLabel = `01-${monthPrefix.slice(5,7)}-${monthPrefix.slice(0,4)}`;
+            const toLabel = formatFeederDateLabelFromKey_(selectedDateKey);
+
+            // 11 KV feeders progressive consumption
+            const elevenKvRows = rows.filter((row) => !String(row.feederType || "").includes("33"));
+            let totalElevenKvConsumption = 0;
+            let anyData = false;
+            const feederLines = elevenKvRows.map((row) => {
+                const progress = getFeederMonthlyProgress_(row, selectedDateKey);
+                if (progress.hasData) {
+                    anyData = true;
+                    totalElevenKvConsumption += progress.consumption;
+                }
+                const valueText = progress.hasData
+                    ? `${formatChhaparaNumber(progress.monthStartPrevious)} → ${formatChhaparaNumber(progress.latestCurrent)} | MF: ${formatChhaparaNumber(progress.mf)} | <strong>${formatChhaparaNumber(progress.consumption)}</strong>`
+                    : `Is mahine ka data nahi mila`;
+                return `
+                    <div style="display:flex; flex-direction:column; gap:2px; padding:8px 0; border-bottom:1px solid #f1f5f9;">
+                        <div style="font-size:11px; font-weight:900; color:#1e293b; text-transform:uppercase;">${escapeHtml(row.feeder)}</div>
+                        <div style="font-size:11px; font-weight:700; color:#475569;">${valueText}</div>
+                    </div>
+                `;
+            }).join("");
+
+            // 33 KV incoming resultant consumption for ADEGAON / MADHI
+            const incomingConfig = SUBSTATION_33KV_INCOMING_CONFIG[selectedFeederSubstation];
+            let incomingHtml = "";
+            if (incomingConfig) {
+                const allRowsForSubstation = feederRows.filter((r) => r.substation === selectedFeederSubstation);
+                let incomingTotal = 0;
+                let incomingHasData = false;
+                const incomingLines = incomingConfig.meters.map((meterNo) => {
+                    const meterRow = allRowsForSubstation.find((r) => String(r.meterNo || "").trim().toUpperCase() === meterNo.toUpperCase());
+                    if (!meterRow) {
+                        return `<div style="font-size:11px; font-weight:700; color:#94a3b8;">${escapeHtml(meterNo)}: Feeder configured nahi hai</div>`;
+                    }
+                    const progress = getFeederMonthlyProgress_(meterRow, selectedDateKey);
+                    if (progress.hasData) {
+                        incomingHasData = true;
+                        incomingTotal += progress.consumption;
+                    }
+                    const valueText = progress.hasData
+                        ? `${formatChhaparaNumber(progress.monthStartPrevious)} → ${formatChhaparaNumber(progress.latestCurrent)} | MF: ${formatChhaparaNumber(progress.mf)} | <strong>${formatChhaparaNumber(progress.consumption)}</strong>`
+                        : `Is mahine ka data nahi mila`;
+                    return `
+                        <div style="display:flex; flex-direction:column; gap:2px; padding:6px 0; border-bottom:1px solid #fde68a;">
+                            <div style="font-size:11px; font-weight:900; color:#78350f; text-transform:uppercase;">${escapeHtml(meterRow.feeder)} (${escapeHtml(meterNo)})</div>
+                            <div style="font-size:11px; font-weight:700; color:#92400e;">${valueText}</div>
+                        </div>
+                    `;
+                }).join("");
+
+                incomingHtml = `
+                    <div style="margin-top:14px; background:linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%); border:1.5px solid #f59e0b; border-radius:14px; padding:12px;">
+                        <div style="font-size:11px; font-weight:900; color:#92400e; text-transform:uppercase; margin-bottom:6px;">${escapeHtml(incomingConfig.label)}</div>
+                        <div style="font-size:10px; font-weight:700; color:#b45309; margin-bottom:8px;">Period: ${escapeHtml(fromLabel)} to ${escapeHtml(toLabel)} (${escapeHtml(monthLabel)})</div>
+                        ${incomingLines}
+                        <div style="margin-top:8px; padding-top:8px; border-top:2px solid #f59e0b; font-size:13px; font-weight:900; color:#78350f; text-align:center;">
+                            ${incomingHasData ? `Total Resultant Consumption: ${formatChhaparaNumber(incomingTotal)}` : "Is mahine ka data abhi nahi mila"}
+                        </div>
+                    </div>
+                `;
+            }
+
+            panel.innerHTML = `
+                <div style="background:linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%); border:1.5px solid #10b981; border-radius:14px; padding:12px;">
+                    <div style="font-size:11px; font-weight:900; color:#065f46; text-transform:uppercase; margin-bottom:4px;">📈 Monthly Progressive Consumption (11 KV Feeders)</div>
+                    <div style="font-size:10px; font-weight:700; color:#047857; margin-bottom:8px;">Period: ${escapeHtml(fromLabel)} to ${escapeHtml(toLabel)} (${escapeHtml(monthLabel)})</div>
+                    ${feederLines || `<div style="font-size:11px; font-weight:700; color:#64748b;">Koi 11 KV feeder nahi mila</div>`}
+                    <div style="margin-top:8px; padding-top:8px; border-top:2px solid #10b981; font-size:13px; font-weight:900; color:#065f46; text-align:center;">
+                        ${anyData ? `Total 11 KV Progressive Consumption: ${formatChhaparaNumber(totalElevenKvConsumption)}` : "Is mahine ka data abhi nahi mila"}
+                    </div>
+                </div>
+                ${incomingHtml}
+            `;
         }
 
         function buildFeederPendingDateKeys_(substation) {
@@ -4543,9 +4713,13 @@
         async function getFeederMisRows_(fromDate, toDate) {
             await loadFeederReportData(true);
             const rows = getAllFeederHistoryEntries_();
+            const activeDcKey = normalizeDcName(activeDC || "");
             return rows.filter((r) => {
                 const dateKey = buildFeederDateKey_(r["DATE(DD/MM/YYY)"] || r.date || "");
-                return misDateInRange_(dateKey, fromDate, toDate);
+                if (!misDateInRange_(dateKey, fromDate, toDate)) return false;
+                if (!activeDcKey) return true;
+                const rowDcKey = normalizeDcName(r["DC NAME"] || r.dc_name || "");
+                return rowDcKey === activeDcKey;
             });
         }
 
@@ -7778,9 +7952,11 @@
             if (!listBox || !submitBtn) return;
 
             listBox.innerHTML = "";
+            const progressivePanelEl = document.getElementById("feeder-progressive-panel");
             if (!selectedFeederSubstation) {
                 submitBtn.style.display = "none";
                 setFeederStatus("", false);
+                if (progressivePanelEl) progressivePanelEl.innerHTML = "";
                 return;
             }
 
@@ -7791,6 +7967,7 @@
             if (!rows.length) {
                 submitBtn.style.display = "block";
                 setFeederStatus("Is substation ke feeders abhi CSV me nahi mile.");
+                if (progressivePanelEl) progressivePanelEl.innerHTML = "";
                 return;
             }
 
@@ -7843,6 +8020,7 @@
                   `;
             }).join("");
             rows.forEach((_, index) => updateFeederConsumptionPreview(index));
+            renderFeederProgressivePanel_(rows, selectedDateKey);
         }
 
         async function submitFeederReadings() {
