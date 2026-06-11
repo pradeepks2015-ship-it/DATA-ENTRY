@@ -468,6 +468,28 @@
         <main id="stm-complaint-view" class="view">
             <div class="search-panel">
                 <div style="display:flex; flex-direction:column; gap:16px; width:100%;">
+                    <!-- MIS Report Widget -->
+                    <div style="width:100%; max-width:340px; margin:0 auto;">
+                        <div style="background: linear-gradient(135deg, #c08a57 0%, #6b4423 100%); border-radius: 18px; padding: 16px 18px; box-shadow: 0 8px 20px rgba(107,68,35,0.18);">
+                            <div style="font-size:12px; font-weight:900; color:#fde8d2; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:10px; text-align:center;">📊 STM Complaint MIS Report</div>
+                            <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:10px;">
+                                <div>
+                                    <div style="font-size:10px; font-weight:800; color:#fde8d2; text-transform:uppercase; margin-bottom:4px;">From Date</div>
+                                    <input type="date" id="stm-mis-from-date" onchange="refreshStmMisTotal()" style="width:100%; height:38px; border-radius:10px; border:1.5px solid #c08a57; padding:0 8px; font-size:0.8rem; font-weight:700; color:#5b3a21; background:#fdf3e8; outline:none;">
+                                </div>
+                                <div>
+                                    <div style="font-size:10px; font-weight:800; color:#fde8d2; text-transform:uppercase; margin-bottom:4px;">To Date</div>
+                                    <input type="date" id="stm-mis-to-date" onchange="refreshStmMisTotal()" style="width:100%; height:38px; border-radius:10px; border:1.5px solid #c08a57; padding:0 8px; font-size:0.8rem; font-weight:700; color:#5b3a21; background:#fdf3e8; outline:none;">
+                                </div>
+                            </div>
+                            <div id="stm-mis-total-box" style="text-align:center; margin-bottom:10px; font-size:12px; font-weight:900; color:#fde8d2;">Total Complaints: <span id="stm-mis-total">0</span></div>
+                            <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
+                                <button onclick="downloadModuleMisReport('stm','EXCEL')" style="height:42px; border:none; border-radius:12px; background:linear-gradient(135deg,#16a34a,#15803d); color:#fff; font-size:12px; font-weight:900; text-transform:uppercase;">Excel</button>
+                                <button onclick="downloadModuleMisReport('stm','PDF')" style="height:42px; border:none; border-radius:12px; background:linear-gradient(135deg,#ef4444,#b91c1c); color:#fff; font-size:12px; font-weight:900; text-transform:uppercase;">PDF</button>
+                            </div>
+                        </div>
+                    </div>
+
                     <div id="stm-operator-login-block" style="display:none; width:100%; max-width:340px; margin:0 auto;">
                         <div style="position:relative; overflow:hidden; background:linear-gradient(160deg, #ffffff 0%, #fdf3e8 52%, #f8e2ca 100%); border:1.5px solid #e3c3a0; border-radius:26px; padding:18px 14px 16px; box-shadow:0 16px 36px rgba(154,103,55,0.10);">
                             <div style="position:absolute; inset:0; background:radial-gradient(circle at top right, rgba(14,165,233,0.16), transparent 34%), radial-gradient(circle at bottom left, rgba(2,132,199,0.12), transparent 32%); pointer-events:none;"></div>
@@ -1416,7 +1438,7 @@
         // for entries that include base64 photo data.
         const IDB_DB_NAME = "seoni-circle-photo-store";
         const IDB_DB_VERSION = 1;
-        const IDB_STORES = ["broken_pole", "pdc_nontraceable"];
+        const IDB_STORES = ["broken_pole", "pdc_nontraceable", "stm_complaint"];
         let idbInstance = null;
 
         function openPhotoDb_() {
@@ -3364,7 +3386,7 @@
             const toTs = new Date(toDate);
             toTs.setHours(23, 59, 59, 999);
             return entries.filter((e) => {
-                const parts = String(e.date || "").split("/");
+                const parts = String(e.date || "").split(/[-/]/);
                 if (parts.length !== 3) return false;
                 const d = new Date(`${parts[2]}-${parts[1]}-${parts[0]}`);
                 return d >= fromTs && d <= toTs;
@@ -3642,7 +3664,7 @@
             const toTs = new Date(toDate);
             toTs.setHours(23, 59, 59, 999);
             return entries.filter((e) => {
-                const parts = String(e.date || "").split("/");
+                const parts = String(e.date || "").split(/[-/]/);
                 if (parts.length !== 3) return false;
                 const d = new Date(`${parts[2]}-${parts[1]}-${parts[0]}`);
                 return d >= fromTs && d <= toTs;
@@ -3827,8 +3849,38 @@
             });
         }
 
+        async function getStmMisRows_(fromDate, toDate) {
+            const rows = await idbGetAll_("stm_complaint");
+            return rows
+                .slice()
+                .sort((a, b) => (a.id || 0) - (b.id || 0))
+                .filter((r) => misDateInRange_(r.dateKey || buildFeederDateKey_(r.date || ""), fromDate, toDate));
+        }
+
+        async function refreshStmMisTotal() {
+            const fromDate = document.getElementById("stm-mis-from-date")?.value;
+            const toDate = document.getElementById("stm-mis-to-date")?.value;
+            const totalNode = document.getElementById("stm-mis-total");
+            if (!totalNode) return;
+            const rows = await getStmMisRows_(fromDate, toDate);
+            totalNode.innerText = rows.length;
+        }
+
         function getMisModuleConfig_(moduleType) {
             const configs = {
+                stm: {
+                    title: "STM COMPLAINT MIS REPORT",
+                    color: [192, 138, 87],
+                    fromId: "stm-mis-from-date",
+                    toId: "stm-mis-to-date",
+                    headers: ["Date", "Time", "Substation", "Shared At", "Calling Info", "Complaint Details", "Operator", "Mobile"],
+                    rowMapper: (r) => [
+                        r.date || "", r.time || "", r.substation || "", r.information_shared_at || "",
+                        r.calling_info || "", r.complaint_details || "", r.operator_name || "", r.mobile_no || ""
+                    ],
+                    fetcher: getStmMisRows_,
+                    filename: "STM_Complaint_MIS"
+                },
                 shms: {
                     title: "SHMS ENTRY MIS REPORT",
                     color: [67, 56, 202],
@@ -5183,6 +5235,39 @@
                 }
 
                 showToast(parsed.message || "STM complaint submit ho gayi", true);
+
+                // Save a local copy for MIS reporting (independent of remote sheet)
+                try {
+                    await idbAdd_("stm_complaint", {
+                        date: dateValue,
+                        dateKey: buildFeederDateKey_(dateValue),
+                        time: timeValue,
+                        substation: selectedStmComplaintSubstation,
+                        information_shared_at: sharedMode,
+                        calling_info: callingInfo,
+                        complaint_details: complaintDetails,
+                        operator_name: activeStmComplaintOperator.fullName || "",
+                        mobile_no: activeStmComplaintOperator.mobileNo || "",
+                        dc_name: activeDC || "",
+                        timestamp: new Date().toISOString()
+                    });
+                } catch (_) {}
+                refreshStmMisTotal();
+
+                // Open WhatsApp with complaint details so the operator can share to the ADEGAON DC group
+                try {
+                    const waLines = [
+                        "*STM COMPLAINT - ADEGAON DC*",
+                        `Substation: ${selectedStmComplaintSubstation}`,
+                        `Date: ${dateValue}  Time: ${timeValue}`,
+                        `Information Shared At: ${sharedMode}`
+                    ];
+                    if (sharedMode === "CALLING" && callingInfo) waLines.push(`Calling Info: ${callingInfo}`);
+                    waLines.push(`Complaint: ${complaintDetails}`);
+                    waLines.push(`Operator: ${activeStmComplaintOperator.fullName} (${activeStmComplaintOperator.mobileNo})`);
+                    const waText = encodeURIComponent(waLines.join("\n"));
+                    window.open(`https://wa.me/?text=${waText}`, "_blank");
+                } catch (_) {}
 
                 const sharedModeInput = document.getElementById("stm-complaint-shared-mode");
                 const dateInput = document.getElementById("stm-complaint-date");
@@ -7988,6 +8073,8 @@
                 }
                 if (id === "stm-complaint") {
                     initStmComplaintSignup();
+                    setDefaultMisDates_("stm-mis-from-date", "stm-mis-to-date");
+                    refreshStmMisTotal();
                 }
                 if (id === "shms-progress") {
                     initShmsProgressDashboard();
