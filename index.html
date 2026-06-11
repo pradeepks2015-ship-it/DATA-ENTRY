@@ -448,6 +448,7 @@
             </div>
             <div id="lakhnadon-special-actions" class="px-2" style="display: none;">
                 <button class="dashboard-btn bg-cyan-grad" onclick="switchView('subdn-chhapara')">SUB DN CHHAPARA</button>
+                <button class="dashboard-btn bg-orange-grad" style="margin-top:14px;" onclick="switchView('subdn-lakhnadon')">SUB DN LAKHNADON</button>
             </div>
             <button class="small-bottom-btn" onclick="askPassword('DIVISION')">DIVISION DAILY PROGRESS</button>
         </main>
@@ -464,6 +465,17 @@
         <main id="subdn-chhapara-view" class="view">
                 <div class="px-2 py-8 flex flex-col gap-4">
                     <button class="dashboard-btn bg-cyan-grad" onclick="askPassword('STOCK')">STOCK MATERIAL</button>
+                    <button class="dashboard-btn bg-indigo-grad" onclick="switchView('shms-entry')">SHMS ENTRY</button>
+                    <button class="dashboard-btn btn-feeder-light-pink" onclick="switchView('feeder-reading')">FEEDER READING</button>
+                    <button class="dashboard-btn btn-stm-complaint" onclick="switchView('stm-complaint')">STM COMPLAINT</button>
+                    <button class="dashboard-btn btn-daily-houry-peak-load" onclick="switchView('daily-hourly-peak-load')">DAILY HOURLY PEAK LOAD</button>
+                    <button class="dashboard-btn btn-progress-black" onclick="switchView('shms-progress')" style="width:72%; min-height:54px; margin:0 auto; display:block; font-size:1.05rem;">DAILY PROGRESS</button>
+                </div>
+            </main>
+
+        <main id="subdn-lakhnadon-view" class="view">
+                <div class="px-2 py-8 flex flex-col gap-4">
+                    <button class="dashboard-btn bg-orange-grad" onclick="askPassword('STOCK')">STOCK MATERIAL</button>
                     <button class="dashboard-btn bg-indigo-grad" onclick="switchView('shms-entry')">SHMS ENTRY</button>
                     <button class="dashboard-btn btn-feeder-light-pink" onclick="switchView('feeder-reading')">FEEDER READING</button>
                     <button class="dashboard-btn btn-stm-complaint" onclick="switchView('stm-complaint')">STM COMPLAINT</button>
@@ -1195,6 +1207,8 @@
         const peakLoadSubmissionStorageKey = "dailyHourlyPeakLoadSubmissionDrafts";
         let selectedStmComplaintSubstation = "";
         const subDnChhaparaDcs = ["CHHAPARA-1", "CHHAPARA-2", "GANESHGANJ", "MAINTENANCE TEAM", "OTHER"];
+        const subDnLakhnadonDcs = ["ADEGAON", "DHUMA", "LAKHNADON", "KEDARPUR", "GHANSORE", "DHANORA", "MAINTENANCE TEAM", "OTHER"];
+        let activeSubDnDcs = subDnChhaparaDcs;
         const courtServedStorageKey = "seoni-circle-lok-adalat-served";
         const mobileUpdateStorageKey = "seoni-circle-mobile-updated";
         const courtCaseCacheStorageKey = "seoni-circle-lok-adalat-csv-cache";
@@ -6149,7 +6163,7 @@
             const menu = document.getElementById("issue-dc-menu");
             if (!menu) return;
             menu.innerHTML = "";
-            subDnChhaparaDcs.forEach((dc) => {
+            activeSubDnDcs.forEach((dc) => {
                 const item = document.createElement("div");
                 item.className = "option-item";
                 item.innerText = dc;
@@ -6858,6 +6872,12 @@
             const target = document.getElementById(id + "-view");
             if (target) {
                 target.classList.add("active");
+                if (id === "subdn-chhapara") {
+                    activeSubDnDcs = subDnChhaparaDcs;
+                }
+                if (id === "subdn-lakhnadon") {
+                    activeSubDnDcs = subDnLakhnadonDcs;
+                }
                 if (id === "mobile-update" && activeDC) {
                     ensureDcDataLoaded(activeDC);
                 }
