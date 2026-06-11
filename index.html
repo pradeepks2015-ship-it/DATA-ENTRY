@@ -1410,6 +1410,80 @@
         const pdcStorageKey = "seoni-circle-pdc-nontraceable-entries";
         let bpGeoData = null;
         let pdcPhotoSlots = [null, null, null, null, null]; // each: { name, photoData } or null
+
+        // ===== IndexedDB wrapper for photo-heavy entries (Broken Pole / PDC) =====
+        // localStorage has a tiny ~5-10MB shared limit; IndexedDB allows much larger storage
+        // for entries that include base64 photo data.
+        const IDB_DB_NAME = "seoni-circle-photo-store";
+        const IDB_DB_VERSION = 1;
+        const IDB_STORES = ["broken_pole", "pdc_nontraceable"];
+        let idbInstance = null;
+
+        function openPhotoDb_() {
+            return new Promise((resolve, reject) => {
+                if (idbInstance) return resolve(idbInstance);
+                if (!window.indexedDB) return reject(new Error("IndexedDB not supported"));
+                const request = indexedDB.open(IDB_DB_NAME, IDB_DB_VERSION);
+                request.onupgradeneeded = (event) => {
+                    const db = event.target.result;
+                    IDB_STORES.forEach((storeName) => {
+                        if (!db.objectStoreNames.contains(storeName)) {
+                            db.createObjectStore(storeName, { keyPath: "id", autoIncrement: true });
+                        }
+                    });
+                };
+                request.onsuccess = (event) => {
+                    idbInstance = event.target.result;
+                    resolve(idbInstance);
+                };
+                request.onerror = () => reject(request.error);
+            });
+        }
+
+        async function idbGetAll_(storeName) {
+            try {
+                const db = await openPhotoDb_();
+                return await new Promise((resolve, reject) => {
+                    const tx = db.transaction(storeName, "readonly");
+                    const store = tx.objectStore(storeName);
+                    const req = store.getAll();
+                    req.onsuccess = () => resolve(req.result || []);
+                    req.onerror = () => reject(req.error);
+                });
+            } catch (_) {
+                return [];
+            }
+        }
+
+        async function idbAdd_(storeName, entry) {
+            const db = await openPhotoDb_();
+            return await new Promise((resolve, reject) => {
+                const tx = db.transaction(storeName, "readwrite");
+                const store = tx.objectStore(storeName);
+                const req = store.add(entry);
+                req.onsuccess = () => resolve(req.result);
+                req.onerror = () => reject(req.error);
+            });
+        }
+
+        async function idbDeleteOldest_(storeName, count) {
+            try {
+                const db = await openPhotoDb_();
+                const all = await idbGetAll_(storeName);
+                const sorted = all.slice().sort((a, b) => (a.id || 0) - (b.id || 0));
+                const toDelete = sorted.slice(0, count);
+                const tx = db.transaction(storeName, "readwrite");
+                const store = tx.objectStore(storeName);
+                toDelete.forEach((item) => store.delete(item.id));
+                return new Promise((resolve) => {
+                    tx.oncomplete = () => resolve(true);
+                    tx.onerror = () => resolve(false);
+                });
+            } catch (_) {
+                return false;
+            }
+        }
+
         const feederAlertStartDateKey = "2026-05-04";
         let mobileSubmittedSheetMap = {};
         let lokServedSheetMap = {};
@@ -1418,6 +1492,14 @@
         let feederRecentSubmittedEntries = [];
 
         document.addEventListener("DOMContentLoaded", () => {
+            // One-time cleanup: old broken-pole/PDC entries used to be stored in localStorage
+            // with embedded photos, which could fill up the shared 5-10MB quota.
+            // They've moved to IndexedDB, so remove the old keys to free up space.
+            try {
+                localStorage.removeItem(brokenPoleStorageKey);
+                localStorage.removeItem(pdcStorageKey);
+            } catch (_) {}
+
             const today = new Date().toISOString().split("T")[0];
             document.getElementById("report-date").value = today;
             // Default MIS date range: 1st of current month to today
@@ -3188,17 +3270,20 @@
             }
         }
 
-        function getBrokenPoleEntries_() {
-            try {
-                return JSON.parse(localStorage.getItem(brokenPoleStorageKey) || "[]");
-            } catch (_) {
-                return [];
-            }
+        async function getBrokenPoleEntries_() {
+            const rows = await idbGetAll_("broken_pole");
+            return rows.slice().sort((a, b) => (a.id || 0) - (b.id || 0));
         }
 
-        function saveBrokenPoleEntries_(entries) {
+        async function saveBrokenPoleEntry_(entry) {
             try {
-                localStorage.setItem(brokenPoleStorageKey, JSON.stringify(entries));
+                await idbAdd_("broken_pole", entry);
+                const MAX_BP_ENTRIES = 500;
+                const all = await idbGetAll_("broken_pole");
+                if (all.length > MAX_BP_ENTRIES) {
+                    await idbDeleteOldest_("broken_pole", all.length - MAX_BP_ENTRIES);
+                    showToast(`Limit ${MAX_BP_ENTRIES} entries hai — sabse purani entry hata di gayi`, true);
+                }
                 return true;
             } catch (_) {
                 return false;
@@ -3234,18 +3319,9 @@
                     photo_data: photoData
                 };
 
-                const entries = getBrokenPoleEntries_();
-                entries.push(entry);
-
-                const MAX_BP_ENTRIES = 150;
-                if (entries.length > MAX_BP_ENTRIES) {
-                    entries.splice(0, entries.length - MAX_BP_ENTRIES);
-                    showToast(`Limit ${MAX_BP_ENTRIES} entries hai — sabse purani entry hata di gayi`, true);
-                }
-
-                const saved = saveBrokenPoleEntries_(entries);
+                const saved = await saveBrokenPoleEntry_(entry);
                 if (!saved) {
-                    return showToast("Storage full hai — purani entries delete karein ya kam quality photo lें", false);
+                    return showToast("Save karne mein error aaya, dobara try karein", false);
                 }
 
                 showToast("Entry Saved Successfully!", true);
@@ -3259,7 +3335,7 @@
                 document.getElementById("bp-remark2").value = "";
                 bpGeoData = null;
                 updateBpPhotoMetaUI();
-                refreshBrokenPoleMisTotal();
+                await refreshBrokenPoleMisTotal();
             } catch (err) {
                 showToast("Save error: " + (err && err.message ? err.message : String(err)), false);
             } finally {
@@ -3272,17 +3348,17 @@
             return /^-?\d+(\.\d+)?$/.test(String(lat)) && /^-?\d+(\.\d+)?$/.test(String(lon));
         }
 
-        function refreshBrokenPoleMisTotal() {
+        async function refreshBrokenPoleMisTotal() {
             const fromDate = document.getElementById("bp-mis-from-date")?.value;
             const toDate = document.getElementById("bp-mis-to-date")?.value;
             const totalNode = document.getElementById("bp-mis-total");
             if (!totalNode) return;
-            const filtered = filterBrokenPoleEntries_(fromDate, toDate);
+            const filtered = await filterBrokenPoleEntries_(fromDate, toDate);
             totalNode.innerText = filtered.length;
         }
 
-        function filterBrokenPoleEntries_(fromDate, toDate) {
-            const entries = getBrokenPoleEntries_();
+        async function filterBrokenPoleEntries_(fromDate, toDate) {
+            const entries = await getBrokenPoleEntries_();
             if (!fromDate || !toDate) return entries;
             const fromTs = new Date(fromDate);
             const toTs = new Date(toDate);
@@ -3306,8 +3382,8 @@
             btn.disabled = true;
 
             try {
-                const filtered = filterBrokenPoleEntries_(fromDate, toDate);
-                refreshBrokenPoleMisTotal();
+                const filtered = await filterBrokenPoleEntries_(fromDate, toDate);
+                await refreshBrokenPoleMisTotal();
 
                 const fmtDate = (iso) => {
                     if (!iso) return "";
@@ -3483,17 +3559,20 @@
             renderPdcPhotoSlots();
         }
 
-        function getPdcEntries_() {
-            try {
-                return JSON.parse(localStorage.getItem(pdcStorageKey) || "[]");
-            } catch (_) {
-                return [];
-            }
+        async function getPdcEntries_() {
+            const rows = await idbGetAll_("pdc_nontraceable");
+            return rows.slice().sort((a, b) => (a.id || 0) - (b.id || 0));
         }
 
-        function savePdcEntries_(entries) {
+        async function savePdcEntry_(entry) {
             try {
-                localStorage.setItem(pdcStorageKey, JSON.stringify(entries));
+                await idbAdd_("pdc_nontraceable", entry);
+                const MAX_PDC_ENTRIES = 500;
+                const all = await idbGetAll_("pdc_nontraceable");
+                if (all.length > MAX_PDC_ENTRIES) {
+                    await idbDeleteOldest_("pdc_nontraceable", all.length - MAX_PDC_ENTRIES);
+                    showToast(`Limit ${MAX_PDC_ENTRIES} entries hai — sabse purani entry hata di gayi`, true);
+                }
                 return true;
             } catch (_) {
                 return false;
@@ -3525,11 +3604,9 @@
                     photos: photos.map((p) => ({ name: p.name || "", photo_data: p.photoData }))
                 };
 
-                const entries = getPdcEntries_();
-                entries.push(entry);
-                const saved = savePdcEntries_(entries);
+                const saved = await savePdcEntry_(entry);
                 if (!saved) {
-                    return showToast("Storage full hai — purani entries delete karein ya kam photo lें", false);
+                    return showToast("Save karne mein error aaya, dobara try karein", false);
                 }
 
                 showToast("Entry Saved Successfully!", true);
@@ -3540,7 +3617,7 @@
                 document.getElementById("pdc-remark").value = "";
                 pdcPhotoSlots = [null, null, null, null, null];
                 renderPdcPhotoSlots();
-                refreshPdcMisTotal();
+                await refreshPdcMisTotal();
             } catch (_) {
                 showToast("Save karne mein error aaya", false);
             } finally {
@@ -3549,17 +3626,17 @@
             }
         }
 
-        function refreshPdcMisTotal() {
+        async function refreshPdcMisTotal() {
             const fromDate = document.getElementById("pdc-mis-from-date")?.value;
             const toDate = document.getElementById("pdc-mis-to-date")?.value;
             const totalNode = document.getElementById("pdc-mis-total");
             if (!totalNode) return;
-            const filtered = filterPdcEntries_(fromDate, toDate);
+            const filtered = await filterPdcEntries_(fromDate, toDate);
             totalNode.innerText = filtered.length;
         }
 
-        function filterPdcEntries_(fromDate, toDate) {
-            const entries = getPdcEntries_();
+        async function filterPdcEntries_(fromDate, toDate) {
+            const entries = await getPdcEntries_();
             if (!fromDate || !toDate) return entries;
             const fromTs = new Date(fromDate);
             const toTs = new Date(toDate);
@@ -3583,8 +3660,8 @@
             btn.disabled = true;
 
             try {
-                const filtered = filterPdcEntries_(fromDate, toDate);
-                refreshPdcMisTotal();
+                const filtered = await filterPdcEntries_(fromDate, toDate);
+                await refreshPdcMisTotal();
 
                 const fmtDate = (iso) => {
                     if (!iso) return "";
