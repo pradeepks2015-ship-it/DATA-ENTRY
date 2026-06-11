@@ -1103,7 +1103,7 @@
                     <input type="text" id="bp-remark2" class="teal-boundary-input" placeholder="Remark 2 (e.g. Action Taken / Status)">
 
                 </div>
-                <button id="bp-submit-btn" class="submit-sync-btn" onclick="submitBrokenPoleEntry()">Submit</button>
+                <button id="bp-submit-btn" class="submit-sync-btn" onclick="submitBrokenPoleEntry()">✅ Submit Entry (Add Another Photo After)</button>
 
                 <!-- MIS Report Section -->
                 <div style="width:100%; max-width:340px; margin: 18px auto 0 auto;">
@@ -3263,7 +3263,7 @@
             } catch (err) {
                 showToast("Save error: " + (err && err.message ? err.message : String(err)), false);
             } finally {
-                submitBtn.innerText = "Submit";
+                submitBtn.innerText = "✅ Submit Entry (Add Another Photo After)";
                 submitBtn.disabled = false;
             }
         }
@@ -3338,10 +3338,13 @@
                 doc.setFont(undefined, "bold");
                 doc.text(`TOTAL ENTRIES: ${filtered.length}`, 14, 32);
 
+                const PHOTO_CELL_W = 32;
+                const PHOTO_CELL_H = 32;
+
                 const detailBody = filtered.map((e, i) => [
                     i + 1,
+                    "", // photo placeholder, drawn via didDrawCell
                     e.date || "",
-                    e.dc_name || "",
                     e.remark1 || "",
                     e.remark2 || "",
                     (e.gps_latitude && e.gps_longitude) ? `${e.gps_latitude}, ${e.gps_longitude}` : "N/A",
@@ -3351,25 +3354,44 @@
 
                 doc.autoTable({
                     startY: 38,
-                    head: [["S.No.", "Date", "DC", "Remark 1", "Remark 2", "GPS Coordinates", "Location", "Directions"]],
+                    margin: { left: 5, right: 5 },
+                    tableWidth: "auto",
+                    head: [["S.No.", "Photo", "Date", "Remark 1", "Remark 2", "GPS Coordinates", "Location", "Directions"]],
                     body: detailBody.length ? detailBody : [["-", "-", "-", "No entries found", "-", "-", "-", "-"]],
                     theme: "striped",
                     headStyles: { fillColor: [180, 83, 9], textColor: 255, halign: "center", fontSize: 7, fontStyle: "bold" },
-                    bodyStyles: { fontSize: 7 },
+                    bodyStyles: { fontSize: 7, valign: "middle", overflow: "linebreak" },
+                    styles: { cellWidth: "wrap" },
                     columnStyles: {
                         0: { halign: "center", cellWidth: 9 },
-                        1: { halign: "center", cellWidth: 18 },
+                        1: { halign: "center", cellWidth: PHOTO_CELL_W + 2 },
                         2: { halign: "center", cellWidth: 18 },
-                        3: { halign: "left", cellWidth: 28 },
-                        4: { halign: "left", cellWidth: 28 },
-                        5: { halign: "center", cellWidth: 30 },
-                        6: { halign: "left", cellWidth: 32 },
-                        7: { halign: "center", cellWidth: 17, textColor: [21, 128, 61], fontStyle: "bold" }
+                        3: { halign: "left", cellWidth: 26 },
+                        4: { halign: "left", cellWidth: 26 },
+                        5: { halign: "center", cellWidth: 28 },
+                        6: { halign: "left", cellWidth: 30 },
+                        7: { halign: "center", cellWidth: 16, textColor: [21, 128, 61], fontStyle: "bold" }
+                    },
+                    didParseCell: (data) => {
+                        // Give the photo row extra height so the image fits
+                        if (data.section === "body" && data.column.index === 1 && filtered.length) {
+                            const e = filtered[data.row.index];
+                            if (e && e.photo_data) {
+                                data.cell.styles.minCellHeight = PHOTO_CELL_H + 4;
+                            }
+                        }
                     },
                     didDrawCell: (data) => {
-                        if (data.section === "body" && data.column.index === 7) {
+                        if (data.section === "body" && filtered.length) {
                             const e = filtered[data.row.index];
-                            if (e && isValidLatLon_(e.gps_latitude, e.gps_longitude)) {
+                            if (data.column.index === 1 && e && e.photo_data) {
+                                try {
+                                    const x = data.cell.x + (data.cell.width - PHOTO_CELL_W) / 2;
+                                    const y = data.cell.y + 2;
+                                    doc.addImage(e.photo_data, "JPEG", x, y, PHOTO_CELL_W, PHOTO_CELL_H);
+                                } catch (_) {}
+                            }
+                            if (data.column.index === 7 && e && isValidLatLon_(e.gps_latitude, e.gps_longitude)) {
                                 const mapsUrl = `https://www.google.com/maps/dir/?api=1&destination=${e.gps_latitude},${e.gps_longitude}`;
                                 doc.link(data.cell.x, data.cell.y, data.cell.width, data.cell.height, { url: mapsUrl });
                             }
@@ -3377,33 +3399,18 @@
                     }
                 });
 
-                // Add photos on subsequent pages
-                let photoY = doc.lastAutoTable.finalY + 8;
-                filtered.forEach((e, i) => {
-                    if (!e.photo_data) return;
-                    if (photoY > 220) {
+                // Footnote with directions links (table "Directions" column also has clickable links)
+                if (filtered.some((e) => isValidLatLon_(e.gps_latitude, e.gps_longitude))) {
+                    let noteY = doc.lastAutoTable.finalY + 6;
+                    if (noteY > 280) {
                         doc.addPage();
-                        photoY = 14;
+                        noteY = 14;
                     }
-                    doc.setFontSize(8);
-                    doc.setTextColor(30, 41, 59);
-                    doc.setFont(undefined, "bold");
-                    doc.text(`Photo ${i + 1} - ${e.date || ""} - ${e.remark1 || ""}`, 14, photoY);
-                    try {
-                        doc.addImage(e.photo_data, "JPEG", 14, photoY + 2, 80, 60);
-                    } catch (_) {}
-                    if (isValidLatLon_(e.gps_latitude, e.gps_longitude)) {
-                        const mapsUrl = `https://www.google.com/maps/dir/?api=1&destination=${e.gps_latitude},${e.gps_longitude}`;
-                        doc.setFontSize(8);
-                        doc.setTextColor(21, 128, 61);
-                        doc.setFont(undefined, "bold");
-                        doc.textWithLink("Get Directions (Google Maps)", 100, photoY + 12, { url: mapsUrl });
-                        doc.setTextColor(30, 41, 59);
-                        doc.setFont(undefined, "normal");
-                        doc.text(`Lat-Long: ${e.gps_latitude}, ${e.gps_longitude}`, 100, photoY + 20);
-                    }
-                    photoY += 68;
-                });
+                    doc.setFontSize(7);
+                    doc.setTextColor(100);
+                    doc.setFont(undefined, "italic");
+                    doc.text(`Tip: Tap "Open Map" in the Directions column to navigate to the exact location.`, 14, noteY);
+                }
 
                 const totalPages = doc.internal.getNumberOfPages();
                 for (let i = 1; i <= totalPages; i++) {
