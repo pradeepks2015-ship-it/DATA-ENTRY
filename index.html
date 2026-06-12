@@ -602,6 +602,8 @@
                                 <button onclick="downloadModuleMisReport('feeder','EXCEL')" style="height:42px; border:none; border-radius:12px; background:linear-gradient(135deg,#16a34a,#15803d); color:#fff; font-size:12px; font-weight:900; text-transform:uppercase;">Excel</button>
                                 <button onclick="downloadModuleMisReport('feeder','PDF')" style="height:42px; border:none; border-radius:12px; background:linear-gradient(135deg,#ef4444,#b91c1c); color:#fff; font-size:12px; font-weight:900; text-transform:uppercase;">PDF</button>
                             </div>
+                            <button type="button" onclick="checkFeederBackendStatus()" style="width:100%; height:38px; margin-top:8px; border:none; border-radius:12px; background:rgba(255,255,255,0.18); color:#fce7f3; font-size:11px; font-weight:900; text-transform:uppercase;">🔌 Cloud Backend Status Check</button>
+                            <div id="feeder-backend-status" style="display:none; margin-top:8px; padding:8px 10px; border-radius:10px; font-size:11px; font-weight:700; line-height:1.5;"></div>
                         </div>
                     </div>
 
@@ -1304,15 +1306,15 @@
         };
 
         const scriptURL = "https://script.google.com/macros/s/AKfycbw-euczRMZFKMjHveuvWd-vkuNqLXmFLkrLUERWgdExC7obxVGcBkBKGBWuHNfimzEh3g/exec";
-        const stockSubmitScriptUrl = "https://script.google.com/macros/s/AKfycby2kRLq92xdjDA_95R23UIOZf_YmzxXkLNlDBOHAUcoVTR5Za401M1tXRkuo7kgU13Q/exec";
-        const shmsSubmitScriptUrl = "https://script.google.com/macros/s/AKfycbwgH1buDg5xeEmZksMc5UDXdqYorIM_yrMdj8f-euqhghSw2mUHYgVUjn-eydQCf91Mag/exec";
-        const stmComplaintScriptUrl = "https://script.google.com/macros/s/AKfycbx6F8vgmw0yHBDzv4BMr2_Toeh24ZqXK73y39zWBhaxwQb9GiRVVRpc0xvOoYavFNRR/exec";
+        const stockSubmitScriptUrl = "https://script.google.com/macros/s/AKfycbxwGbBTG4NL_fmvMZPv0svm_zrb3RMpWY6R9OdWL2jFXxLuypMTjk6SLYPaxnCPhi2K6w/exec";
+        const shmsSubmitScriptUrl = "https://script.google.com/macros/s/AKfycbxwGbBTG4NL_fmvMZPv0svm_zrb3RMpWY6R9OdWL2jFXxLuypMTjk6SLYPaxnCPhi2K6w/exec";
+        const stmComplaintScriptUrl = "https://script.google.com/macros/s/AKfycbxwGbBTG4NL_fmvMZPv0svm_zrb3RMpWY6R9OdWL2jFXxLuypMTjk6SLYPaxnCPhi2K6w/exec";
 
         // ===== Shared Module Sync (Broken Pole / PDC / STM Complaint / Bijli Chori) =====
         // Single Apps Script Web App endpoint shared across all 4 modules (module name sent as a parameter).
         // PASTE the deployed Apps Script /exec URL here once available - leave empty to keep working
         // device-local only (entries will not sync between users until this is set).
-        const sharedModuleSyncScriptUrl = "https://script.google.com/macros/s/AKfycbzCE8xX00kjZcrlwbUVJOKhZgmqyPYS1JklHlletN0eMiyjAJLmVQRWByJTaQK47_VyLA/exec";
+        const sharedModuleSyncScriptUrl = "https://script.google.com/macros/s/AKfycbwH7cske7TMbQHw65eBt-fkKVFYWNLGqPr5UgZ3AblevWTKgdTuOk2NDNquo-1iTL0-XQ/exec";
         const SHARED_SYNC_MODULES = ["broken_pole", "pdc_nontraceable", "stm_complaint", "bijli_chori"];
         const sharedModuleSyncEnabled = !!sharedModuleSyncScriptUrl;
 
@@ -1336,10 +1338,10 @@
         let activeIssueDc = "";
         let shmsRows = [], shmsSubstations = [], selectedShmsRow = null, shmsDataLoaded = false, selectedShmsSubstation = "", selectedShmsEventType = "", shmsPendingEntries = [];
         const feederCsvUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vT8bBAXJZhlwS_giGXBlS6rDXJ_auZfWZzNVPQaBnD09jB_m7jnrqeGGX5WP8V2jOD_WL90_KQ2pJa4/pub?output=csv";
-        const feederSubmitScriptUrl = "https://script.google.com/macros/s/AKfycbzcS6i1xjHh8_ewUAC-AiHO_tR_0d_csg5isoVt9G8oxMokC4s1PmbNELvBepdFBWLOew/exec";
+        const feederSubmitScriptUrl = "https://script.google.com/macros/s/AKfycbwH7cske7TMbQHw65eBt-fkKVFYWNLGqPr5UgZ3AblevWTKgdTuOk2NDNquo-1iTL0-XQ/exec";
         const feederReportSheetCsvUrl = "https://docs.google.com/spreadsheets/d/1XnsLz_5643XqGgrcMzhIzI_cF4E4S6Zc1esNEQe554A/export?format=csv&gid=0";
         const peakLoadCsvUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTqnZksaehWGnKJq2xcy1sJsQjrddCJZKJo_ynvjkZnUqxMzdvnlQv3uARWYiiuJEsVVBdL6wTd1bhv/pub?output=csv";
-        const peakLoadSubmitScriptUrl = "https://script.google.com/macros/s/AKfycbyfHmUNgMYfGdAK-tdMWRxcI60oNe4nnxU7wnI3QC_RVLIW81kbcDXUtP8IKvljTlki/exec";
+        const peakLoadSubmitScriptUrl = "https://script.google.com/macros/s/AKfycbxwGbBTG4NL_fmvMZPv0svm_zrb3RMpWY6R9OdWL2jFXxLuypMTjk6SLYPaxnCPhi2K6w/exec";
         const feederDcDistributionConfig = {
             "11 KV - BAKODA SEONI AG": [
                 { dcName: "CHHAPARA-1", percent: 100 }
@@ -3176,7 +3178,7 @@
 
         async function loadStockMaterialsData() {
             try {
-                const rawData = await loadRemoteJson(`${stockSubmitScriptUrl}?action=getMasterStock`);
+                const rawData = await loadRemoteJson(`${stockSubmitScriptUrl}?module=stock&action=getMasterStock`);
                 const rows = Array.isArray(rawData)
                     ? rawData
                     : Array.isArray(rawData?.data)
@@ -3236,18 +3238,55 @@
         }
 
         function resizeImageForUpload(file, maxWidth = 1280, quality = 0.78) {
+            // Prefer createImageBitmap: it lets the browser decode+downscale the image
+            // without holding the full-resolution bitmap in JS memory, which avoids
+            // "low memory" / "unable to complete previous operation" errors on phones
+            // when processing large camera photos (especially multiple in a row).
+            if (typeof createImageBitmap === "function") {
+                return resizeImageViaBitmap_(file, maxWidth, quality).catch(() => resizeImageViaImageElement_(file, maxWidth, quality));
+            }
+            return resizeImageViaImageElement_(file, maxWidth, quality);
+        }
+
+        async function resizeImageViaBitmap_(file, maxWidth, quality) {
+            const bitmap = await createImageBitmap(file);
+            try {
+                const maxHeight = maxWidth; // cap both dimensions for portrait photos too
+                const ratio = Math.min(1, maxWidth / bitmap.width, maxHeight / bitmap.height);
+                const targetWidth = Math.max(1, Math.round(bitmap.width * ratio));
+                const targetHeight = Math.max(1, Math.round(bitmap.height * ratio));
+
+                const canvas = document.createElement("canvas");
+                canvas.width = targetWidth;
+                canvas.height = targetHeight;
+                const ctx = canvas.getContext("2d");
+                ctx.drawImage(bitmap, 0, 0, targetWidth, targetHeight);
+                const dataUrl = canvas.toDataURL("image/jpeg", quality);
+                canvas.width = 0;
+                canvas.height = 0;
+                return dataUrl;
+            } finally {
+                bitmap.close();
+            }
+        }
+
+        function resizeImageViaImageElement_(file, maxWidth, quality) {
             return new Promise((resolve, reject) => {
                 const reader = new FileReader();
                 reader.onload = () => {
                     const img = new Image();
                     img.onload = () => {
-                        const ratio = Math.min(1, maxWidth / img.width);
+                        const maxHeight = maxWidth;
+                        const ratio = Math.min(1, maxWidth / img.width, maxHeight / img.height);
                         const canvas = document.createElement("canvas");
-                        canvas.width = Math.round(img.width * ratio);
-                        canvas.height = Math.round(img.height * ratio);
+                        canvas.width = Math.max(1, Math.round(img.width * ratio));
+                        canvas.height = Math.max(1, Math.round(img.height * ratio));
                         const ctx = canvas.getContext("2d");
                         ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-                        resolve(canvas.toDataURL("image/jpeg", quality));
+                        const dataUrl = canvas.toDataURL("image/jpeg", quality);
+                        canvas.width = 0;
+                        canvas.height = 0;
+                        resolve(dataUrl);
                     };
                     img.onerror = () => {
                         // Fallback: image format not decodable by <img> (e.g. HEIC).
@@ -5005,7 +5044,7 @@
             if (!forceRefresh && feederReportLoaded && feederReportRows.length) return true;
             feederReportLoadMessage = "";
             try {
-                const rawData = await loadRemoteJson(`${feederSubmitScriptUrl}?action=getSummary`);
+                const rawData = await loadRemoteJson(`${feederSubmitScriptUrl}?action=getFeederReadings`);
                 if (rawData && !Array.isArray(rawData) && rawData.status === "success" && rawData.message) {
                     feederReportLoadMessage = String(rawData.message || "").trim();
                 }
@@ -5842,6 +5881,7 @@
 
             try {
                 const formData = new URLSearchParams();
+                formData.append("module", "peakload");
                 formData.append("entries_json", JSON.stringify(rows));
 
                 const response = await fetch(peakLoadSubmitScriptUrl, {
@@ -6116,6 +6156,7 @@
                 }
 
                  const payload = new URLSearchParams();
+                 payload.append("module", "stm");
                  payload.append("substation", selectedStmComplaintSubstation);
                  payload.append("operator_name", activeStmComplaintOperator.fullName || "");
                  payload.append("mobile_no", activeStmComplaintOperator.mobileNo || "");
@@ -6310,7 +6351,7 @@
             if (!forceRefresh && shmsProgressLoaded && shmsProgressRows.length) return true;
             try {
                 loadRecentShmsSubmittedEntries_();
-                const response = await fetch(`${shmsSubmitScriptUrl}?action=getSummary&t=${Date.now()}`);
+                const response = await fetch(`${shmsSubmitScriptUrl}?module=shms&action=getSummary&t=${Date.now()}`);
                 const data = await response.json();
                 const summaryRows = Array.isArray(data)
                     ? data
@@ -7961,42 +8002,59 @@
 
             try {
                 const payload = new URLSearchParams();
+                payload.append("module", "feeder");
                 payload.append("entries_json", JSON.stringify(entries));
 
-                const response = await fetch(feederSubmitScriptUrl, {
-                    method: "POST",
-                    headers: { "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8" },
-                    body: payload.toString()
-                });
-
-                const responseText = await response.text();
-                let submitOk = response.ok;
-                let submitMessage = submitOk ? "Feeder readings submit ho gayi" : "Feeder submit error aaya";
+                let submitOk = false;
+                let submitMessage = "Feeder readings submit ho gayi";
 
                 try {
-                    const parsed = JSON.parse(responseText || "{}");
-                    if (parsed && parsed.status === "error") {
-                        submitOk = false;
-                        submitMessage = parsed.message || "Feeder submit error aaya";
-                    } else if (parsed && parsed.message) {
-                        submitMessage = parsed.message;
+                    const response = await fetch(feederSubmitScriptUrl, {
+                        method: "POST",
+                        headers: { "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8" },
+                        body: payload.toString()
+                    });
+
+                    const responseText = await response.text();
+                    submitOk = response.ok;
+                    if (!submitOk) submitMessage = "Feeder submit error aaya";
+
+                    try {
+                        const parsed = JSON.parse(responseText || "{}");
+                        if (parsed && parsed.status === "error") {
+                            submitOk = false;
+                            submitMessage = parsed.message || "Feeder submit error aaya";
+                        } else if (parsed && parsed.message) {
+                            submitMessage = parsed.message;
+                        }
+                    } catch (_) {
+                        if (!submitOk && responseText) {
+                            submitMessage = responseText;
+                        }
                     }
-                } catch (_) {
-                    if (!submitOk && responseText) {
-                        submitMessage = responseText;
-                    }
+                } catch (networkError) {
+                    submitOk = false;
+                    submitMessage = networkError?.message || "Network error";
                 }
 
-                if (!submitOk) {
-                    throw new Error(submitMessage);
-                }
-
+                // Always save locally so the reading isn't lost, even if the cloud
+                // sync failed. The reading will still be usable for progressive
+                // consumption / unfreeze on THIS device, and a status note is shown
+                // if it didn't reach the shared backend.
                 saveRecentFeederSubmittedEntries_(entries);
                 entries.forEach((entry) => {
                     const dateKey = buildFeederDateKey_(entry["DATE(DD/MM/YYY)"] || entry.date || "");
                     unfrozenFeederEntries.delete(buildFeederUnfreezeKey_(entry.substation, entry.feeder, dateKey));
                 });
-                showToast(submitMessage || "Feeder readings submit ho gayi", true);
+
+                if (submitOk) {
+                    showToast(submitMessage || "Feeder readings submit ho gayi", true);
+                } else {
+                    showToast(
+                        `Reading is device par save ho gayi, lekin cloud sync nahi ho paya: ${getFriendlyScriptError(submitMessage)}`,
+                        false
+                    );
+                }
                 resetFeederReading();
             } catch (error) {
                 showToast(getFriendlyScriptError(error?.message) || "Feeder submit blocked ya network issue aaya", false);
@@ -8106,6 +8164,7 @@
                 }));
 
                 const payload = new URLSearchParams();
+                payload.append("module", "shms");
                 payload.append("entries_json", JSON.stringify(entries));
 
                 const response = await fetch(shmsSubmitScriptUrl, {
@@ -8425,6 +8484,7 @@
                 qty: entry.qty
             }));
             const payload = new URLSearchParams();
+            payload.append("module", "stock");
             payload.append("receved_from", isReceive ? document.getElementById("receive-source").value.trim() : "");
             payload.append("receive_person_name", isReceive ? document.getElementById("receive-person").value.trim() : "");
             payload.append("issue_to_dc_name", isReceive ? "" : activeIssueDc);
@@ -8447,14 +8507,64 @@
             return parsed;
         }
 
+        async function checkFeederBackendStatus() {
+            const box = document.getElementById("feeder-backend-status");
+            if (!box) return;
+            box.style.display = "block";
+            box.style.background = "rgba(255,255,255,0.18)";
+            box.style.color = "#fce7f3";
+            box.innerText = "Checking...";
+
+            try {
+                const url = `${feederSubmitScriptUrl}?action=getFeederReadings&t=${Date.now()}`;
+                const response = await fetch(url);
+                const text = await response.text();
+
+                let parsed;
+                try {
+                    parsed = JSON.parse(text);
+                } catch (_) {
+                    box.style.background = "#fee2e2";
+                    box.style.color = "#7f1d1d";
+                    box.innerText = `❌ Backend ne JSON nahi bheja (HTML/error page mil raha hai). Apps Script deployment check karein.\n\nResponse (first 200 chars):\n${text.slice(0, 200)}`;
+                    return;
+                }
+
+                if (Array.isArray(parsed)) {
+                    box.style.background = "#dcfce7";
+                    box.style.color = "#14532d";
+                    box.innerText = `✅ Backend connected hai. Total saved readings: ${parsed.length}`;
+                    return;
+                }
+
+                if (parsed && parsed.status === "error") {
+                    box.style.background = "#fee2e2";
+                    box.style.color = "#7f1d1d";
+                    box.innerText = `❌ Backend error: ${parsed.message || "Unknown error"}\n\n${getFriendlyScriptError(parsed.message)}`;
+                    return;
+                }
+
+                box.style.background = "#fef9c3";
+                box.style.color = "#713f12";
+                box.innerText = `⚠️ Backend se anjaan response mila:\n${JSON.stringify(parsed).slice(0, 200)}`;
+            } catch (err) {
+                box.style.background = "#fee2e2";
+                box.style.color = "#7f1d1d";
+                box.innerText = `❌ Network error: ${err?.message || "Unknown"}\n\nURL check karein ya internet connection check karein.`;
+            }
+        }
+
         function getFriendlyScriptError(message) {
             const raw = String(message || "").trim();
             const upper = raw.toUpperCase();
             if (!raw) return "Stock submit failed";
+            if (upper.includes("SCRIPT FUNCTION NOT FOUND") || upper.includes("DOGET") || upper.includes("DOPOST")) {
+                return "Backend script abhi sahi se deploy nahi hua hai. Entry safe hai (is device par save ho gayi), lekin cloud sync abhi nahi ho paya. Apps Script deployment dobara check karein.";
+            }
             if (upper.includes("URLFETCHAPP")) return "Script me external permission pending hai. Apps Script ko ek baar authorize kijiye.";
             if (upper.includes("DRIVE")) return "Sheet ya Drive permission issue aaya. Apps Script deployment aur access settings check kijiye.";
             if (upper.includes("EXCEPTION")) return "Script side par error aaya. Apps Script version aur permissions check kijiye.";
-            if (upper.includes("FAILED TO FETCH")) return "Network ya browser block ki wajah se submit nahi ho paya.";
+            if (upper.includes("FAILED TO FETCH")) return "Network ya browser block ki wajah se submit nahi ho paya (entry is device par safe hai).";
             return raw;
         }
 
