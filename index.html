@@ -3265,10 +3265,23 @@
         // it to a base64 data URL so it can be embedded in a jsPDF document via addImage.
         // Returns "" on any failure (CORS, offline, etc.) so callers can fall back to a
         // text link instead of breaking the PDF generation.
-        async function fetchImageAsDataUrl_(url) {
+        // Normalizes a Google Drive "uc?export=view&id=..." URL (unreliable for <img>/CORS)
+        // to the more reliable "lh3.googleusercontent.com/d/<id>" CDN format. Leaves
+        // non-Drive URLs unchanged.
+        function normalizeDrivePhotoUrl_(url) {
+            if (!url) return url;
+            const match = String(url).match(/drive\.google\.com\/uc\?export=view&id=([^&]+)/);
+            if (match) return `https://lh3.googleusercontent.com/d/${match[1]}`;
+            return url;
+        }
+
+        async function fetchImageAsDataUrl_(url, timeoutMs = 8000) {
             if (!url) return "";
+            url = normalizeDrivePhotoUrl_(url);
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
             try {
-                const response = await fetch(url, { mode: "cors" });
+                const response = await fetch(url, { mode: "cors", signal: controller.signal });
                 if (!response.ok) return "";
                 const blob = await response.blob();
                 return await new Promise((resolve) => {
@@ -3279,6 +3292,8 @@
                 });
             } catch (_) {
                 return "";
+            } finally {
+                clearTimeout(timeoutId);
             }
         }
 
@@ -3288,18 +3303,20 @@
         // in `photo_data` so jsPDF's addImage can embed it. Entries are mutated in place.
         // Safe to call even when all entries already have photo_data (no-op fetches).
         async function hydratePhotoDataForPdf_(entries) {
-            for (const e of entries) {
+            const tasks = [];
+            entries.forEach((e) => {
                 if (!e.photo_data && e.photo_url) {
-                    e.photo_data = await fetchImageAsDataUrl_(e.photo_url);
+                    tasks.push(fetchImageAsDataUrl_(e.photo_url).then((data) => { e.photo_data = data; }));
                 }
                 if (Array.isArray(e.photos)) {
-                    for (const p of e.photos) {
+                    e.photos.forEach((p) => {
                         if (!p.photo_data && p.photo_url) {
-                            p.photo_data = await fetchImageAsDataUrl_(p.photo_url);
+                            tasks.push(fetchImageAsDataUrl_(p.photo_url).then((data) => { p.photo_data = data; }));
                         }
-                    }
+                    });
                 }
-            }
+            });
+            await Promise.all(tasks);
         }
 
         // ===== Broken Pole / Damage Line feature =====
@@ -4302,7 +4319,7 @@
                 label: "Broken Pole / Damage Line",
                 accent: "#b45309",
                 getEntries: getBrokenPoleEntries_,
-                getThumb: (e) => e.photo_data || e.photo_url || "",
+                getThumb: (e) => e.photo_data || normalizeDrivePhotoUrl_(e.photo_url) || "",
                 getTitle: (e) => `${e.date || ""} — ${e.remark1 || "Entry"}`,
                 getSubtitle: (e) => e.remark2 || (e.gps_location || ""),
                 refreshFn: () => refreshBrokenPoleMisTotal()
@@ -4311,7 +4328,7 @@
                 label: "PDC / Non-Traceable",
                 accent: "#4338ca",
                 getEntries: getPdcEntries_,
-                getThumb: (e) => (e.photos && e.photos[0] && (e.photos[0].photo_data || e.photos[0].photo_url)) || "",
+                getThumb: (e) => (e.photos && e.photos[0] && (e.photos[0].photo_data || normalizeDrivePhotoUrl_(e.photos[0].photo_url))) || "",
                 getTitle: (e) => `${e.date || ""} — ${e.name || e.ivrs || "Entry"}`,
                 getSubtitle: (e) => `${e.ivrs ? "IVRS: " + e.ivrs + " | " : ""}${(e.photos || []).length} photo(s)`,
                 refreshFn: () => refreshPdcMisTotal()
@@ -4320,7 +4337,7 @@
                 label: "STM Complaint",
                 accent: "#c08a57",
                 getEntries: getStmComplaintEntries_,
-                getThumb: (e) => e.photo_data || e.photo_url || "",
+                getThumb: (e) => e.photo_data || normalizeDrivePhotoUrl_(e.photo_url) || "",
                 getTitle: (e) => `${e.date || ""} ${e.time || ""} — ${e.substation || "Entry"}`,
                 getSubtitle: (e) => e.complaint_details || "",
                 refreshFn: () => refreshStmMisTotal()
@@ -4329,7 +4346,7 @@
                 label: "बिजली चोरी की जानकारी",
                 accent: "#dc2626",
                 getEntries: getBijliChoriEntries_,
-                getThumb: (e) => (e.photos && e.photos[0] && (e.photos[0].photo_data || e.photos[0].photo_url)) || "",
+                getThumb: (e) => (e.photos && e.photos[0] && (e.photos[0].photo_data || normalizeDrivePhotoUrl_(e.photos[0].photo_url))) || "",
                 getTitle: (e) => `${e.date || ""} — ${e.name || e.ivrs || "Entry"}`,
                 getSubtitle: (e) => `${(e.photos || []).length} photo(s) | ${e.remark || ""}`,
                 refreshFn: () => refreshBijliChoriMisTotal()
@@ -4448,7 +4465,7 @@
             let bodyHtml = "";
             if (storeName === "broken_pole") {
                 bodyHtml = `
-                    ${entry.photo_data ? `<img src="${entry.photo_data}" style="width:100%; max-height:240px; object-fit:cover; border-radius:10px; margin-bottom:8px;">` : (entry.photo_url ? `<img src="${entry.photo_url}" style="width:100%; max-height:240px; object-fit:cover; border-radius:10px; margin-bottom:8px;" referrerpolicy="no-referrer">` : "")}
+                    ${entry.photo_data ? `<img src="${entry.photo_data}" style="width:100%; max-height:240px; object-fit:cover; border-radius:10px; margin-bottom:8px;">` : (entry.photo_url ? `<img src="${normalizeDrivePhotoUrl_(entry.photo_url)}" style="width:100%; max-height:240px; object-fit:cover; border-radius:10px; margin-bottom:8px;" referrerpolicy="no-referrer">` : "")}
                     <div class="photo-meta-row"><strong>Date:</strong> ${escapeHtml(entry.date || "")}</div>
                     <div class="photo-meta-row"><strong>Remark 1:</strong> ${escapeHtml(entry.remark1 || "")}</div>
                     <div class="photo-meta-row"><strong>Remark 2:</strong> ${escapeHtml(entry.remark2 || "")}</div>
@@ -4465,7 +4482,7 @@
                     ${(entry.photos || []).map((p, idx) => `
                         <div style="margin-top:10px; padding-top:10px; border-top:1px solid #e5e7eb;">
                             <div style="font-size:11px; font-weight:900; color:#1e293b; margin-bottom:6px;">${escapeHtml(p.name || ("Photo " + (idx + 1)))}</div>
-                            ${p.photo_data ? `<img src="${p.photo_data}" style="width:100%; max-height:200px; object-fit:cover; border-radius:10px; margin-bottom:6px;">` : (p.photo_url ? `<img src="${p.photo_url}" style="width:100%; max-height:200px; object-fit:cover; border-radius:10px; margin-bottom:6px;" referrerpolicy="no-referrer">` : "")}
+                            ${p.photo_data ? `<img src="${p.photo_data}" style="width:100%; max-height:200px; object-fit:cover; border-radius:10px; margin-bottom:6px;">` : (p.photo_url ? `<img src="${normalizeDrivePhotoUrl_(p.photo_url)}" style="width:100%; max-height:200px; object-fit:cover; border-radius:10px; margin-bottom:6px;" referrerpolicy="no-referrer">` : "")}
                             <div class="photo-meta-row"><strong>GPS:</strong> ${escapeHtml((p.gps_latitude && p.gps_longitude) ? `${p.gps_latitude}, ${p.gps_longitude}` : "N/A")}</div>
                             <div class="photo-meta-row"><strong>Location:</strong> ${escapeHtml(p.gps_location || "N/A")}</div>
                             ${isValidLatLon_(p.gps_latitude, p.gps_longitude) ? `<div style="margin-top:6px;"><a href="https://www.google.com/maps/dir/?api=1&destination=${p.gps_latitude},${p.gps_longitude}" target="_blank" rel="noopener" style="display:inline-flex; align-items:center; gap:6px; background:linear-gradient(135deg,#16a34a,#15803d); color:#fff; font-size:11px; font-weight:900; text-transform:uppercase; padding:8px 14px; border-radius:10px; text-decoration:none;">Get Directions</a></div>` : ""}
@@ -4474,7 +4491,7 @@
                 `;
             } else if (storeName === "stm_complaint") {
                 bodyHtml = `
-                    ${entry.photo_data ? `<img src="${entry.photo_data}" style="width:100%; max-height:240px; object-fit:cover; border-radius:10px; margin-bottom:8px;">` : (entry.photo_url ? `<img src="${entry.photo_url}" style="width:100%; max-height:240px; object-fit:cover; border-radius:10px; margin-bottom:8px;" referrerpolicy="no-referrer">` : "")}
+                    ${entry.photo_data ? `<img src="${entry.photo_data}" style="width:100%; max-height:240px; object-fit:cover; border-radius:10px; margin-bottom:8px;">` : (entry.photo_url ? `<img src="${normalizeDrivePhotoUrl_(entry.photo_url)}" style="width:100%; max-height:240px; object-fit:cover; border-radius:10px; margin-bottom:8px;" referrerpolicy="no-referrer">` : "")}
                     <div class="photo-meta-row"><strong>Date:</strong> ${escapeHtml(entry.date || "")} ${escapeHtml(entry.time || "")}</div>
                     <div class="photo-meta-row"><strong>Substation:</strong> ${escapeHtml(entry.substation || "")}</div>
                     <div class="photo-meta-row"><strong>Shared At:</strong> ${escapeHtml(entry.information_shared_at || "")}</div>
@@ -7982,7 +7999,7 @@
                 showToast(submitMessage || "Feeder readings submit ho gayi", true);
                 resetFeederReading();
             } catch (error) {
-                showToast(error?.message || "Feeder submit blocked ya network issue aaya", false);
+                showToast(getFriendlyScriptError(error?.message) || "Feeder submit blocked ya network issue aaya", false);
             } finally {
                 if (submitBtn) {
                     submitBtn.disabled = false;
