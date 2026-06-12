@@ -1304,9 +1304,9 @@
         };
 
         const scriptURL = "https://script.google.com/macros/s/AKfycbw-euczRMZFKMjHveuvWd-vkuNqLXmFLkrLUERWgdExC7obxVGcBkBKGBWuHNfimzEh3g/exec";
-        const stockSubmitScriptUrl = "https://script.google.com/macros/s/AKfycbwdjxhm7IyGlV8RACo3zIIZogwyu8HNLsWgtFp-XkSzDac4SeN_rlKDgrxsbDj6pdfK/exec";
-        const shmsSubmitScriptUrl = "https://script.google.com/macros/s/AKfycbyoMfuaxupxeZip7DoSoTkjCIM-43Ns4EkR-t5TX0ud222TIMbj9FdlbV0l8q-B8z8/exec";
-        const stmComplaintScriptUrl = "https://script.google.com/macros/s/AKfycby9ZIXl5g_690kavCweIkYfGAz2NnAEiqgJzct5xhKaBjyCF08ELpguYTbgvTV_lAN6UQ/exec";
+        const stockSubmitScriptUrl = "https://script.google.com/macros/s/AKfycby2kRLq92xdjDA_95R23UIOZf_YmzxXkLNlDBOHAUcoVTR5Za401M1tXRkuo7kgU13Q/exec";
+        const shmsSubmitScriptUrl = "https://script.google.com/macros/s/AKfycbwgH1buDg5xeEmZksMc5UDXdqYorIM_yrMdj8f-euqhghSw2mUHYgVUjn-eydQCf91Mag/exec";
+        const stmComplaintScriptUrl = "https://script.google.com/macros/s/AKfycbx6F8vgmw0yHBDzv4BMr2_Toeh24ZqXK73y39zWBhaxwQb9GiRVVRpc0xvOoYavFNRR/exec";
 
         // ===== Shared Module Sync (Broken Pole / PDC / STM Complaint / Bijli Chori) =====
         // Single Apps Script Web App endpoint shared across all 4 modules (module name sent as a parameter).
@@ -1316,7 +1316,6 @@
         const SHARED_SYNC_MODULES = ["broken_pole", "pdc_nontraceable", "stm_complaint", "bijli_chori"];
         const sharedModuleSyncEnabled = !!sharedModuleSyncScriptUrl;
 
-        const stockMaterialsCsvUrl = "https://docs.google.com/spreadsheets/d/1OfrU7ZuN5LV9f_3hqORv66BVLYKFGIBBjDyeSXHwldA/export?format=csv&gid=641545139";
         const shmsCsvUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTbq-yne90yg9Vn8eylxM3zKMfZjPLlVhca3JhsjAzMlcm6MAVl8vAA-xXVgZI_XjWQBHyjB36YO1Cz/pub?output=csv";
         let stockMaterials = [
             { id: "M001", name: "AB Cable 3X95+1X50", unit: "Meter", opening: 1200, inward: 380, issue: 910, min: 300 },
@@ -1337,10 +1336,10 @@
         let activeIssueDc = "";
         let shmsRows = [], shmsSubstations = [], selectedShmsRow = null, shmsDataLoaded = false, selectedShmsSubstation = "", selectedShmsEventType = "", shmsPendingEntries = [];
         const feederCsvUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vT8bBAXJZhlwS_giGXBlS6rDXJ_auZfWZzNVPQaBnD09jB_m7jnrqeGGX5WP8V2jOD_WL90_KQ2pJa4/pub?output=csv";
-        const feederSubmitScriptUrl = "https://script.google.com/macros/s/AKfycbywGtC-DmGcDicwkSQv1RAILCJkviAJID-prSmIlX3PND8pvFLqmklYO6ar80OYBfpj/exec";
+        const feederSubmitScriptUrl = "https://script.google.com/macros/s/AKfycbzcS6i1xjHh8_ewUAC-AiHO_tR_0d_csg5isoVt9G8oxMokC4s1PmbNELvBepdFBWLOew/exec";
         const feederReportSheetCsvUrl = "https://docs.google.com/spreadsheets/d/1XnsLz_5643XqGgrcMzhIzI_cF4E4S6Zc1esNEQe554A/export?format=csv&gid=0";
         const peakLoadCsvUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTqnZksaehWGnKJq2xcy1sJsQjrddCJZKJo_ynvjkZnUqxMzdvnlQv3uARWYiiuJEsVVBdL6wTd1bhv/pub?output=csv";
-        const peakLoadSubmitScriptUrl = "https://script.google.com/macros/s/AKfycbxclLoEv4GMdy9Ji-1WSXRqztNWvtfm2vaEPE3doB_7b7fjuK9rf-Mxv2nEku5FDrI9/exec";
+        const peakLoadSubmitScriptUrl = "https://script.google.com/macros/s/AKfycbyfHmUNgMYfGdAK-tdMWRxcI60oNe4nnxU7wnI3QC_RVLIW81kbcDXUtP8IKvljTlki/exec";
         const feederDcDistributionConfig = {
             "11 KV - BAKODA SEONI AG": [
                 { dcName: "CHHAPARA-1", percent: 100 }
@@ -3178,25 +3177,28 @@
         async function loadStockMaterialsData() {
             try {
                 const rawData = await loadRemoteJson(`${stockSubmitScriptUrl}?action=getMasterStock`);
-                const parsedMaterials = Array.isArray(rawData)
-                    ? rawData.map((item, index) => {
-                        const name = String(item.material_name || item["MATERIAL NAME"] || item.name || "").trim();
-                        const unit = String(item.unit || item["UNIT"] || "Nos").trim();
-                        const openingStock = Number(item.opening_stock ?? item["OPENING STOCK"] ?? 0) || 0;
-                        const balanceStock = Number(item.balance_stock ?? item["BALANCE STOCK"] ?? openingStock) || 0;
-                        if (!name) return null;
-                        return {
-                            id: String(item.id || `CSV-${String(index + 1).padStart(3, "0")}`),
-                            name,
-                            unit,
-                            opening: openingStock,
-                            currentBalance: balanceStock,
-                            inward: 0,
-                            issue: 0,
-                            min: 0
-                        };
-                    }).filter(Boolean)
-                    : [];
+                const rows = Array.isArray(rawData)
+                    ? rawData
+                    : Array.isArray(rawData?.data)
+                        ? rawData.data
+                        : [];
+                const parsedMaterials = rows.map((item, index) => {
+                    const name = String(item.material_name || item["MATERIAL NAME"] || item.name || "").trim();
+                    const unit = String(item.unit || item["UNIT"] || "Nos").trim();
+                    const openingStock = Number(item.opening_stock ?? item["OPENING STOCK"] ?? 0) || 0;
+                    const balanceStock = Number(item.balance_stock ?? item["BALANCE STOCK"] ?? openingStock) || 0;
+                    if (!name) return null;
+                    return {
+                        id: String(item.id || `M${String(index + 1).padStart(3, "0")}`),
+                        name,
+                        unit,
+                        opening: openingStock,
+                        currentBalance: balanceStock,
+                        inward: 0,
+                        issue: 0,
+                        min: 0
+                    };
+                }).filter(Boolean);
 
                 if (parsedMaterials.length) {
                     stockMaterials = parsedMaterials;
@@ -3205,52 +3207,8 @@
                     selectedStockReceiveItem = null;
                     selectedStockIssueItem = null;
                     renderStockDashboard();
-                    return;
-                }
-
-                const csvText = await loadRemoteText(stockMaterialsCsvUrl);
-                const parsedCsvMaterials = parseStockMaterialsCsv(csvText);
-                if (parsedCsvMaterials.length) {
-                    stockMaterials = parsedCsvMaterials;
-                    pendingReceiveItems = [];
-                    pendingIssueItems = [];
-                    selectedStockReceiveItem = null;
-                    selectedStockIssueItem = null;
-                    renderStockDashboard();
                 }
             } catch (_) {}
-        }
-
-        function parseStockMaterialsCsv(csvText) {
-            const lines = (csvText || "").split(/\r?\n/).filter((line) => line.trim());
-            if (lines.length < 2) return [];
-            const headers = splitCsvLine(lines[0]).map((header) => normalizeDcName(header));
-            return lines.slice(1).map((line, index) => {
-                const cols = splitCsvLine(line);
-                const row = {};
-                headers.forEach((header, headerIndex) => {
-                    row[header] = cols[headerIndex] || "";
-                });
-                const name = getConsumerField(row, ["MATERIAL NAME", "MATERIAL", "NAME"]);
-                const unit = getConsumerField(row, ["UNIT", "UOM"], "Nos");
-                const openingStock = Number(getConsumerField(row, ["OPENING STOCK", "OPENING", "OPENINGSTOCK"], "0")) || 0;
-                const balanceStockRaw = getConsumerField(row, ["BALANCE STOCK", "BALANCE", "BALANCESTOCK"], "");
-                const fallbackTotalStock = Number(getConsumerField(row, ["TOTAL STOCK", "TOTAL", "STOCK"], "0")) || 0;
-                const balanceStock = balanceStockRaw === ""
-                    ? (fallbackTotalStock || openingStock)
-                    : (Number(balanceStockRaw) || 0);
-                if (!name) return null;
-                return {
-                    id: `CSV-${String(index + 1).padStart(3, "0")}`,
-                    name,
-                    unit,
-                    opening: openingStock || balanceStock,
-                    currentBalance: balanceStock,
-                    inward: 0,
-                    issue: 0,
-                    min: 0
-                };
-            }).filter(Boolean);
         }
 
         function getCurrentPositionAsync() {
