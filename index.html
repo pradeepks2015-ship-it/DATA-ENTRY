@@ -125,7 +125,6 @@
         .btn-update-red { background: linear-gradient(135deg, #ef4444 0%, #b91c1c 100%) !important; }
         .btn-progress-black { background: #000000 !important; padding: 12px 18px !important; font-size: 0.75rem !important; }
         .btn-green-fix { background: linear-gradient(135deg, #22c55e 0%, #15803d 100%); }
-        .btn-court-case { background: linear-gradient(135deg, #7c3aed 0%, #4c1d95 100%) !important; }
         .btn-stm-complaint { background: linear-gradient(135deg, #c08a57 0%, #9a6737 100%) !important; color: #ffffff !important; }
         .btn-daily-houry-peak-load { background: linear-gradient(135deg, #16a34a 0%, #15803d 100%) !important; color: #ffffff !important; }
         .btn-feeder-light-pink { background: linear-gradient(135deg, #fbcfe8 0%, #f9a8d4 100%) !important; color: #831843 !important; }
@@ -206,13 +205,8 @@
         .photo-meta-row { margin-top: 5px; font-size: 0.72rem; font-weight: 800; color: #475569; line-height: 1.45; word-break: break-word; }
         .photo-meta-row:first-child { margin-top: 0; }
         .photo-meta-row strong { color: #0f172a; }
-        .court-header-small h1 { font-size: 1.12rem !important; }
-        .court-header-small p { font-size: 7.6px !important; }
         .peak-load-header-small h1 { font-size: 1.02rem !important; line-height: 1.1; }
         .peak-load-header-small p { font-size: 7.2px !important; }
-        .court-result-box .res-label { font-size: 0.6rem; }
-        .court-result-box .res-val { font-size: 0.6rem; }
-        #receiver-name { text-align: center !important; }
         .bg-red-grad { background: linear-gradient(135deg, #ef4444 0%, #b91c1c 100%) !important; }
         .bg-cyan-grad { background: linear-gradient(135deg, #06b6d4 0%, #155e75 100%) !important; }
         .bg-amber-grad { background: linear-gradient(135deg, #fbbf24 0%, #b45309 100%) !important; }
@@ -452,7 +446,6 @@
             <div class="px-2 py-8 flex flex-col gap-4">
                 <button class="dashboard-btn btn-green-fix" onclick="window.open('https://pradeepks2015-ship-it.github.io/ADEGAON/', '_blank')">1. VASOOLI TRACKER</button>
                 <button class="dashboard-btn btn-update-red" onclick="switchView('mobile-update')">2. Mobile No Update</button>
-          <button class="dashboard-btn btn-court-case" onclick="switchView('court-case')" style="display:none;">Lok Adalat Notice</button>
                 <button class="dashboard-btn" style="background: linear-gradient(135deg, #f59e0b 0%, #b45309 100%);" onclick="switchView('broken-pole')">3. ⚡ Broken Pole / Damage Line</button>
                 <button class="dashboard-btn" style="background: linear-gradient(135deg, #6366f1 0%, #312e81 100%);" onclick="switchView('pdc-nontraceable')">4. 📄 PDC / NON-TRACEABLE</button>
                 <button class="dashboard-btn bg-cyan-grad" onclick="askPassword('STOCK')">5. STOCK MATERIAL</button>
@@ -482,7 +475,7 @@
                                 </div>
                             </div>
                             <div id="stm-mis-total-box" style="text-align:center; margin-bottom:10px; font-size:12px; font-weight:900; color:#fde8d2;">Total Complaints: <span id="stm-mis-total">0</span></div>
-                            <div id="stm-storage-counter" style="text-align:center; margin-bottom:10px; font-size:11px; font-weight:800; color:#fde8d2;">Storage: <span id="stm-storage-used">0</span> / <span id="stm-storage-limit">0</span> entries saved</div>
+                            <div id="stm-storage-counter" style="text-align:center; margin-bottom:10px; font-size:11px; font-weight:800; color:#fde8d2;">Local Device Storage: <span id="stm-storage-used">0</span> / <span id="stm-storage-limit">0</span> entries saved</div>
                             <button type="button" onclick="toggleEntriesList('stm_complaint')" style="width:100%; height:42px; border:none; border-radius:12px; background:rgba(255,255,255,0.18); color:#fde8d2; font-size:12px; font-weight:900; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:10px;">📂 Saved Entries Dekhein / Hatayein</button>
                             <div id="entries-list-stm_complaint" style="display:none; margin-bottom:10px;"></div>
                             <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:8px;">
@@ -1150,7 +1143,7 @@
                             </div>
                         </div>
                         <div id="bp-mis-total-box" style="text-align:center; margin-bottom:10px; font-size:12px; font-weight:900; color:#fef3c7;">Total Entries: <span id="bp-mis-total">0</span></div>
-                        <div id="bp-storage-counter" style="text-align:center; margin-bottom:10px; font-size:11px; font-weight:800; color:#fef3c7;">Storage: <span id="bp-storage-used">0</span> / <span id="bp-storage-limit">0</span> photos saved</div>
+                        <div id="bp-storage-counter" style="text-align:center; margin-bottom:10px; font-size:11px; font-weight:800; color:#fef3c7;">Local Device Storage: <span id="bp-storage-used">0</span> / <span id="bp-storage-limit">0</span> photos saved</div>
                         <button type="button" onclick="toggleEntriesList('broken_pole')" style="width:100%; height:42px; border:none; border-radius:12px; background:rgba(255,255,255,0.18); color:#fffbeb; font-size:12px; font-weight:900; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:10px;">📂 Saved Entries Dekhein / Hatayein</button>
                         <div id="entries-list-broken_pole" style="display:none; margin-bottom:10px;"></div>
                         <button id="bp-mis-pdf-btn" onclick="downloadBrokenPoleMisPdf()" style="width:100%; height:44px; border:none; border-radius:12px; background:linear-gradient(135deg, #ef4444 0%, #b91c1c 100%); color:#ffffff; font-size:13px; font-weight:900; text-transform:uppercase; letter-spacing:0.5px; box-shadow:0 6px 14px rgba(239,68,68,0.3); cursor:pointer; display:flex; align-items:center; justify-content:center; gap:8px;">
@@ -1198,7 +1191,7 @@
                             </div>
                         </div>
                         <div id="pdc-mis-total-box" style="text-align:center; margin-bottom:10px; font-size:12px; font-weight:900; color:#e0e7ff;">Total Entries: <span id="pdc-mis-total">0</span></div>
-                        <div id="pdc-storage-counter" style="text-align:center; margin-bottom:10px; font-size:11px; font-weight:800; color:#e0e7ff;">Storage: <span id="pdc-storage-used">0</span> / <span id="pdc-storage-limit">0</span> entries saved</div>
+                        <div id="pdc-storage-counter" style="text-align:center; margin-bottom:10px; font-size:11px; font-weight:800; color:#e0e7ff;">Local Device Storage: <span id="pdc-storage-used">0</span> / <span id="pdc-storage-limit">0</span> entries saved</div>
                         <button type="button" onclick="toggleEntriesList('pdc_nontraceable')" style="width:100%; height:42px; border:none; border-radius:12px; background:rgba(255,255,255,0.18); color:#e0e7ff; font-size:12px; font-weight:900; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:10px;">📂 Saved Entries Dekhein / Hatayein</button>
                         <div id="entries-list-pdc_nontraceable" style="display:none; margin-bottom:10px;"></div>
                         <button id="pdc-mis-pdf-btn" onclick="downloadPdcMisPdf()" style="width:100%; height:44px; border:none; border-radius:12px; background:linear-gradient(135deg, #ef4444 0%, #b91c1c 100%); color:#ffffff; font-size:13px; font-weight:900; text-transform:uppercase; letter-spacing:0.5px; box-shadow:0 6px 14px rgba(239,68,68,0.3); cursor:pointer; display:flex; align-items:center; justify-content:center; gap:8px;">
@@ -1246,7 +1239,7 @@
                             </div>
                         </div>
                         <div id="bc-mis-total-box" style="text-align:center; margin-bottom:10px; font-size:12px; font-weight:900; color:#fee2e2;">Total Entries: <span id="bc-mis-total">0</span></div>
-                        <div id="bc-storage-counter" style="text-align:center; margin-bottom:10px; font-size:11px; font-weight:800; color:#fee2e2;">Storage: <span id="bc-storage-used">0</span> / <span id="bc-storage-limit">0</span> entries saved</div>
+                        <div id="bc-storage-counter" style="text-align:center; margin-bottom:10px; font-size:11px; font-weight:800; color:#fee2e2;">Local Device Storage: <span id="bc-storage-used">0</span> / <span id="bc-storage-limit">0</span> entries saved</div>
                         <button type="button" onclick="toggleEntriesList('bijli_chori')" style="width:100%; height:42px; border:none; border-radius:12px; background:rgba(255,255,255,0.18); color:#fee2e2; font-size:12px; font-weight:900; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:10px;">📂 Saved Entries Dekhein / Hatayein</button>
                         <div id="entries-list-bijli_chori" style="display:none; margin-bottom:10px;"></div>
                         <button id="bc-mis-pdf-btn" onclick="downloadBijliChoriMisPdf()" style="width:100%; height:44px; border:none; border-radius:12px; background:linear-gradient(135deg, #ef4444 0%, #b91c1c 100%); color:#ffffff; font-size:13px; font-weight:900; text-transform:uppercase; letter-spacing:0.5px; box-shadow:0 6px 14px rgba(239,68,68,0.3); cursor:pointer; display:flex; align-items:center; justify-content:center; gap:8px;">
@@ -1258,52 +1251,11 @@
             </div>
         </main>
 
-        <main id="court-case-view" class="view">
-            <div class="title-box-container"><div class="title-box"><span class="title-text-bold">SEARCH CASE NUMBER</span></div></div>
-            <div class="search-panel">
-                <div class="input-wrapper relative w-full max-w-[260px] mx-auto">
-                    <input type="tel" id="search-case-no" class="ivrs-input" placeholder="Search Case No" oninput="this.value=this.value.replace(/[^0-9]/g,'').slice(0,20)">
-                </div>
-                <button id="court-search-btn" class="search-btn-custom" onclick="performCourtSearch()">Search Records</button>
-
-                <div id="court-result-box" class="result-card-custom court-result-box">
-                    <div class="res-row"><span class="res-label">Panchnama No</span><span id="court-panchnama" class="res-val"></span></div>
-                    <div class="res-row"><span class="res-label">Consumer Name</span><span id="court-consumer" class="res-val"></span></div>
-                    <div class="res-row"><span class="res-label">Section</span><span id="court-section" class="res-val"></span></div>
-                    <div class="res-row"><span class="res-label">Civil Amt</span><span id="court-civil" class="res-val"></span></div>
-                    <div class="res-row"><span class="res-label">Compounding Amt</span><span id="court-compounding" class="res-val"></span></div>
-                    <div class="res-row"><span class="res-label">Billed Amt</span><span id="court-billed" class="res-val"></span></div>
-                    <div class="res-row"><span class="res-label">Rebate</span><span id="court-rebate" class="res-val"></span></div>
-                    <div class="res-row border-none"><span class="res-label">Total Payable Amount</span><span id="court-total" class="res-val"></span></div>
-
-                    <div class="title-box-container" style="padding-top: 15px;"><div class="title-box"><span class="title-text-bold">Receiver Details</span></div></div>
-                    <input type="text" id="receiver-name" class="teal-boundary-input" placeholder="Receiver Name" style="margin-bottom: 12px; text-align: center;">
-                    <input type="tel" id="receiver-mobile" class="teal-boundary-input" placeholder="Receiver Mobile No" oninput="this.value=this.value.replace(/[^0-9]/g,'').slice(0,10)">
-                    <div class="photo-upload-box">
-                        <label for="receiver-photo" class="photo-upload-label">
-                            <div class="camera-icon-wrap">
-                                <svg width="24" height="24" fill="none" stroke="white" stroke-width="2.2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 8.5A2.5 2.5 0 0 1 5.5 6H8l1.3-1.6A2 2 0 0 1 10.86 4h2.28a2 2 0 0 1 1.56.74L16 6h2.5A2.5 2.5 0 0 1 21 8.5v8A2.5 2.5 0 0 1 18.5 19h-13A2.5 2.5 0 0 1 3 16.5z"></path><circle cx="12" cy="12.5" r="3.5"></circle></svg>
-                            </div>
-                            PHOTO OF RECEIVER
-                        </label>
-                        <input type="file" id="receiver-photo" accept="image/*" capture="environment" style="display:none;" onchange="updateReceiverPhotoName()">
-                        <div id="receiver-photo-name" class="photo-file-name">No photo selected</div>
-                        <div id="receiver-photo-meta" class="photo-meta-box" style="display:none;">
-                            <div id="receiver-photo-latlong" class="photo-meta-row"><strong>Lat-Long:</strong> Not captured</div>
-                            <div id="receiver-photo-location" class="photo-meta-row"><strong>Location:</strong> Not captured</div>
-                        </div>
-                    </div>
-                </div>
-                <button id="court-submit-btn" class="submit-sync-btn" onclick="submitCourtCaseDemo()">Submit</button>
-            </div>
-        </main>
-
         <main id="summary-view" class="view">
             <div class="title-box-container"><div class="title-box flex flex-col items-center"><span class="title-text-bold" id="summary-title">PROGRESS REPORT</span></div></div>
             <div class="px-2">
                 <div class="progress-module-box">
                     <div id="progress-mobile-btn" class="progress-module-btn active" onclick="setProgressModule('MOBILE')">Updated Mobile No</div>
-          <div id="progress-lok-btn" class="progress-module-btn" onclick="setProgressModule('LOK_ADALAT')" style="display:none;">Lok Adalat Notice</div>
                 </div>
                 <div class="report-type-box">
                     <div id="opt-daily" class="report-opt active" onclick="setMode('DAILY')">Daily</div>
@@ -1352,25 +1304,20 @@
         };
 
         const scriptURL = "https://script.google.com/macros/s/AKfycbw-euczRMZFKMjHveuvWd-vkuNqLXmFLkrLUERWgdExC7obxVGcBkBKGBWuHNfimzEh3g/exec";
-        const courtCaseCsvUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQMSrQZGqkLsMpwNO6SrRVaRf0JW3r7T5Bsj0N03ZCTgm53WqrtbXiANxplkgxhyiBaCw2A2woCrV_k/pub?output=csv";
-        const lokAdalatScriptUrl = "https://script.google.com/macros/s/AKfycbzS1xRgKs5HyUjnCGt7l9d3D33rscPaFhtucyH63KAfFabfIu67loo1Yd-uGSIffJieIg/exec";
-        const lokAdalatDistributedCsvUrl = "https://docs.google.com/spreadsheets/d/1l-IJkL7aylyjxpdYtHlwJzUhFS8OPtg4RzhXfLlJWjQ/export?format=csv&gid=0";
         const stockSubmitScriptUrl = "https://script.google.com/macros/s/AKfycbwdjxhm7IyGlV8RACo3zIIZogwyu8HNLsWgtFp-XkSzDac4SeN_rlKDgrxsbDj6pdfK/exec";
         const shmsSubmitScriptUrl = "https://script.google.com/macros/s/AKfycbyoMfuaxupxeZip7DoSoTkjCIM-43Ns4EkR-t5TX0ud222TIMbj9FdlbV0l8q-B8z8/exec";
         const stmComplaintScriptUrl = "https://script.google.com/macros/s/AKfycby9ZIXl5g_690kavCweIkYfGAz2NnAEiqgJzct5xhKaBjyCF08ELpguYTbgvTV_lAN6UQ/exec";
+
+        // ===== Shared Module Sync (Broken Pole / PDC / STM Complaint / Bijli Chori) =====
+        // Single Apps Script Web App endpoint shared across all 4 modules (module name sent as a parameter).
+        // PASTE the deployed Apps Script /exec URL here once available - leave empty to keep working
+        // device-local only (entries will not sync between users until this is set).
+        const sharedModuleSyncScriptUrl = "https://script.google.com/macros/s/AKfycbzCE8xX00kjZcrlwbUVJOKhZgmqyPYS1JklHlletN0eMiyjAJLmVQRWByJTaQK47_VyLA/exec";
+        const SHARED_SYNC_MODULES = ["broken_pole", "pdc_nontraceable", "stm_complaint", "bijli_chori"];
+        const sharedModuleSyncEnabled = !!sharedModuleSyncScriptUrl;
+
         const stockMaterialsCsvUrl = "https://docs.google.com/spreadsheets/d/1OfrU7ZuN5LV9f_3hqORv66BVLYKFGIBBjDyeSXHwldA/export?format=csv&gid=641545139";
         const shmsCsvUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTbq-yne90yg9Vn8eylxM3zKMfZjPLlVhca3JhsjAzMlcm6MAVl8vAA-xXVgZI_XjWQBHyjB36YO1Cz/pub?output=csv";
-        const lokAdalatFallbackTotals = {
-            "ADEGAON": 752,
-            "CHHAPARA-1": 564,
-            "CHHAPARA-2": 453,
-            "DHANORA": 802,
-            "DHUMA": 627,
-            "GANESHGANJ": 561,
-            "GHANSORE": 386,
-            "KEDARPUR": 164,
-            "LAKHNADON": 376
-        };
         let stockMaterials = [
             { id: "M001", name: "AB Cable 3X95+1X50", unit: "Meter", opening: 1200, inward: 380, issue: 910, min: 300 },
             { id: "M002", name: "PVC Insulated Wire 10 SQMM", unit: "Coil", opening: 42, inward: 16, issue: 31, min: 10 },
@@ -1385,7 +1332,7 @@
             { type: "ISSUE", material: "LT Pin Insulator", qty: 20, date: "22/04/2026", note: "Village feeder replacement" }
         ];
 
-        let activeDiv = "", activeDC = "", activeGrad = "bg-teal-grad", summaryMode = "DAILY", summaryModule = "MOBILE", activeViewLevel = "", currentData = null, pendingLevel = "", dcCacheRaw = {}, dcCacheRows = {}, uiListSummary = [], grandTC = 0, grandTU = 0, courtCaseRaw = "", courtCaseCacheByDc = {}, courtCaseLines = [], courtCaseRecords = [], lokDistributedRows = [], lokDistributedLoaded = false, currentCourtRecord = null, receiverGeoData = null;
+        let activeDiv = "", activeDC = "", activeGrad = "bg-teal-grad", summaryMode = "DAILY", summaryModule = "MOBILE", activeViewLevel = "", currentData = null, pendingLevel = "", dcCacheRaw = {}, dcCacheRows = {}, uiListSummary = [], grandTC = 0, grandTU = 0;
         let selectedStockReceiveItem = null, selectedStockIssueItem = null, pendingReceiveItems = [], pendingIssueItems = [];
         let activeIssueDc = "";
         let shmsRows = [], shmsSubstations = [], selectedShmsRow = null, shmsDataLoaded = false, selectedShmsSubstation = "", selectedShmsEventType = "", shmsPendingEntries = [];
@@ -1506,9 +1453,7 @@
         let selectedStmComplaintSubstation = "";
         const adegaonIssueDcs = ["ADEGAON", "MAINTENANCE TEAM", "OTHER"];
         let activeSubDnDcs = adegaonIssueDcs;
-        const courtServedStorageKey = "seoni-circle-lok-adalat-served";
         const mobileUpdateStorageKey = "seoni-circle-mobile-updated";
-        const courtCaseCacheStorageKey = "seoni-circle-lok-adalat-csv-cache";
         const dcCsvCacheStoragePrefix = "seoni-circle-dc-csv-";
         const chhaparaFeederStorageKey = "seoni-circle-chhapara-feeder-output";
         const shmsRecentSubmittedStorageKey = "seoni-circle-shms-recent-submitted";
@@ -1652,10 +1597,117 @@
         }
 
         const feederAlertStartDateKey = "2026-06-01";
+
+        // ===== Shared Module Sync helpers (Broken Pole / PDC / STM / Bijli Chori) =====
+        // In-memory cache of remote (shared) entries per module, refreshed on view open.
+        const sharedModuleEntriesCache = {
+            broken_pole: [],
+            pdc_nontraceable: [],
+            stm_complaint: [],
+            bijli_chori: []
+        };
+        const sharedModuleLastFetch = {};
+
+        // Sends a single entry (with photo(s) as base64 data URLs) to the shared backend.
+        // Returns the entry_id assigned by the server, or "" on failure (caller should
+        // continue working with local-only storage in that case).
+        async function syncEntryToCloud_(module, entry) {
+            if (!sharedModuleSyncEnabled) return "";
+            try {
+                const payload = new URLSearchParams();
+                payload.append("module", module);
+                payload.append("entry_json", JSON.stringify(entry));
+
+                const response = await fetch(sharedModuleSyncScriptUrl, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8" },
+                    body: payload.toString()
+                });
+                const text = await response.text();
+                const parsed = JSON.parse(text || "{}");
+                if (parsed && parsed.status === "success") {
+                    return parsed.entry_id || "";
+                }
+                return "";
+            } catch (_) {
+                return "";
+            }
+        }
+
+        // Fetches all shared entries for a module from the backend. Returns [] on
+        // failure (offline, not configured, etc.) so callers can fall back to local data.
+        async function fetchSharedEntries_(module, forceRefresh) {
+            if (!sharedModuleSyncEnabled) return [];
+            const now = Date.now();
+            if (!forceRefresh && sharedModuleLastFetch[module] && (now - sharedModuleLastFetch[module] < 30000)) {
+                return sharedModuleEntriesCache[module] || [];
+            }
+            try {
+                const url = `${sharedModuleSyncScriptUrl}?action=getEntries&module=${encodeURIComponent(module)}`;
+                const data = await loadRemoteJson(url);
+                if (data && data.status === "success" && Array.isArray(data.entries)) {
+                    sharedModuleEntriesCache[module] = data.entries;
+                    sharedModuleLastFetch[module] = now;
+                    return data.entries;
+                }
+                return sharedModuleEntriesCache[module] || [];
+            } catch (_) {
+                return sharedModuleEntriesCache[module] || [];
+            }
+        }
+
+        // Deletes a shared entry on the backend by its entry_id (string assigned by server).
+        async function deleteSharedEntry_(module, entryId) {
+            if (!sharedModuleSyncEnabled || !entryId) return false;
+            try {
+                const payload = new URLSearchParams();
+                payload.append("module", module);
+                payload.append("action", "deleteEntry");
+                payload.append("entry_id", entryId);
+                const response = await fetch(sharedModuleSyncScriptUrl, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8" },
+                    body: payload.toString()
+                });
+                const text = await response.text();
+                const parsed = JSON.parse(text || "{}");
+                return parsed && parsed.status === "success";
+            } catch (_) {
+                return false;
+            }
+        }
+
+        // Merges local IndexedDB entries with shared (remote) entries for a module,
+        // de-duplicating by entry_id (entries synced from this device will have the
+        // same entry_id locally and remotely once sync succeeds).
+        function mergeLocalAndSharedEntries_(localEntries, sharedEntries) {
+            const merged = [];
+            const seenIds = new Set();
+
+            // Shared entries first (so cloud copy - with Drive photo URLs - wins on id collision)
+            (sharedEntries || []).forEach((e) => {
+                const id = e.entry_id || "";
+                if (id) seenIds.add(id);
+                merged.push(e);
+            });
+
+            (localEntries || []).forEach((e) => {
+                const id = e.entry_id || "";
+                if (id && seenIds.has(id)) return; // already represented by shared copy
+                merged.push(e);
+            });
+
+            // Sort by timestamp ascending (fallback to local id) so newest-first reversal works consistently
+            merged.sort((a, b) => {
+                const ta = a.timestamp ? new Date(a.timestamp).getTime() : (a.id || 0);
+                const tb = b.timestamp ? new Date(b.timestamp).getTime() : (b.id || 0);
+                return ta - tb;
+            });
+            return merged;
+        }
+
+
         let mobileSubmittedSheetMap = {};
-        let lokServedSheetMap = {};
-        let lokSheetMapLoadingStarted = false;
-        let lokSheetMapLoadingPromise = null;
         let feederRecentSubmittedEntries = [];
 
         document.addEventListener("DOMContentLoaded", () => {
@@ -1689,9 +1741,7 @@
                     }
                 } catch (e) {}
             });
-            loadCourtCaseData();
             loadStockMaterialsData();
-            preloadDuplicateTrackingData();
             initChhaparaFeederCalculator();
             renderStockDashboard();
             setupStockEntrySearch("receive");
@@ -1699,17 +1749,6 @@
             renderIssueDcDropdown();
             switchView("home");
         });
-
-        async function preloadDuplicateTrackingData(forceRefresh = false) {
-            if (forceRefresh || !lokSheetMapLoadingPromise) {
-                lokSheetMapLoadingStarted = true;
-                lokSheetMapLoadingPromise = loadServedCourtCaseSheetMap().finally(() => {
-                    if (!forceRefresh) return;
-                    lokSheetMapLoadingStarted = true;
-                });
-            }
-            return await lokSheetMapLoadingPromise;
-        }
 
         function showDivision(name, colorClass) {
             activeDiv = name.trim().toUpperCase();
@@ -1848,58 +1887,6 @@
                 return nextMap;
             } catch (_) {
                 return mobileSubmittedSheetMap;
-            }
-        }
-
-        function getCourtRecordStorageKey(record) {
-            if (!record) return "";
-            const dc = normalizeLookupValue(record.dcName || activeDC || "");
-            const caseNo = normalizeLookupValue(record.caseNo || "");
-            const panchnamaNo = normalizeLookupValue(record.panchnamaNo || "");
-            return `${dc}__${caseNo}__${panchnamaNo}`;
-        }
-
-        function getServedCourtCaseMap() {
-            try {
-                return JSON.parse(localStorage.getItem(courtServedStorageKey) || "{}");
-            } catch (_) {
-                return {};
-            }
-        }
-
-        function isCourtCaseAlreadyServed(record) {
-            const key = getCourtRecordStorageKey(record);
-            if (!key) return false;
-            const servedMap = getServedCourtCaseMap();
-            return !!servedMap[key] || !!lokServedSheetMap[key];
-        }
-
-        function markCourtCaseServed(record) {
-            const key = getCourtRecordStorageKey(record);
-            if (!key) return;
-            const servedMap = getServedCourtCaseMap();
-            servedMap[key] = {
-                servedAt: new Date().toISOString(),
-                dcName: record.dcName || activeDC || "",
-                caseNo: record.caseNo || "",
-                panchnamaNo: record.panchnamaNo || ""
-            };
-            localStorage.setItem(courtServedStorageKey, JSON.stringify(servedMap));
-            lokServedSheetMap[key] = true;
-        }
-
-        async function loadServedCourtCaseSheetMap() {
-            try {
-                const data = await loadRemoteJson(`${lokAdalatScriptUrl}?action=getSummary`);
-                const nextMap = {};
-                (Array.isArray(data) ? data : []).forEach((entry) => {
-                    const key = `${normalizeLookupValue(entry.dc_name || entry.dc || "")}__${normalizeLookupValue(entry.case_no || entry.caseNo || "")}__${normalizeLookupValue(entry.panchnama_no || entry.panchnamaNo || "")}`;
-                    if (key !== "____") nextMap[key] = true;
-                });
-                lokServedSheetMap = nextMap;
-                return nextMap;
-            } catch (_) {
-                return lokServedSheetMap;
             }
         }
 
@@ -2251,76 +2238,6 @@
             }
         }
 
-        async function loadCourtCaseData() {
-            try {
-                courtCaseRaw = await loadRemoteText(courtCaseCsvUrl);
-                courtCaseCacheByDc = {};
-                courtCaseRecords = isLikelyCsvPayload(courtCaseRaw) ? parseCourtCaseCsv(courtCaseRaw) : [];
-                if (courtCaseRecords.length) {
-                    try {
-                        localStorage.setItem(courtCaseCacheStorageKey, courtCaseRaw);
-                    } catch (_) {}
-                } else {
-                    const cachedRaw = localStorage.getItem(courtCaseCacheStorageKey) || "";
-                    const cachedRecords = isLikelyCsvPayload(cachedRaw) ? parseCourtCaseCsv(cachedRaw) : [];
-                    if (cachedRecords.length) {
-                        courtCaseRaw = cachedRaw;
-                        courtCaseRecords = cachedRecords;
-                    }
-                }
-                courtCaseLines = courtCaseRecords.map((record) => record.rawLine);
-                courtCaseRecords.forEach((record) => {
-                    const dcName = normalizeLookupValue(record.dcName || "");
-                    if (!dcName) return;
-                    if (!courtCaseCacheByDc[dcName]) courtCaseCacheByDc[dcName] = [];
-                    courtCaseCacheByDc[dcName].push(record);
-                });
-                return courtCaseRecords.length > 0;
-            } catch (e) {
-                try {
-                    const retryRaw = await loadRemoteText(courtCaseCsvUrl);
-                    const retryRecords = isLikelyCsvPayload(retryRaw) ? parseCourtCaseCsv(retryRaw) : [];
-                    if (retryRecords.length) {
-                        courtCaseRaw = retryRaw;
-                        try {
-                            localStorage.setItem(courtCaseCacheStorageKey, courtCaseRaw);
-                        } catch (_) {}
-                        courtCaseCacheByDc = {};
-                        courtCaseRecords = retryRecords;
-                        courtCaseLines = courtCaseRecords.map((record) => record.rawLine);
-                        courtCaseRecords.forEach((record) => {
-                            const dcName = normalizeLookupValue(record.dcName || "");
-                            if (!dcName) return;
-                            if (!courtCaseCacheByDc[dcName]) courtCaseCacheByDc[dcName] = [];
-                            courtCaseCacheByDc[dcName].push(record);
-                        });
-                        return !!courtCaseRaw;
-                    }
-                } catch (_) {}
-                try {
-                    const cachedRaw = localStorage.getItem(courtCaseCacheStorageKey) || "";
-                    const cachedRecords = isLikelyCsvPayload(cachedRaw) ? parseCourtCaseCsv(cachedRaw) : [];
-                    if (!cachedRecords.length) {
-                        localStorage.removeItem(courtCaseCacheStorageKey);
-                        return false;
-                    }
-                    courtCaseRaw = cachedRaw;
-                    courtCaseCacheByDc = {};
-                    courtCaseRecords = cachedRecords;
-                    courtCaseLines = courtCaseRecords.map((record) => record.rawLine);
-                    courtCaseRecords.forEach((record) => {
-                        const dcName = normalizeLookupValue(record.dcName || "");
-                        if (!dcName) return;
-                        if (!courtCaseCacheByDc[dcName]) courtCaseCacheByDc[dcName] = [];
-                        courtCaseCacheByDc[dcName].push(record);
-                    });
-                    return !!courtCaseRaw;
-                } catch (_) {
-                    return false;
-                }
-            }
-        }
-
         async function ensureConsumerDataLoadedFor(dcNames) {
             const list = Array.from(new Set((dcNames || []).map((name) => normalizeDcName(name)).filter(Boolean)));
             await Promise.all(list.map(async (dcName) => {
@@ -2332,7 +2249,6 @@
         function setProgressModule(module) {
             summaryModule = module;
             document.getElementById("progress-mobile-btn").classList.toggle("active", module === "MOBILE");
-            document.getElementById("progress-lok-btn").classList.toggle("active", module === "LOK_ADALAT");
             refreshSummary();
         }
 
@@ -2389,140 +2305,6 @@
             const dStr = parsedSummarySelection.daily;
             const mStr = parsedSummarySelection.monthly;
             const label = parsedSummarySelection.label;
-
-            if (summaryModule === "LOK_ADALAT") {
-                if (!courtCaseRecords.length) {
-                    await loadCourtCaseData();
-                }
-                await loadLokDistributedSheetData(true);
-                if (refreshToken !== summaryRefreshToken) return;
-
-                const lokRows = [];
-                let lokGrandTC = 0;
-                let lokGrandTU = 0;
-
-                const getLokCount = (dcName) => {
-                    const normalizedDc = normalizeLookupValue(dcName);
-                    if (courtCaseRecords.length) {
-                        return courtCaseRecords.filter((record) => normalizeLookupValue(record.dcName) === normalizedDc).length;
-                    }
-                    return lokAdalatFallbackTotals[normalizedDc] || 0;
-                };
-                let servedData = [];
-                try {
-                    servedData = await loadRemoteJson(`${lokAdalatScriptUrl}?action=getSummary`);
-                } catch (_) {
-                    servedData = [];
-                }
-                const localServedMap = getServedCourtCaseMap();
-                const getLokDateMatches = (rawValue) => {
-                    const raw = String(rawValue || "").trim();
-                    if (!raw) return false;
-                    const normalized = raw.replace(/\./g, "-").replace(/\//g, "-");
-                    const match = normalized.match(/^(\d{2})-(\d{2})-(\d{4})$/);
-                    if (!match) return matchesProgressDate(raw, summaryMode, dStr, mStr);
-
-                    const first = Number(match[1]);
-                    const second = Number(match[2]);
-                    const year = String(match[3]);
-                    const monthlyCandidates = new Set();
-                    const dailyCandidates = new Set();
-                    const pushCandidate = (day, month) => {
-                        if (!day || !month || day < 1 || day > 31 || month < 1 || month > 12) return;
-                        dailyCandidates.add(`${String(day).padStart(2, "0")}/${String(month).padStart(2, "0")}/${year}`);
-                        monthlyCandidates.add(`${String(month).padStart(2, "0")}/${year}`);
-                    };
-
-                    pushCandidate(first, second);
-                    pushCandidate(second, first);
-
-                    if (summaryMode === "DAILY") {
-                        return dailyCandidates.has(dStr);
-                    }
-                    return monthlyCandidates.has(mStr);
-                };
-
-                const getLokGroupedCounts = (rows, dcFields, dateFields, matcher) => {
-                    const grouped = {};
-                    (Array.isArray(rows) ? rows : []).forEach((entry) => {
-                        const entryDc = normalizeLookupValue((dcFields || []).map((field) => entry?.[field] || "").find(Boolean) || "");
-                        const entryDate = String((dateFields || []).map((field) => entry?.[field] || "").find(Boolean) || "").trim();
-                        if (!entryDc || !entryDate || !matcher(entryDate)) return;
-                        grouped[entryDc] = (grouped[entryDc] || 0) + 1;
-                    });
-                    return grouped;
-                };
-
-                const remoteCounts = getLokGroupedCounts(servedData, ["dc_name", "dc", "DC NAME"], ["date", "DATE"], getLokDateMatches);
-                const sheetCounts = getLokGroupedCounts(lokDistributedRows, ["dcName", "dc_name", "dc"], ["date", "DATE"], getLokDateMatches);
-                const localCounts = (() => {
-                    const grouped = {};
-                    Object.values(localServedMap || {}).forEach((entry) => {
-                        const entryDc = normalizeLookupValue(entry.dcName || "");
-                        const servedAt = String(entry.servedAt || "").trim();
-                        if (!entryDc || !servedAt) return;
-                        const servedDate = new Date(servedAt);
-                        if (Number.isNaN(servedDate.getTime())) return;
-                        const dayStr = `${String(servedDate.getDate()).padStart(2, "0")}/${String(servedDate.getMonth() + 1).padStart(2, "0")}/${servedDate.getFullYear()}`;
-                        const monthStr = `${String(servedDate.getMonth() + 1).padStart(2, "0")}/${servedDate.getFullYear()}`;
-                        const matchesDate = summaryMode === "DAILY" ? dayStr === dStr : monthStr === mStr;
-                        if (!matchesDate) return;
-                        grouped[entryDc] = (grouped[entryDc] || 0) + 1;
-                    });
-                    return grouped;
-                })();
-
-                const getGroupTotal = (grouped) => Object.values(grouped || {}).reduce((sum, count) => sum + Number(count || 0), 0);
-                const remoteGrand = getGroupTotal(remoteCounts);
-                const sheetGrand = getGroupTotal(sheetCounts);
-                const localGrand = getGroupTotal(localCounts);
-                const preferredLokCounts = sheetGrand > 0
-                    ? sheetCounts
-                    : (remoteGrand > 0 ? remoteCounts : localCounts);
-
-                const getLokDistributedCount = (dcName) => {
-                    const normDc = normalizeLookupValue(dcName);
-                    return Number(preferredLokCounts[normDc] || 0);
-                };
-
-                if (activeViewLevel === "DC") {
-                    const total = getLokCount(activeDC);
-                    const distributed = getLokDistributedCount(activeDC);
-                    lokRows.push({ name: activeDC, tc: total, tu: distributed });
-                    lokGrandTC += total;
-                    lokGrandTU += distributed;
-                } else {
-                    const targetDcs = [...new Set((activeViewLevel === "DIVISION"
-                        ? getDivisionDcNames(activeDiv)
-                        : getAllDcNames()).map((dc) => normalizeDcName(dc)).filter(Boolean))];
-                    targetDcs.forEach((dc) => {
-                        const total = getLokCount(dc);
-                        const distributed = getLokDistributedCount(dc);
-                        lokRows.push({ name: dc, tc: total, tu: distributed });
-                        lokGrandTC += total;
-                        lokGrandTU += distributed;
-                    });
-                }
-
-                const uniqueLokMap = new Map();
-                lokRows.forEach((row) => {
-                    const key = normalizeDcName(row.name);
-                    if (!key || uniqueLokMap.has(key)) return;
-                    uniqueLokMap.set(key, row);
-                });
-                uiListSummary = Array.from(uniqueLokMap.values());
-                grandTC = uiListSummary.reduce((sum, row) => sum + Number(row.tc || 0), 0);
-                grandTU = uiListSummary.reduce((sum, row) => sum + Number(row.tu || 0), 0);
-                if (refreshToken !== summaryRefreshToken) return;
-
-                let lokHtml = `<div class="summary-wrapper"><div class="summary-table-header" style="grid-template-columns: 1.2fr 0.9fr 1fr;"><div>DC NAME</div><div>TOTAL NOTICE</div><div>DISTRIBUTED NOTICE</div></div>`;
-                uiListSummary.forEach((r) => {
-                    lokHtml += `<div class="summary-table-row" style="grid-template-columns: 1.2fr 0.9fr 1fr;"><div>${r.name}</div><div>${r.tc}</div><div class="text-teal-600 font-black">${r.tu}</div></div>`;
-                });
-                lokHtml += `</div><div class="summary-footer"><div class="flex justify-between font-black"><span>GRAND TOTAL (${label})</span><span class="text-rose-600 text-lg">${grandTU}</span></div></div>`;
-                cont.innerHTML = lokHtml;
-                return;
-            }
 
             try {
                 const targetMobileDcs = activeViewLevel === "DC"
@@ -2889,11 +2671,78 @@
             });
         }
 
+        // Tracks feeder+date combos that the user has manually "unfrozen" for re-entry
+        // in the current session (key format: substationKey|feederKey|dateKey)
+        const unfrozenFeederEntries = new Set();
+
+        function buildFeederUnfreezeKey_(substation, feeder, dateKey) {
+            return [
+                normalizeFeederSubstationKey_(substation || ""),
+                String(feeder || "").trim().toUpperCase(),
+                String(dateKey || "").trim()
+            ].join("|");
+        }
+
+        function unfreezeFeederEntryConfirm_(substation, feeder, dateKey) {
+            const existing = document.getElementById("feeder-unfreeze-overlay");
+            if (existing) existing.remove();
+
+            const overlay = document.createElement("div");
+            overlay.id = "feeder-unfreeze-overlay";
+            overlay.style.cssText = "position:fixed; inset:0; background:rgba(0,0,0,0.55); z-index:9999; display:flex; align-items:center; justify-content:center; padding:20px;";
+
+            const card = document.createElement("div");
+            card.style.cssText = "background:#ffffff; border-radius:18px; padding:18px; width:100%; max-width:320px; box-shadow:0 12px 30px rgba(0,0,0,0.25); text-align:center;";
+            card.innerHTML = `
+                <div style="font-size:14px; font-weight:900; color:#92400e; text-transform:uppercase; margin-bottom:10px;">Reading Edit Karein?</div>
+                <div style="font-size:12px; font-weight:700; color:#475569; margin-bottom:6px;">
+                    "${escapeHtml(feeder)}" ki ${escapeHtml(formatFeederDateLabelFromKey_(dateKey))} ki reading unfreeze ho jayegi aur aap nayi reading dobara entry kar sakenge.
+                </div>
+                <div style="font-size:11px; font-weight:700; color:#b91c1c; margin-bottom:16px;">
+                    Note: Submit karne par ek nayi (corrected) entry add hogi. Agar MIS report me purani entry bhi dikhe to use Google Sheet se manually delete karwana padega.
+                </div>
+                <div style="display:flex; gap:10px;">
+                    <button onclick="document.getElementById('feeder-unfreeze-overlay').remove()" style="flex:1; height:44px; border:none; border-radius:12px; background:#e2e8f0; color:#1e293b; font-size:12px; font-weight:900; text-transform:uppercase;">Cancel</button>
+                    <button onclick="confirmUnfreezeFeederEntry_('${escapeHtml(substation)}', '${escapeHtml(feeder)}', '${dateKey}')" style="flex:1; height:44px; border:none; border-radius:12px; background:#f59e0b; color:#fff; font-size:12px; font-weight:900; text-transform:uppercase;">Unfreeze</button>
+                </div>
+            `;
+            overlay.appendChild(card);
+            overlay.addEventListener("click", (e) => { if (e.target === overlay) overlay.remove(); });
+            document.body.appendChild(overlay);
+        }
+
+        function confirmUnfreezeFeederEntry_(substation, feeder, dateKey) {
+            const overlay = document.getElementById("feeder-unfreeze-overlay");
+            if (overlay) overlay.remove();
+
+            // Mark this feeder+date as unfrozen for the current session
+            unfrozenFeederEntries.add(buildFeederUnfreezeKey_(substation, feeder, dateKey));
+
+            // Remove the cached local entry for this feeder+date so it doesn't
+            // re-lock the fields (the remote sheet copy still exists for history).
+            const substationKey = normalizeFeederSubstationKey_(substation || "");
+            const feederKey = String(feeder || "").trim().toUpperCase();
+            feederRecentSubmittedEntries = getRecentFeederSubmittedEntries_().filter((entry) => {
+                const entrySubstationKey = normalizeFeederSubstationKey_(entry["33/11 KV SUBSTATION"] || entry.substation || "");
+                const entryFeederKey = String(entry["33 AND 11 KV FEEDER"] || entry.feeder || "").trim().toUpperCase();
+                const entryDateKey = buildFeederDateKey_(entry["DATE(DD/MM/YYY)"] || entry.date || "");
+                const isMatch = entrySubstationKey === substationKey && entryFeederKey === feederKey && entryDateKey === dateKey;
+                return !isMatch;
+            });
+            persistRecentFeederSubmittedEntries_();
+
+            showToast("Reading unfreeze ho gayi - ab nayi reading entry karein", true);
+            renderFeederRows();
+        }
+
         function getFeederSubmittedRowForDate_(row, selectedDateKey) {
             const targetKey = String(selectedDateKey || "").trim();
             if (!row || !targetKey) return null;
             const substationKey = normalizeFeederSubstationKey_(row.substation || "");
             const feederKey = String(row.feeder || "").trim().toUpperCase();
+            if (unfrozenFeederEntries.has(buildFeederUnfreezeKey_(row.substation, row.feeder, targetKey))) {
+                return null;
+            }
             const matchedEntries = getFeederSubmittedEntriesForDate_(row.substation || "", targetKey)
                 .filter((entry) => {
                     const entrySubstationKey = normalizeFeederSubstationKey_(entry["33/11 KV SUBSTATION"] || entry.substation || "");
@@ -3158,25 +3007,17 @@
             const rawVal = document.getElementById("report-date").value;
             const dateLabel = summaryMode === "DAILY" ? "DATE - " + getFormattedDate(rawVal, "DAILY") : "MONTH - " + getFormattedDate(rawVal, "MONTHLY");
             const reportType = summaryMode === "DAILY" ? "DAILY" : "MONTHLY";
-            const colLabel = summaryModule === "LOK_ADALAT" ? "DC NAME" : (activeViewLevel === "DC" ? "HQ NAME" : "DC NAME");
-            const reportHeading = summaryModule === "LOK_ADALAT" ? "LOK ADALAT NOTICE SUMMARY" : "UPDATED MOBILE NO SUMMARY";
-            const valueLabel = summaryModule === "LOK_ADALAT" ? "TOTAL NOTICE" : "UPDATED MOBILE NO";
+            const colLabel = activeViewLevel === "DC" ? "HQ NAME" : "DC NAME";
+            const reportHeading = "UPDATED MOBILE NO SUMMARY";
+            const valueLabel = "UPDATED MOBILE NO";
 
             if (fmt === "XLS") {
                 let csv = `${levelT} ${reportType} PROGRESS REPORT\n${dateLabel}\n${reportHeading}\n\n`;
-                if (summaryModule === "LOK_ADALAT") {
-                    csv += `${colLabel},${valueLabel},DISTRIBUTED NOTICE\n`;
-                    uiListSummary.forEach((r) => {
-                        csv += `${r.name},${r.tc},${r.tu}\n`;
-                    });
-                    csv += `GRAND TOTAL,${grandTC},${grandTU}`;
-                } else {
-                    csv += `${colLabel},TOTAL CONS.,${valueLabel}\n`;
-                    uiListSummary.forEach((r) => {
-                        csv += `${r.name},${r.tc},${r.tu}\n`;
-                    });
-                    csv += `GRAND TOTAL,${grandTC},${grandTU}`;
-                }
+                csv += `${colLabel},TOTAL CONS.,${valueLabel}\n`;
+                uiListSummary.forEach((r) => {
+                    csv += `${r.name},${r.tc},${r.tu}\n`;
+                });
+                csv += `GRAND TOTAL,${grandTC},${grandTU}`;
                 const link = document.createElement("a");
                 link.href = URL.createObjectURL(new Blob([csv], { type: "text/csv" }));
                 link.download = `Report_${levelT}_${reportType}.csv`;
@@ -3197,12 +3038,12 @@
                 doc.text(reportHeading, 105, 34, { align: "center" });
                 doc.autoTable({
                     startY: 40,
-                    head: [summaryModule === "LOK_ADALAT" ? [colLabel, valueLabel, "DISTRIBUTED NOTICE"] : [colLabel, "TOTAL CONS.", valueLabel]],
-                    body: summaryModule === "LOK_ADALAT" ? uiListSummary.map((r) => [r.name, r.tc, r.tu]) : uiListSummary.map((r) => [r.name, r.tc, r.tu]),
-                    foot: [summaryModule === "LOK_ADALAT" ? ["GRAND TOTAL", grandTC, grandTU] : ["GRAND TOTAL", grandTC, grandTU]],
+                    head: [[colLabel, "TOTAL CONS.", valueLabel]],
+                    body: uiListSummary.map((r) => [r.name, r.tc, r.tu]),
+                    foot: [["GRAND TOTAL", grandTC, grandTU]],
                     theme: "grid",
                     headStyles: { fillColor: [13, 148, 136], halign: "center" },
-                    columnStyles: summaryModule === "LOK_ADALAT" ? { 0: { halign: "left" }, 1: { halign: "center" }, 2: { halign: "center" } } : { 0: { halign: "left" }, 1: { halign: "center" }, 2: { halign: "center" } },
+                    columnStyles: { 0: { halign: "left" }, 1: { halign: "center" }, 2: { halign: "center" } },
                     footStyles: { fillColor: [241, 245, 249], textColor: [190, 18, 60], fontStyle: "bold", halign: "center" },
                     didParseCell(data) {
                         if (data.section === "body") {
@@ -3412,22 +3253,6 @@
             }).filter(Boolean);
         }
 
-        function updatePhotoMetaUI() {
-            const metaBox = document.getElementById("receiver-photo-meta");
-            const latLongNode = document.getElementById("receiver-photo-latlong");
-            const locationNode = document.getElementById("receiver-photo-location");
-            if (!metaBox || !latLongNode || !locationNode) return;
-            if (!receiverGeoData) {
-                metaBox.style.display = "none";
-                latLongNode.innerHTML = "<strong>Lat-Long:</strong> Not captured";
-                locationNode.innerHTML = "<strong>Location:</strong> Not captured";
-                return;
-            }
-            metaBox.style.display = "block";
-            latLongNode.innerHTML = `<strong>Lat-Long:</strong> ${receiverGeoData.latitude}, ${receiverGeoData.longitude}`;
-            locationNode.innerHTML = `<strong>Location:</strong> ${receiverGeoData.locationText || "GPS location captured"}`;
-        }
-
         function getCurrentPositionAsync() {
             return new Promise((resolve, reject) => {
                 if (!navigator.geolocation) {
@@ -3449,34 +3274,6 @@
                 return data.display_name || `${latitude}, ${longitude}`;
             } catch (_) {
                 return `${latitude}, ${longitude}`;
-            }
-        }
-
-        async function captureReceiverGeoLocation() {
-            try {
-                receiverGeoData = {
-                    latitude: "Fetching...",
-                    longitude: "Fetching...",
-                    locationText: "GPS location detect ki ja rahi hai"
-                };
-                updatePhotoMetaUI();
-                const position = await getCurrentPositionAsync();
-                const latitude = position.coords.latitude.toFixed(6);
-                const longitude = position.coords.longitude.toFixed(6);
-                const locationText = await reverseGeocodeLocation(latitude, longitude);
-                receiverGeoData = {
-                    latitude,
-                    longitude,
-                    locationText
-                };
-                updatePhotoMetaUI();
-            } catch (_) {
-                receiverGeoData = {
-                    latitude: "Available nahi",
-                    longitude: "Available nahi",
-                    locationText: "GPS permission allow nahi hui ya signal weak tha"
-                };
-                updatePhotoMetaUI();
             }
         }
 
@@ -3504,6 +3301,47 @@
                 reader.onerror = reject;
                 reader.readAsDataURL(file);
             });
+        }
+
+        // Fetches a remote image URL (e.g. Google Drive shared photo link) and converts
+        // it to a base64 data URL so it can be embedded in a jsPDF document via addImage.
+        // Returns "" on any failure (CORS, offline, etc.) so callers can fall back to a
+        // text link instead of breaking the PDF generation.
+        async function fetchImageAsDataUrl_(url) {
+            if (!url) return "";
+            try {
+                const response = await fetch(url, { mode: "cors" });
+                if (!response.ok) return "";
+                const blob = await response.blob();
+                return await new Promise((resolve) => {
+                    const reader = new FileReader();
+                    reader.onload = () => resolve(reader.result || "");
+                    reader.onerror = () => resolve("");
+                    reader.readAsDataURL(blob);
+                });
+            } catch (_) {
+                return "";
+            }
+        }
+
+        // For a list of entries that may have come from the shared cloud backend
+        // (where photos are stored as Drive URLs in `photo_url` / `photos[].photo_url`
+        // instead of base64 `photo_data`), this fetches each missing photo and fills
+        // in `photo_data` so jsPDF's addImage can embed it. Entries are mutated in place.
+        // Safe to call even when all entries already have photo_data (no-op fetches).
+        async function hydratePhotoDataForPdf_(entries) {
+            for (const e of entries) {
+                if (!e.photo_data && e.photo_url) {
+                    e.photo_data = await fetchImageAsDataUrl_(e.photo_url);
+                }
+                if (Array.isArray(e.photos)) {
+                    for (const p of e.photos) {
+                        if (!p.photo_data && p.photo_url) {
+                            p.photo_data = await fetchImageAsDataUrl_(p.photo_url);
+                        }
+                    }
+                }
+            }
         }
 
         // ===== Broken Pole / Damage Line feature =====
@@ -3590,7 +3428,9 @@
 
         async function getBrokenPoleEntries_() {
             const rows = await idbGetAll_("broken_pole");
-            return rows.slice().sort((a, b) => (a.id || 0) - (b.id || 0));
+            const local = rows.slice().sort((a, b) => (a.id || 0) - (b.id || 0));
+            const shared = await fetchSharedEntries_("broken_pole");
+            return mergeLocalAndSharedEntries_(local, shared);
         }
 
         async function saveBrokenPoleEntry_(entry) {
@@ -3637,6 +3477,13 @@
                     photo_name: photoFile.name || "",
                     photo_data: photoData
                 };
+
+                const entryId = await syncEntryToCloud_("broken_pole", entry);
+                if (entryId) {
+                    entry.entry_id = entryId;
+                } else {
+                    showToast("Internet/sync error: entry sirf is device par save hui, doosre users ko nahi dikhegi", false);
+                }
 
                 const saved = await saveBrokenPoleEntry_(entry);
                 if (!saved) {
@@ -3707,6 +3554,7 @@
             try {
                 const filtered = await filterBrokenPoleEntries_(fromDate, toDate);
                 await refreshBrokenPoleMisTotal();
+                await hydratePhotoDataForPdf_(filtered);
 
                 const fmtDate = (iso) => {
                     if (!iso) return "";
@@ -3923,7 +3771,9 @@
 
         async function getPdcEntries_() {
             const rows = await idbGetAll_("pdc_nontraceable");
-            return rows.slice().sort((a, b) => (a.id || 0) - (b.id || 0));
+            const local = rows.slice().sort((a, b) => (a.id || 0) - (b.id || 0));
+            const shared = await fetchSharedEntries_("pdc_nontraceable");
+            return mergeLocalAndSharedEntries_(local, shared);
         }
 
         async function savePdcEntry_(entry) {
@@ -3972,6 +3822,13 @@
                         gps_location: p.geo?.locationText || ""
                     }))
                 };
+
+                const entryId = await syncEntryToCloud_("pdc_nontraceable", entry);
+                if (entryId) {
+                    entry.entry_id = entryId;
+                } else {
+                    showToast("Internet/sync error: entry sirf is device par save hui, doosre users ko nahi dikhegi", false);
+                }
 
                 const saved = await savePdcEntry_(entry);
                 if (!saved) {
@@ -4035,6 +3892,7 @@
             try {
                 const filtered = await filterPdcEntries_(fromDate, toDate);
                 await refreshPdcMisTotal();
+                await hydratePhotoDataForPdf_(filtered);
 
                 const fmtDate = (iso) => {
                     if (!iso) return "";
@@ -4243,7 +4101,9 @@
 
         async function getBijliChoriEntries_() {
             const rows = await idbGetAll_("bijli_chori");
-            return rows.slice().sort((a, b) => (a.id || 0) - (b.id || 0));
+            const local = rows.slice().sort((a, b) => (a.id || 0) - (b.id || 0));
+            const shared = await fetchSharedEntries_("bijli_chori");
+            return mergeLocalAndSharedEntries_(local, shared);
         }
 
         async function saveBijliChoriEntry_(entry) {
@@ -4293,6 +4153,13 @@
                         gps_location: p.geo?.locationText || ""
                     }))
                 };
+
+                const entryId = await syncEntryToCloud_("bijli_chori", entry);
+                if (entryId) {
+                    entry.entry_id = entryId;
+                } else {
+                    showToast("Internet/sync error: entry sirf is device par save hui, doosre users ko nahi dikhegi", false);
+                }
 
                 const saved = await saveBijliChoriEntry_(entry);
                 if (!saved) {
@@ -4356,6 +4223,7 @@
             try {
                 const filtered = await filterBijliChoriEntries_(fromDate, toDate);
                 await refreshBijliChoriMisTotal();
+                await hydratePhotoDataForPdf_(filtered);
 
                 const fmtDate = (iso) => {
                     if (!iso) return "";
@@ -4476,7 +4344,7 @@
                 label: "Broken Pole / Damage Line",
                 accent: "#b45309",
                 getEntries: getBrokenPoleEntries_,
-                getThumb: (e) => e.photo_data || "",
+                getThumb: (e) => e.photo_data || e.photo_url || "",
                 getTitle: (e) => `${e.date || ""} — ${e.remark1 || "Entry"}`,
                 getSubtitle: (e) => e.remark2 || (e.gps_location || ""),
                 refreshFn: () => refreshBrokenPoleMisTotal()
@@ -4485,7 +4353,7 @@
                 label: "PDC / Non-Traceable",
                 accent: "#4338ca",
                 getEntries: getPdcEntries_,
-                getThumb: (e) => (e.photos && e.photos[0] && e.photos[0].photo_data) || "",
+                getThumb: (e) => (e.photos && e.photos[0] && (e.photos[0].photo_data || e.photos[0].photo_url)) || "",
                 getTitle: (e) => `${e.date || ""} — ${e.name || e.ivrs || "Entry"}`,
                 getSubtitle: (e) => `${e.ivrs ? "IVRS: " + e.ivrs + " | " : ""}${(e.photos || []).length} photo(s)`,
                 refreshFn: () => refreshPdcMisTotal()
@@ -4493,11 +4361,8 @@
             stm_complaint: {
                 label: "STM Complaint",
                 accent: "#c08a57",
-                getEntries: async () => {
-                    const rows = await idbGetAll_("stm_complaint");
-                    return rows.slice().sort((a, b) => (a.id || 0) - (b.id || 0));
-                },
-                getThumb: (e) => e.photo_data || "",
+                getEntries: getStmComplaintEntries_,
+                getThumb: (e) => e.photo_data || e.photo_url || "",
                 getTitle: (e) => `${e.date || ""} ${e.time || ""} — ${e.substation || "Entry"}`,
                 getSubtitle: (e) => e.complaint_details || "",
                 refreshFn: () => refreshStmMisTotal()
@@ -4506,7 +4371,7 @@
                 label: "बिजली चोरी की जानकारी",
                 accent: "#dc2626",
                 getEntries: getBijliChoriEntries_,
-                getThumb: (e) => (e.photos && e.photos[0] && e.photos[0].photo_data) || "",
+                getThumb: (e) => (e.photos && e.photos[0] && (e.photos[0].photo_data || e.photos[0].photo_url)) || "",
                 getTitle: (e) => `${e.date || ""} — ${e.name || e.ivrs || "Entry"}`,
                 getSubtitle: (e) => `${(e.photos || []).length} photo(s) | ${e.remark || ""}`,
                 refreshFn: () => refreshBijliChoriMisTotal()
@@ -4528,7 +4393,22 @@
                 if (count / limit >= 0.95) {
                     wrapper.style.color = "#fee2e2";
                     wrapper.style.fontWeight = "900";
-                } 
+                }
+                const syncNoteId = `${storageCounterPrefix_(storeName)}-sync-note`;
+                let syncNote = document.getElementById(syncNoteId);
+                if (!syncNote) {
+                    syncNote = document.createElement("div");
+                    syncNote.id = syncNoteId;
+                    syncNote.style.fontSize = "10px";
+                    syncNote.style.fontWeight = "700";
+                    syncNote.style.marginTop = "2px";
+                    wrapper.insertAdjacentElement("afterend", syncNote);
+                }
+                syncNote.innerText = sharedModuleSyncEnabled
+                    ? "🌐 Shared: sabhi users ko yeh entries dikhengi"
+                    : "⚠️ Sirf is device par save (cloud sync OFF)";
+                syncNote.style.color = sharedModuleSyncEnabled ? "#d1fae5" : "#fde68a";
+                syncNote.style.textAlign = "center";
             }
         }
 
@@ -4556,6 +4436,14 @@
             await renderEntriesList_(storeName);
         }
 
+        // Returns a stable string identifier for an entry, usable for view/delete lookups
+        // regardless of whether the entry came from local IndexedDB (numeric `id`) or
+        // the shared cloud backend (string `entry_id`).
+        function getEntryUid_(entry) {
+            if (entry.entry_id) return `cloud_${entry.entry_id}`;
+            return `local_${entry.id}`;
+        }
+
         async function renderEntriesList_(storeName) {
             const config = ENTRY_STORE_CONFIG[storeName];
             const container = document.getElementById(`entries-list-${storeName}`);
@@ -4575,24 +4463,24 @@
                         const thumb = config.getThumb(e) || "";
                         return `
                         <div style="display:flex; align-items:center; gap:10px; padding:8px; border-bottom:1px solid #e5e7eb;">
-                            ${thumb ? `<img src="${thumb}" style="width:46px; height:46px; object-fit:cover; border-radius:8px; border:1px solid #e5e7eb; flex-shrink:0;">` : `<div style="width:46px; height:46px; border-radius:8px; background:#f1f5f9; flex-shrink:0;"></div>`}
+                            ${thumb ? `<img src="${thumb}" referrerpolicy="no-referrer" style="width:46px; height:46px; object-fit:cover; border-radius:8px; border:1px solid #e5e7eb; flex-shrink:0;">` : `<div style="width:46px; height:46px; border-radius:8px; background:#f1f5f9; flex-shrink:0;"></div>`}
                             <div style="flex:1; min-width:0;">
                                 <div style="font-size:11px; font-weight:900; color:#1e293b; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${escapeHtml(config.getTitle(e))}</div>
                                 <div style="font-size:10px; font-weight:700; color:#64748b; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${escapeHtml(config.getSubtitle(e))}</div>
                             </div>
-                            <button onclick="viewEntryDetail_('${storeName}', ${e.id})" style="border:none; background:#e0f2fe; color:#075985; border-radius:999px; padding:6px 10px; font-size:10px; font-weight:900; text-transform:uppercase; flex-shrink:0;">View</button>
-                            <button onclick="deleteEntryConfirm_('${storeName}', ${e.id})" style="border:none; background:#fee2e2; color:#b91c1c; border-radius:999px; padding:6px 10px; font-size:10px; font-weight:900; text-transform:uppercase; flex-shrink:0;">Delete</button>
+                            <button onclick="viewEntryDetail_('${storeName}', '${getEntryUid_(e)}')" style="border:none; background:#e0f2fe; color:#075985; border-radius:999px; padding:6px 10px; font-size:10px; font-weight:900; text-transform:uppercase; flex-shrink:0;">View</button>
+                            <button onclick="deleteEntryConfirm_('${storeName}', '${getEntryUid_(e)}')" style="border:none; background:#fee2e2; color:#b91c1c; border-radius:999px; padding:6px 10px; font-size:10px; font-weight:900; text-transform:uppercase; flex-shrink:0;">Delete</button>
                         </div>`;
                     }).join("")}
                 </div>
             `;
         }
 
-        async function viewEntryDetail_(storeName, id) {
+        async function viewEntryDetail_(storeName, uid) {
             const config = ENTRY_STORE_CONFIG[storeName];
             if (!config) return;
             const entries = await config.getEntries();
-            const entry = entries.find((e) => e.id === id);
+            const entry = entries.find((e) => getEntryUid_(e) === uid);
             if (!entry) return showToast("Entry nahi mili", false);
 
             const overlay = document.createElement("div");
@@ -4602,7 +4490,7 @@
             let bodyHtml = "";
             if (storeName === "broken_pole") {
                 bodyHtml = `
-                    ${entry.photo_data ? `<img src="${entry.photo_data}" style="width:100%; max-height:240px; object-fit:cover; border-radius:10px; margin-bottom:8px;">` : ""}
+                    ${entry.photo_data ? `<img src="${entry.photo_data}" style="width:100%; max-height:240px; object-fit:cover; border-radius:10px; margin-bottom:8px;">` : (entry.photo_url ? `<img src="${entry.photo_url}" style="width:100%; max-height:240px; object-fit:cover; border-radius:10px; margin-bottom:8px;" referrerpolicy="no-referrer">` : "")}
                     <div class="photo-meta-row"><strong>Date:</strong> ${escapeHtml(entry.date || "")}</div>
                     <div class="photo-meta-row"><strong>Remark 1:</strong> ${escapeHtml(entry.remark1 || "")}</div>
                     <div class="photo-meta-row"><strong>Remark 2:</strong> ${escapeHtml(entry.remark2 || "")}</div>
@@ -4619,7 +4507,7 @@
                     ${(entry.photos || []).map((p, idx) => `
                         <div style="margin-top:10px; padding-top:10px; border-top:1px solid #e5e7eb;">
                             <div style="font-size:11px; font-weight:900; color:#1e293b; margin-bottom:6px;">${escapeHtml(p.name || ("Photo " + (idx + 1)))}</div>
-                            ${p.photo_data ? `<img src="${p.photo_data}" style="width:100%; max-height:200px; object-fit:cover; border-radius:10px; margin-bottom:6px;">` : ""}
+                            ${p.photo_data ? `<img src="${p.photo_data}" style="width:100%; max-height:200px; object-fit:cover; border-radius:10px; margin-bottom:6px;">` : (p.photo_url ? `<img src="${p.photo_url}" style="width:100%; max-height:200px; object-fit:cover; border-radius:10px; margin-bottom:6px;" referrerpolicy="no-referrer">` : "")}
                             <div class="photo-meta-row"><strong>GPS:</strong> ${escapeHtml((p.gps_latitude && p.gps_longitude) ? `${p.gps_latitude}, ${p.gps_longitude}` : "N/A")}</div>
                             <div class="photo-meta-row"><strong>Location:</strong> ${escapeHtml(p.gps_location || "N/A")}</div>
                             ${isValidLatLon_(p.gps_latitude, p.gps_longitude) ? `<div style="margin-top:6px;"><a href="https://www.google.com/maps/dir/?api=1&destination=${p.gps_latitude},${p.gps_longitude}" target="_blank" rel="noopener" style="display:inline-flex; align-items:center; gap:6px; background:linear-gradient(135deg,#16a34a,#15803d); color:#fff; font-size:11px; font-weight:900; text-transform:uppercase; padding:8px 14px; border-radius:10px; text-decoration:none;">Get Directions</a></div>` : ""}
@@ -4628,7 +4516,7 @@
                 `;
             } else if (storeName === "stm_complaint") {
                 bodyHtml = `
-                    ${entry.photo_data ? `<img src="${entry.photo_data}" style="width:100%; max-height:240px; object-fit:cover; border-radius:10px; margin-bottom:8px;">` : ""}
+                    ${entry.photo_data ? `<img src="${entry.photo_data}" style="width:100%; max-height:240px; object-fit:cover; border-radius:10px; margin-bottom:8px;">` : (entry.photo_url ? `<img src="${entry.photo_url}" style="width:100%; max-height:240px; object-fit:cover; border-radius:10px; margin-bottom:8px;" referrerpolicy="no-referrer">` : "")}
                     <div class="photo-meta-row"><strong>Date:</strong> ${escapeHtml(entry.date || "")} ${escapeHtml(entry.time || "")}</div>
                     <div class="photo-meta-row"><strong>Substation:</strong> ${escapeHtml(entry.substation || "")}</div>
                     <div class="photo-meta-row"><strong>Shared At:</strong> ${escapeHtml(entry.information_shared_at || "")}</div>
@@ -4653,7 +4541,7 @@
             document.body.appendChild(overlay);
         }
 
-        function deleteEntryConfirm_(storeName, id) {
+        function deleteEntryConfirm_(storeName, uid) {
             const overlay = document.createElement("div");
             overlay.id = "entry-delete-overlay";
             overlay.style.cssText = "position:fixed; inset:0; background:rgba(0,0,0,0.55); z-index:9999; display:flex; align-items:center; justify-content:center; padding:20px;";
@@ -4661,10 +4549,10 @@
             card.style.cssText = "background:#ffffff; border-radius:18px; padding:18px; width:100%; max-width:300px; box-shadow:0 12px 30px rgba(0,0,0,0.25); text-align:center;";
             card.innerHTML = `
                 <div style="font-size:14px; font-weight:900; color:#b91c1c; text-transform:uppercase; margin-bottom:10px;">Entry Delete Karein?</div>
-                <div style="font-size:12px; font-weight:700; color:#475569; margin-bottom:16px;">Yeh entry permanently delete ho jayegi. Pehle MIS report download kar lein agar zaroorat ho.</div>
+                <div style="font-size:12px; font-weight:700; color:#475569; margin-bottom:16px;">Yeh entry permanently delete ho jayegi (sabhi users ke liye). Pehle MIS report download kar lein agar zaroorat ho.</div>
                 <div style="display:flex; gap:10px;">
                     <button onclick="document.getElementById('entry-delete-overlay').remove()" style="flex:1; height:44px; border:none; border-radius:12px; background:#e2e8f0; color:#1e293b; font-size:12px; font-weight:900; text-transform:uppercase;">Cancel</button>
-                    <button onclick="confirmDeleteEntry_('${storeName}', ${id})" style="flex:1; height:44px; border:none; border-radius:12px; background:#ef4444; color:#fff; font-size:12px; font-weight:900; text-transform:uppercase;">Delete</button>
+                    <button onclick="confirmDeleteEntry_('${storeName}', '${uid}')" style="flex:1; height:44px; border:none; border-radius:12px; background:#ef4444; color:#fff; font-size:12px; font-weight:900; text-transform:uppercase;">Delete</button>
                 </div>
             `;
             overlay.appendChild(card);
@@ -4672,13 +4560,36 @@
             document.body.appendChild(overlay);
         }
 
-        async function confirmDeleteEntry_(storeName, id) {
+        async function confirmDeleteEntry_(storeName, uid) {
             const overlay = document.getElementById("entry-delete-overlay");
             if (overlay) overlay.remove();
-            const ok = await idbDelete_(storeName, id);
-            if (!ok) return showToast("Delete karne mein error aaya", false);
-            showToast("Entry delete ho gayi", true);
+
             const config = ENTRY_STORE_CONFIG[storeName];
+            const entries = await config.getEntries();
+            const entry = entries.find((e) => getEntryUid_(e) === uid);
+            if (!entry) return showToast("Entry nahi mili", false);
+
+            let ok = true;
+            // Delete from shared backend if it has a cloud entry_id
+            if (entry.entry_id) {
+                ok = await deleteSharedEntry_(storeName, entry.entry_id);
+                if (!ok) {
+                    showToast("Cloud se delete nahi ho paya (internet check karein)", false);
+                }
+                // Clear cache so the deleted entry doesn't reappear from stale cache
+                sharedModuleEntriesCache[storeName] = (sharedModuleEntriesCache[storeName] || []).filter((e) => e.entry_id !== entry.entry_id);
+            }
+
+            // Delete the local IndexedDB copy if present
+            if (entry.id) {
+                await idbDelete_(storeName, entry.id);
+            }
+
+            if (!ok && !entry.id) {
+                return; // cloud delete failed and there's no local copy to remove
+            }
+
+            showToast("Entry delete ho gayi", true);
             await renderEntriesList_(storeName);
             await refreshStorageCounter_(storeName);
             if (config?.refreshFn) await config.refreshFn();
@@ -4756,10 +4667,8 @@
         }
 
         async function getStmMisRows_(fromDate, toDate) {
-            const rows = await idbGetAll_("stm_complaint");
+            const rows = await getStmComplaintEntries_();
             return rows
-                .slice()
-                .sort((a, b) => (a.id || 0) - (b.id || 0))
                 .filter((r) => misDateInRange_(r.dateKey || buildFeederDateKey_(r.date || ""), fromDate, toDate));
         }
 
@@ -4782,6 +4691,7 @@
 
             try {
                 const filtered = await getStmMisRows_(fromDate, toDate);
+                await hydratePhotoDataForPdf_(filtered);
 
                 const fmtDate = (iso) => {
                     if (!iso) return "";
@@ -4895,7 +4805,7 @@
                         r.date || "", r.time || "", r.substation || "", r.information_shared_at || "",
                         r.calling_info || "", r.complaint_details || "", r.operator_name || "", r.mobile_no || "",
                         (r.gps_latitude && r.gps_longitude) ? `${r.gps_latitude}, ${r.gps_longitude}` : "N/A",
-                        r.gps_location || "", r.photo_data ? "Yes" : "No"
+                        r.gps_location || "", (r.photo_data || r.photo_url) ? "Yes" : "No"
                     ],
                     fetcher: getStmMisRows_,
                     filename: "STM_Complaint_MIS"
@@ -5039,82 +4949,6 @@
                 } catch (_) {
                     showToast("PDF generate karne mein error aaya", false);
                 }
-            }
-        }
-
-        function parseCourtCaseLine(line) {
-            const cols = line.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/).map((item) => item.replace(/^"|"$/g, "").trim());
-            return {
-                caseNo: cols[0] || "",
-                dcName: (cols[1] || "").trim().toUpperCase(),
-                panchnamaNo: cols[2] || "",
-                consumerName: cols[3] || "",
-                section: cols[4] || "",
-                civilAmt: cols[5] || "",
-                compoundingAmt: cols[6] || "",
-                billedAmt: cols[7] || "",
-                rebate: cols[8] || "",
-                totalPayableAmount: cols[9] || ""
-            };
-        }
-
-        function parseCourtCaseCsv(csvText) {
-            const lines = csvText.split(/\r?\n/).filter((line) => line.trim());
-            if (lines.length < 2) return [];
-            const headers = lines[0].split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/).map((item) => item.replace(/^"|"$/g, "").trim().toUpperCase());
-            return lines.slice(1).map((line) => {
-                const cols = line.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/).map((item) => item.replace(/^"|"$/g, "").trim());
-                const row = {};
-                headers.forEach((header, index) => {
-                    row[header] = cols[index] || "";
-                });
-                return {
-                    rawLine: line,
-                    caseNo: row["CASE NO"] || cols[0] || "",
-                    dcName: (row["DC NAME"] || cols[1] || "").trim().toUpperCase(),
-                    panchnamaNo: row["PANCHNAMA NO"] || cols[2] || "",
-                    consumerName: row["CONSUMER NAME"] || cols[3] || "",
-                    section: row["SECTION"] || cols[4] || "",
-                    civilAmt: row["CIVIL AMT"] || cols[5] || "",
-                    compoundingAmt: row["COMPOUNDIN AMT"] || row["COMPOUNDING AMT"] || cols[6] || "",
-                    billedAmt: row["BILLED AMT"] || cols[7] || "",
-                    rebate: row["REBATE"] || cols[8] || "",
-                    totalPayableAmount: row["TOTAL PAYABLE AMOUNT"] || cols[9] || ""
-                };
-            });
-        }
-
-        function parseLokDistributedCsv(csvText) {
-            const lines = (csvText || "").split(/\r?\n/).filter((line) => line.trim());
-            if (lines.length < 2) return [];
-            const headers = splitCsvLine(lines[0]).map((header) => normalizeDcName(header));
-            return lines.slice(1).map((line) => {
-                const cols = splitCsvLine(line);
-                const row = {};
-                headers.forEach((header, index) => {
-                    row[header] = cols[index] || "";
-                });
-                const date = row[normalizeDcName("DATE")] || cols[0] || "";
-                const dcName = row[normalizeDcName("DC NAME")] || cols[3] || "";
-                return {
-                    date: String(date || "").trim(),
-                    dcName: normalizeLookupValue(dcName || "")
-                };
-            }).filter((row) => row.date && row.dcName);
-        }
-
-        async function loadLokDistributedSheetData(forceRefresh = false) {
-            if (!forceRefresh && lokDistributedLoaded) return true;
-            try {
-                const csvText = await loadRemoteText(lokAdalatDistributedCsvUrl);
-                const parsed = parseLokDistributedCsv(csvText);
-                lokDistributedRows = parsed;
-                lokDistributedLoaded = true;
-                return true;
-            } catch (_) {
-                lokDistributedRows = [];
-                lokDistributedLoaded = false;
-                return false;
             }
         }
 
@@ -6267,6 +6101,13 @@
             input.value = `${digits.slice(0, 2)}:${digits.slice(2)}`;
         }
 
+        async function getStmComplaintEntries_() {
+            const rows = await idbGetAll_("stm_complaint");
+            const local = rows.slice().sort((a, b) => (a.id || 0) - (b.id || 0));
+            const shared = await fetchSharedEntries_("stm_complaint");
+            return mergeLocalAndSharedEntries_(local, shared);
+        }
+
         async function submitStmComplaintStub() {
             const sharedMode = String(document.getElementById("stm-complaint-shared-mode")?.value || "").trim();
             const dateValue = String(document.getElementById("stm-complaint-date")?.value || "").trim();
@@ -6332,7 +6173,7 @@
 
                 // Save a local copy for MIS reporting (independent of remote sheet)
                 try {
-                    await idbAdd_("stm_complaint", {
+                    const stmEntry = {
                         date: dateValue,
                         dateKey: buildFeederDateKey_(dateValue),
                         time: timeValue,
@@ -6349,7 +6190,16 @@
                         gps_longitude: stmComplaintGeoData?.longitude || "",
                         gps_location: stmComplaintGeoData?.locationText || "",
                         timestamp: new Date().toISOString()
-                    });
+                    };
+
+                    const stmEntryId = await syncEntryToCloud_("stm_complaint", stmEntry);
+                    if (stmEntryId) {
+                        stmEntry.entry_id = stmEntryId;
+                    } else {
+                        showToast("Internet/sync error: entry sirf is device par save hui, doosre users ko nahi dikhegi", false);
+                    }
+
+                    await idbAdd_("stm_complaint", stmEntry);
                     const MAX_STM_ENTRIES = IDB_STORE_LIMITS.stm_complaint;
                     const stmCount = await idbCount_("stm_complaint");
                     if (stmCount > MAX_STM_ENTRIES) {
@@ -8005,6 +7855,11 @@
                             <div class="feeder-card-badge">${escapeHtml(row.feederType)}</div>
                         </div>
                         <div class="feeder-card-meta">${meterDetails}</div>
+                        ${isAlreadySubmitted ? `
+                            <div style="display:flex; justify-content:flex-end; margin-top:6px;">
+                                <button type="button" onclick="unfreezeFeederEntryConfirm_('${escapeHtml(row.substation)}', '${escapeHtml(row.feeder)}', '${selectedDateKey}')" style="border:none; background:#fef3c7; color:#92400e; border-radius:999px; padding:6px 12px; font-size:10px; font-weight:900; text-transform:uppercase;">✏️ Edit / Unfreeze</button>
+                            </div>
+                        ` : ""}
                           <div class="feeder-reading-grid">
                               <div class="feeder-reading-field">
                                   <div class="feeder-reading-label">Previous Reading</div>
@@ -8162,6 +8017,10 @@
                 }
 
                 saveRecentFeederSubmittedEntries_(entries);
+                entries.forEach((entry) => {
+                    const dateKey = buildFeederDateKey_(entry["DATE(DD/MM/YYY)"] || entry.date || "");
+                    unfrozenFeederEntries.delete(buildFeederUnfreezeKey_(entry.substation, entry.feeder, dateKey));
+                });
                 showToast(submitMessage || "Feeder readings submit ho gayi", true);
                 resetFeederReading();
             } catch (error) {
@@ -8694,143 +8553,6 @@
             `;
         }
 
-        async function performCourtSearch() {
-            const caseNo = document.getElementById("search-case-no").value.trim();
-            if (!caseNo) return showToast("Case No darj kariye", false);
-            if (!courtCaseRaw) {
-                const loaded = await loadCourtCaseData();
-                if (!loaded || !courtCaseRaw) return showToast("Lok Adalat data abhi load nahi hua", false);
-            }
-            await preloadDuplicateTrackingData(true);
-            const normalizedDc = normalizeLookupValue(activeDC || "");
-            const normalizedCaseNo = normalizeLookupValue(caseNo);
-            const byCase = courtCaseRecords.filter((record) => normalizeLookupValue(record.caseNo) === normalizedCaseNo);
-            if (!byCase.length) return showToast(`Case No ${caseNo} CSV me nahi mila`, false);
-            let found = byCase.find((record) => normalizeLookupValue(record.dcName) === normalizedDc);
-            if (!found) {
-                const firstMatchDc = byCase[0].dcName || "UNKNOWN";
-                return showToast(`Case mila but DC ${firstMatchDc} me hai`, false);
-            }
-            currentCourtRecord = found;
-            document.getElementById("court-panchnama").innerText = found.panchnamaNo || "N/A";
-            document.getElementById("court-consumer").innerText = found.consumerName || "N/A";
-            document.getElementById("court-section").innerText = found.section || "N/A";
-            document.getElementById("court-civil").innerText = found.civilAmt || "0";
-            document.getElementById("court-compounding").innerText = found.compoundingAmt || "0";
-            document.getElementById("court-billed").innerText = found.billedAmt || "0";
-            document.getElementById("court-rebate").innerText = found.rebate || "0";
-            document.getElementById("court-total").innerText = found.totalPayableAmount || "0";
-            document.getElementById("court-result-box").style.display = "block";
-            const courtSubmitBtn = document.getElementById("court-submit-btn");
-            if (isCourtCaseAlreadyServed(found)) {
-                courtSubmitBtn.style.display = "none";
-                showToast("Notice Already Surved", false);
-                return;
-            }
-            courtSubmitBtn.style.display = "block";
-        }
-
-        async function updateReceiverPhotoName() {
-            const input = document.getElementById("receiver-photo");
-            const label = document.getElementById("receiver-photo-name");
-            label.innerText = input.files && input.files[0] ? input.files[0].name : "No photo selected";
-            if (input.files && input.files[0]) {
-                await captureReceiverGeoLocation();
-            } else {
-                receiverGeoData = null;
-                updatePhotoMetaUI();
-            }
-        }
-
-        async function submitCourtCaseDemo() {
-            const receiverName = document.getElementById("receiver-name").value.trim();
-            const receiverMobile = document.getElementById("receiver-mobile").value.trim();
-            const photoInput = document.getElementById("receiver-photo");
-            if (!currentCourtRecord) return showToast("Pehle case search kariye", false);
-            await preloadDuplicateTrackingData(true);
-            if (isCourtCaseAlreadyServed(currentCourtRecord)) return showToast("Notice Already Surved", false);
-            if (!receiverName) return showToast("Receiver name darj kariye", false);
-            if (receiverMobile.length !== 10) return showToast("10 digit mobile number darj kariye", false);
-            if (!photoInput.files || !photoInput.files[0]) return showToast("Receiver photo select kariye", false);
-            const submitBtn = document.getElementById("court-submit-btn");
-            submitBtn.innerText = "Compressing & Submitting...";
-            submitBtn.disabled = true;
-            try {
-                const photoFile = photoInput.files[0];
-                const photoData = await resizeImageForUpload(photoFile);
-                const payload = new URLSearchParams();
-                payload.append("date", getCurrentDateDDMMYYYY());
-                payload.append("dc_name", activeDC || "");
-                payload.append("case_no", currentCourtRecord.caseNo || "");
-                payload.append("panchnama_no", currentCourtRecord.panchnamaNo || "");
-                payload.append("consumer_name", currentCourtRecord.consumerName || "");
-                payload.append("section", currentCourtRecord.section || "");
-                payload.append("civil_amt", currentCourtRecord.civilAmt || "");
-                payload.append("compounding_amt", currentCourtRecord.compoundingAmt || "");
-                payload.append("billed_amt", currentCourtRecord.billedAmt || "");
-                payload.append("rebate", currentCourtRecord.rebate || "");
-                payload.append("total_payable_amount", currentCourtRecord.totalPayableAmount || "");
-                payload.append("receiver_name", receiverName);
-                payload.append("receiver_mobile", receiverMobile);
-                payload.append("photo_name", photoFile.name || `receiver_${currentCourtRecord.caseNo}.jpg`);
-                payload.append("photo_data", photoData);
-                payload.append("gps_latitude", receiverGeoData?.latitude || "");
-                payload.append("gps_longitude", receiverGeoData?.longitude || "");
-                payload.append("gps_location", receiverGeoData?.locationText || "");
-
-                let submitOk = false;
-                let submitMessage = "Submit request bhej di gayi";
-                try {
-                    const response = await fetch(lokAdalatScriptUrl, {
-                        method: "POST",
-                        headers: { "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8" },
-                        body: payload.toString()
-                    });
-                    const responseText = await response.text();
-                    if (response.ok) {
-                        submitOk = true;
-                        submitMessage = "Submitted Successfully";
-                        try {
-                            const parsed = JSON.parse(responseText || "{}");
-                            if (parsed && parsed.status === "error") {
-                                submitOk = false;
-                                submitMessage = parsed.message || "Submit error aaya";
-                            }
-                        } catch (_) {}
-                    } else {
-                        submitMessage = "Script se response nahi mila";
-                    }
-                } catch (networkError) {
-                    submitMessage = "Submit blocked ya network issue aaya";
-                }
-
-                if (submitOk) {
-                    const localRows = buildShmsLocalProgressRows_(entries);
-                    if (localRows.length) {
-                        shmsProgressRows = shmsProgressRows.concat(localRows);
-                        shmsPendingTrackerRows = shmsProgressRows.slice();
-                        shmsProgressLoaded = true;
-                    }
-                }
-
-                showToast(submitMessage, submitOk);
-                if (!submitOk) return;
-                markCourtCaseServed(currentCourtRecord);
-                document.getElementById("receiver-name").value = "";
-                document.getElementById("receiver-mobile").value = "";
-                document.getElementById("receiver-photo").value = "";
-                document.getElementById("receiver-photo-name").innerText = "No photo selected";
-                receiverGeoData = null;
-                updatePhotoMetaUI();
-                document.getElementById("court-submit-btn").style.display = "none";
-            } catch (e) {
-                showToast("Submit error aaya", false);
-            } finally {
-                submitBtn.innerText = "Submit";
-                submitBtn.disabled = false;
-            }
-        }
-
         function openStockDashboard() {
             renderStockDashboard();
             switchView("stock-material");
@@ -9138,19 +8860,6 @@
             }
         }
 
-        function resetCourtCaseForm() {
-            document.getElementById("search-case-no").value = "";
-            document.getElementById("court-result-box").style.display = "none";
-            document.getElementById("court-submit-btn").style.display = "none";
-            document.getElementById("receiver-name").value = "";
-            document.getElementById("receiver-mobile").value = "";
-            document.getElementById("receiver-photo").value = "";
-            document.getElementById("receiver-photo-name").innerText = "No photo selected";
-            receiverGeoData = null;
-            updatePhotoMetaUI();
-            currentCourtRecord = null;
-        }
-
         function switchView(id) {
             document.querySelectorAll(".view").forEach((v) => v.classList.remove("active"));
             const target = document.getElementById(id + "-view");
@@ -9234,7 +8943,6 @@
                 if (id === "shms-entry") headerTitle = "SHMS ENTRY";
                 if (id === "shms-progress") headerTitle = "DAILY PROGRESS";
                 if (id === "shms-pending") headerTitle = "PENDING ENTRY";
-                if (id === "court-case") headerTitle = "LOK ADALAT NOTICE";
                 if (id === "material-list") headerTitle = "MATERIAL LIST";
                 if (id === "material-receive") headerTitle = "MATERIAL RECEIVE";
                 if (id === "material-issue") headerTitle = "MATERIAL ISSUE";
@@ -9286,16 +8994,10 @@
                     document.documentElement.style.setProperty("--theme-grad", "linear-gradient(135deg, #16a34a 0%, #15803d 100%)");
                     header.className = "app-header btn-daily-houry-peak-load";
                     if (searchBtn) searchBtn.style.background = "linear-gradient(135deg, #16a34a 0%, #15803d 100%)";
-                } else if (id === "court-case") {
-                    header.className = "app-header btn-court-case";
-                    if (searchBtn) searchBtn.style.background = "linear-gradient(135deg, #7c3aed 0%, #4c1d95 100%)";
-                    const courtBtn = document.getElementById("court-search-btn");
-                    if (courtBtn) courtBtn.style.background = "linear-gradient(135deg, #7c3aed 0%, #4c1d95 100%)";
                 } else {
                     header.className = "app-header " + activeGrad;
                     if (searchBtn) searchBtn.style.background = "var(--theme-grad)";
                 }
-                header.classList.toggle("court-header-small", id === "court-case");
                 header.classList.toggle("peak-load-header-small", id === "daily-hourly-peak-load");
                 window.scrollTo(0, 0);
             }
@@ -9320,9 +9022,6 @@
                 if (act === "daily-hourly-peak-load-view") {
                     resetPeakLoadSelection();
                 }
-                switchView("dc-dashboard");
-            } else if (act === "court-case-view") {
-                resetCourtCaseForm();
                 switchView("dc-dashboard");
             } else if (act === "material-list-view" || act === "material-receive-view" || act === "material-issue-view" || act === "live-stock-view" || act === "low-stock-view" || act === "stock-report-view") {
                 switchView("stock-material");
