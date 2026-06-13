@@ -1403,10 +1403,19 @@
             ],
             "33KV MADHI INCOMING": [
                 { dcName: "ADEGAON", percent: 100 }
+            ],
+            "11KV KHAPA MIX": [
+                { dcName: "ADEGAON", percent: 100 }
+            ],
+            "11KV DUDWARA DL": [
+                { dcName: "ADEGAON", percent: 100 }
             ]
         };
         let feederRows = [];
         let feederSubstations = ["BAMHANWADA", "BARRA", "BHIMGARH", "CHAMARI", "CHHAPARA", "GANESHGANJ", "KEOLARI", "ADEGAON", "MADHI"];
+        let allFeederSubstations = ["BAMHANWADA", "BARRA", "BHIMGARH", "CHAMARI", "CHHAPARA", "GANESHGANJ", "KEOLARI", "ADEGAON", "MADHI"];
+        // Only these 33/11 KV substations are shown in the Feeder Reading tab.
+        const FEEDER_VISIBLE_SUBSTATIONS = ["ADEGAON", "MADHI", "CHAMARI", "DUDWARA"];
         let feederDataLoaded = false;
         // Fallback feeder rows used when the Google Sheet (feederCsvUrl) hasn't loaded yet.
         const fallbackFeederRows = [
@@ -1418,6 +1427,9 @@
             { "33/11 KV SUBSTATION": "MADHI", "33 AND 11 KV FEEDER": "11 KV PATAN", substation: "MADHI", feeder: "11 KV PATAN", meterNo: "BS12775542", mf: "4000" },
             { "33/11 KV SUBSTATION": "MADHI", "33 AND 11 KV FEEDER": "11 KV MADHI", substation: "MADHI", feeder: "11 KV MADHI", meterNo: "BS12775541", mf: "4000" },
             { "33/11 KV SUBSTATION": "MADHI", "33 AND 11 KV FEEDER": "11 KV PINDRAI", substation: "MADHI", feeder: "11 KV PINDRAI", meterNo: "BS12775540", mf: "4000" },
+            // DUDWARA 33/11 KV Substation (SS Code 5097)
+            { "33/11 KV SUBSTATION": "DUDWARA", "33 AND 11 KV FEEDER": "11KV KHAPA MIX", substation: "DUDWARA", feeder: "11KV KHAPA MIX", meterNo: "BS12773341", mf: "4000", ssCode: "5097" },
+            { "33/11 KV SUBSTATION": "DUDWARA", "33 AND 11 KV FEEDER": "11KV DUDWARA DL", substation: "DUDWARA", feeder: "11KV DUDWARA DL", meterNo: "BS12773342", mf: "4000", ssCode: "5097" },
             // 33 KV Feeders (MF readings)
             { "33/11 KV SUBSTATION": "ADEGAON", "33 AND 11 KV FEEDER": "33KV ADEGAON", substation: "ADEGAON", feeder: "33KV ADEGAON", meterNo: "BS12775548", mf: "12000", feederType: "33 KV" },
             { "33/11 KV SUBSTATION": "ADEGAON", "33 AND 11 KV FEEDER": "33KV ADEGAON-CHAMARI", substation: "ADEGAON", feeder: "33KV ADEGAON-CHAMARI", meterNo: "BS12775550", mf: "12000", feederType: "33 KV" },
@@ -4999,7 +5011,9 @@
             if (!forceRefresh && feederDataLoaded && feederRows.length) return true;
             try {
                 const csvText = await loadRemoteText(feederCsvUrl);
-                feederRows = mergeFallbackFeederRows_(parseFeederCsv(csvText));
+                const allRows1 = mergeFallbackFeederRows_(parseFeederCsv(csvText));
+                allFeederSubstations = Array.from(new Set(allRows1.map((row) => row.substation).filter(Boolean)));
+                feederRows = allRows1.filter((row) => FEEDER_VISIBLE_SUBSTATIONS.includes(row.substation));
                 feederSubstations = Array.from(new Set(feederRows.map((row) => row.substation).filter(Boolean)));
                 feederDataLoaded = feederRows.length > 0;
                 return feederDataLoaded;
@@ -5007,7 +5021,9 @@
                 try {
                     const reportLoaded = await loadFeederReportData(forceRefresh);
                     if (reportLoaded && feederReportRows.length) {
-                        feederRows = mergeFallbackFeederRows_(buildFeederRowsFromReport_(feederReportRows));
+                        const allRows2 = mergeFallbackFeederRows_(buildFeederRowsFromReport_(feederReportRows));
+                        allFeederSubstations = Array.from(new Set(allRows2.map((row) => row.substation).filter(Boolean)));
+                        feederRows = allRows2.filter((row) => FEEDER_VISIBLE_SUBSTATIONS.includes(row.substation));
                         feederSubstations = Array.from(new Set(feederRows.map((row) => row.substation).filter(Boolean)));
                         feederDataLoaded = feederRows.length > 0;
                         return feederDataLoaded;
@@ -5015,7 +5031,9 @@
                 } catch (_) {}
 
                 const localRows = buildFeederRowsFromReport_(getRecentFeederSubmittedEntries_());
-                feederRows = mergeFallbackFeederRows_(localRows);
+                const allRows3 = mergeFallbackFeederRows_(localRows);
+                allFeederSubstations = Array.from(new Set(allRows3.map((row) => row.substation).filter(Boolean)));
+                feederRows = allRows3.filter((row) => FEEDER_VISIBLE_SUBSTATIONS.includes(row.substation));
                 feederSubstations = Array.from(new Set(feederRows.map((row) => row.substation).filter(Boolean)));
                 feederDataLoaded = feederRows.length > 0;
                 return feederDataLoaded;
@@ -5966,7 +5984,7 @@
             const label = document.getElementById("stm-complaint-substation-label");
             if (!menu || !label) return;
             menu.innerHTML = "";
-            feederSubstations.forEach((substation) => {
+            allFeederSubstations.forEach((substation) => {
                 const item = document.createElement("div");
                 item.className = "option-item";
                 item.innerText = substation;
