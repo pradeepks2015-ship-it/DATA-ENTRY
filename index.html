@@ -1600,26 +1600,30 @@
         // Max entries allowed per store (raised from 500 to 2000 - photos are resized small,
         // so 2000 entries comfortably fits within typical IndexedDB quotas on mobile browsers).
         const IDB_STORE_LIMITS = {
-            broken_pole: 2000,
-            pdc_nontraceable: 2000,
-            stm_complaint: 2000,
-            bijli_chori: 2000
+            broken_pole: 500,
+            pdc_nontraceable: 200,
+            stm_complaint: 500,
+            bijli_chori: 200,
+            karya_charitra: 1000   // Text-only, no photos — higher limit ok
         };
+        // Note: Cloud (Google Sheet/Drive) has no practical limit for DC-level usage.
+        // Local limits above are conservative since cloud sync backs up all entries.
+        // Oldest local entries are auto-deleted when limit is reached — cloud copy remains safe.
         let idbInstance = null;
 
         // Shows a warning toast when a store is nearing its limit, so the user can
         // download the MIS report and clear old entries before data starts getting removed.
         async function checkStoreCapacityWarning_(storeName, labelHi) {
             try {
-                const limit = IDB_STORE_LIMITS[storeName] || 2000;
+                const limit = IDB_STORE_LIMITS[storeName] || 500;
                 const count = await idbCount_(storeName);
                 const pct = count / limit;
                 if (pct >= 1) {
-                    showToast(`${labelHi}: Limit (${limit}) full ho gayi hai! Pehle MIS report download karke purani entries delete karein.`, false);
-                } else if (pct >= 0.95) {
-                    showToast(`${labelHi}: ${count}/${limit} entries ho gayi hain. Jald hi MIS report download karke purani entries delete karein.`, false);
-                } else if (pct >= 0.8) {
-                    showToast(`${labelHi}: ${count}/${limit} entries ho gayi hain (80% full).`, true);
+                    showToast(`${labelHi}: Device cache full (${limit} entries) — sabse purani local entry auto-delete ho gayi. Cloud mein sab safe hai.`, false);
+                } else if (pct >= 0.9) {
+                    showToast(`${labelHi}: ${count}/${limit} entries device par. Limit ke paas — purani entries auto-delete hongi (cloud mein safe rahegi).`, false);
+                } else if (pct >= 0.75) {
+                    showToast(`${labelHi}: ${count}/${limit} entries device par (75% full).`, true);
                 }
                 return count;
             } catch (_) {
@@ -1730,7 +1734,8 @@
             broken_pole: [],
             pdc_nontraceable: [],
             stm_complaint: [],
-            bijli_chori: []
+            bijli_chori: [],
+            karya_charitra: []
         };
         const sharedModuleLastFetch = {};
 
@@ -1740,21 +1745,62 @@
         async function syncEntryToCloud_(module, entry) {
             if (!sharedModuleSyncEnabled) return "";
             try {
+                // Step 1: Send entry metadata (without photo_data) to get entry_id
+                const entryToSync = JSON.parse(JSON.stringify(entry));
+                if (entryToSync.photo_data) delete entryToSync.photo_data;
+                if (Array.isArray(entryToSync.photos)) {
+                    entryToSync.photos = entryToSync.photos.map((p) => {
+                        const s = { ...p }; delete s.photo_data; return s;
+                    });
+                }
+
                 const payload = new URLSearchParams();
                 payload.append("module", module);
-                payload.append("entry_json", JSON.stringify(entry));
+                payload.append("entry_json", JSON.stringify(entryToSync));
 
                 const response = await fetch(sharedModuleSyncScriptUrl, {
                     method: "POST",
                     headers: { "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8" },
                     body: payload.toString()
                 });
-                const text = await response.text();
-                const parsed = JSON.parse(text || "{}");
-                if (parsed && parsed.status === "success") {
-                    return parsed.entry_id || "";
+                const parsed = JSON.parse((await response.text()) || "{}");
+                if (!parsed || parsed.status !== "success") return "";
+                const entryId = parsed.entry_id || "";
+                if (!entryId) return "";
+
+                // Step 2: Upload each photo separately (one POST per photo, small payload)
+                // Each photo is sent with entry_id so backend can attach photo_url to the entry.
+                const photoUploads = [];
+                if (entry.photo_data) {
+                    photoUploads.push({ data: entry.photo_data, name: entry.photo_name || "", index: -1 });
                 }
-                return "";
+                if (Array.isArray(entry.photos)) {
+                    entry.photos.forEach((p, idx) => {
+                        if (p && p.photo_data) {
+                            photoUploads.push({ data: p.photo_data, name: p.name || "", index: idx });
+                        }
+                    });
+                }
+
+                // Upload photos in parallel (fire and forget — entry is already saved, photos are bonus)
+                photoUploads.forEach((photo) => {
+                    try {
+                        const photoPayload = new URLSearchParams();
+                        photoPayload.append("module", module);
+                        photoPayload.append("action", "uploadPhoto");
+                        photoPayload.append("entry_id", entryId);
+                        photoPayload.append("photo_data", photo.data);
+                        photoPayload.append("photo_name", photo.name);
+                        photoPayload.append("photo_index", String(photo.index));
+                        fetch(sharedModuleSyncScriptUrl, {
+                            method: "POST",
+                            headers: { "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8" },
+                            body: photoPayload.toString()
+                        }).catch(() => {});
+                    } catch (_) {}
+                });
+
+                return entryId;
             } catch (_) {
                 return "";
             }
@@ -3579,7 +3625,7 @@
                 const count = await idbCount_("broken_pole");
                 if (count > MAX_BP_ENTRIES) {
                     await idbDeleteOldest_("broken_pole", count - MAX_BP_ENTRIES);
-                    showToast(`Limit ${MAX_BP_ENTRIES} entries hai — sabse purani entry hata di gayi`, true);
+                    showToast(`Limit ${MAX_BP_ENTRIES} entries hai — sabse purani local entry auto-delete hui (cloud mein safe hai)`, true);
                 }
                 await checkStoreCapacityWarning_("broken_pole", "Broken Pole");
                 return true;
@@ -3922,7 +3968,7 @@
                 const count = await idbCount_("pdc_nontraceable");
                 if (count > MAX_PDC_ENTRIES) {
                     await idbDeleteOldest_("pdc_nontraceable", count - MAX_PDC_ENTRIES);
-                    showToast(`Limit ${MAX_PDC_ENTRIES} entries hai — sabse purani entry hata di gayi`, true);
+                    showToast(`Limit ${MAX_PDC_ENTRIES} entries hai — sabse purani local entry auto-delete hui (cloud mein safe hai)`, true);
                 }
                 await checkStoreCapacityWarning_("pdc_nontraceable", "PDC / Non-Traceable");
                 return true;
@@ -4252,7 +4298,7 @@
                 const count = await idbCount_("bijli_chori");
                 if (count > MAX_BC_ENTRIES) {
                     await idbDeleteOldest_("bijli_chori", count - MAX_BC_ENTRIES);
-                    showToast(`Limit ${MAX_BC_ENTRIES} entries hai — sabse purani entry hata di gayi`, true);
+                    showToast(`Limit ${MAX_BC_ENTRIES} entries hai — sabse purani local entry auto-delete hui (cloud mein safe hai)`, true);
                 }
                 await checkStoreCapacityWarning_("bijli_chori", "Bijli Chori Ki Jankari");
                 return true;
@@ -4769,16 +4815,64 @@
 
         async function kcGetAllRecords_() {
             try {
+                const cloudRecords = await fetchSharedEntries_("karya_charitra", true);
+                if (cloudRecords.length) {
+                    return cloudRecords.sort((a, b) => new Date(a.scn_date_iso) - new Date(b.scn_date_iso));
+                }
                 const all = await idbGetAll_("karya_charitra");
                 return all.sort((a, b) => new Date(a.scn_date_iso) - new Date(b.scn_date_iso));
             } catch (_) { return []; }
         }
 
         async function kcSaveRecord_(record) {
-            try { await idbAdd_("karya_charitra", record); return true; } catch (_) { return false; }
+            try {
+                if (sharedModuleSyncEnabled) {
+                    try {
+                        const payload = new URLSearchParams();
+                        payload.append("module", "karya_charitra");
+                        payload.append("entry_json", JSON.stringify(record));
+                        const response = await fetch(sharedModuleSyncScriptUrl, {
+                            method: "POST",
+                            headers: { "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8" },
+                            body: payload.toString()
+                        });
+                        const parsed = JSON.parse((await response.text()) || "{}");
+                        if (parsed?.status === "success" && parsed.entry_id) {
+                            record.entry_id = parsed.entry_id;
+                            sharedModuleLastFetch["karya_charitra"] = 0;
+                        }
+                    } catch (_) {}
+                }
+                await idbAdd_("karya_charitra", record);
+                return true;
+            } catch (_) { return false; }
         }
 
         async function kcUpdateRecord_(id, updates) {
+            // Update cloud
+            if (sharedModuleSyncEnabled) {
+                try {
+                    let cloudEntryId = (typeof id === "string" && id.startsWith("E")) ? id : null;
+                    if (!cloudEntryId) {
+                        const all = await idbGetAll_("karya_charitra");
+                        cloudEntryId = all.find((r) => r.id === id)?.entry_id || null;
+                    }
+                    if (cloudEntryId) {
+                        const payload = new URLSearchParams();
+                        payload.append("module", "karya_charitra");
+                        payload.append("action", "updateEntry");
+                        payload.append("entry_id", cloudEntryId);
+                        payload.append("updates_json", JSON.stringify(updates));
+                        await fetch(sharedModuleSyncScriptUrl, {
+                            method: "POST",
+                            headers: { "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8" },
+                            body: payload.toString()
+                        });
+                        sharedModuleLastFetch["karya_charitra"] = 0;
+                    }
+                } catch (_) {}
+            }
+            // Update local IDB
             try {
                 const db = await openPhotoDb_();
                 return new Promise((resolve) => {
@@ -4786,8 +4880,15 @@
                     const store = tx.objectStore("karya_charitra");
                     const req = store.get(id);
                     req.onsuccess = () => {
-                        if (!req.result) { resolve(false); return; }
-                        store.put({ ...req.result, ...updates });
+                        if (req.result) {
+                            store.put({ ...req.result, ...updates });
+                        } else {
+                            const allReq = store.getAll();
+                            allReq.onsuccess = () => {
+                                const found = (allReq.result || []).find((r) => r.entry_id === id);
+                                if (found) store.put({ ...found, ...updates });
+                            };
+                        }
                     };
                     tx.oncomplete = () => resolve(true);
                     tx.onerror = () => resolve(false);
@@ -4988,8 +5089,8 @@
                                     <div style="font-size:10px; font-weight:900; color:#1d4ed8; margin-bottom:6px;">कर्मचारी का स्पष्टीकरण/उत्तर:</div>
                                     ${r.reply_text
                                         ? `<div style="font-size:12px; font-weight:700; color:#1e293b; line-height:1.5; margin-bottom:6px;">${escapeHtml(r.reply_text)}</div><div style="font-size:10px; font-weight:700; color:#64748b;">(${kcFormatDate_(r.reply_date_iso)})</div>`
-                                        : `<textarea id="kc-emp-reply-${r.id}" placeholder="यहाँ अपना स्पष्टीकरण / उत्तर लिखें..." style="width:100%; min-height:70px; border-radius:8px; border:1.5px solid #bfdbfe; padding:8px; font-size:12px; font-weight:700; resize:vertical; outline:none; margin-bottom:6px;"></textarea>
-                                        <button onclick="kcSaveEmpReply(${r.id})" style="width:100%; height:36px; border:none; border-radius:8px; background:linear-gradient(135deg,#1d4ed8,#1e3a5f); color:#fff; font-size:11px; font-weight:900; text-transform:uppercase;">💾 उत्तर Save करें</button>`
+                                        : `<textarea id="kc-emp-reply-${r.entry_id || r.id}" placeholder="यहाँ अपना स्पष्टीकरण / उत्तर लिखें..." style="width:100%; min-height:70px; border-radius:8px; border:1.5px solid #bfdbfe; padding:8px; font-size:12px; font-weight:700; resize:vertical; outline:none; margin-bottom:6px;"></textarea>
+                                        <button onclick="kcSaveEmpReply('${r.entry_id || r.id}')" style="width:100%; height:36px; border:none; border-radius:8px; background:linear-gradient(135deg,#1d4ed8,#1e3a5f); color:#fff; font-size:11px; font-weight:900; text-transform:uppercase;">💾 उत्तर Save करें</button>`
                                     }
                                 </div>
 
@@ -5003,8 +5104,8 @@
 
                                 <!-- Share buttons -->
                                 <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:6px;">
-                                    <button onclick="kcOpenShareModal(${r.id})" style="height:36px; border:none; border-radius:8px; background:linear-gradient(135deg,#25D366,#128C7E); color:#fff; font-size:10px; font-weight:900; text-transform:uppercase;">📤 WhatsApp</button>
-                                    <button onclick="kcCopyScnText(${r.id})" style="height:36px; border:none; border-radius:8px; background:linear-gradient(135deg,#3b82f6,#1d4ed8); color:#fff; font-size:10px; font-weight:900; text-transform:uppercase;">📋 Word Copy</button>
+                                    <button onclick="kcOpenShareModal('${r.entry_id || r.id}')" style="height:36px; border:none; border-radius:8px; background:linear-gradient(135deg,#25D366,#128C7E); color:#fff; font-size:10px; font-weight:900; text-transform:uppercase;">📤 WhatsApp</button>
+                                    <button onclick="kcCopyScnText('${r.entry_id || r.id}')" style="height:36px; border:none; border-radius:8px; background:linear-gradient(135deg,#3b82f6,#1d4ed8); color:#fff; font-size:10px; font-weight:900; text-transform:uppercase;">📋 Word Copy</button>
                                 </div>
                             </div>
                         `).join("")}
@@ -5286,8 +5387,8 @@
                     <div style="font-size:11px; font-weight:900; color:#1e3a5f;">SCN-${String(r.dispatch_no || "").padStart(4,"0")} | ${kcFormatDate_(r.scn_date_iso)} — ${escapeHtml(r.violation_type || "")}</div>
                     <div style="font-size:11px; font-weight:700; color:#334155; margin:4px 0 8px 0;">${escapeHtml((r.violation_desc || "").slice(0, 80))}...</div>
                     ${r.reply_text ? `<div style="font-size:11px; font-weight:700; color:#1d4ed8; background:#eff6ff; border-radius:6px; padding:6px; margin-bottom:8px;">कर्मचारी उत्तर: ${escapeHtml(r.reply_text.slice(0, 60))}...</div>` : ""}
-                    <textarea id="kc-je-remark-${r.id}" placeholder="JE रिमार्क / अंतिम टिप्पणी (वैकल्पिक)..." style="width:100%; min-height:60px; border-radius:8px; border:1.5px solid #cbd5e1; padding:8px; font-size:12px; font-weight:700; resize:vertical; outline:none; margin-bottom:6px;">${escapeHtml(r.remark_text || "")}</textarea>
-                    <button onclick="kcSaveJeRemark(${r.id})" style="width:100%; height:36px; border:none; border-radius:8px; background:linear-gradient(135deg,#1e3a5f,#0f172a); color:#fff; font-size:11px; font-weight:900; text-transform:uppercase;">💾 JE रिमार्क Save करें</button>
+                    <textarea id="kc-je-remark-${r.entry_id || r.id}" placeholder="JE रिमार्क / अंतिम टिप्पणी (वैकल्पिक)..." style="width:100%; min-height:60px; border-radius:8px; border:1.5px solid #cbd5e1; padding:8px; font-size:12px; font-weight:700; resize:vertical; outline:none; margin-bottom:6px;">${escapeHtml(r.remark_text || "")}</textarea>
+                    <button onclick="kcSaveJeRemark('${r.entry_id || r.id}')" style="width:100%; height:36px; border:none; border-radius:8px; background:linear-gradient(135deg,#1e3a5f,#0f172a); color:#fff; font-size:11px; font-weight:900; text-transform:uppercase;">💾 JE रिमार्क Save करें</button>
                 </div>
             `).join("");
         }
@@ -5300,8 +5401,13 @@
         }
 
         async function kcGetRecordById_(id) {
+            // Check cloud cache first
+            const cloudRecords = sharedModuleEntriesCache["karya_charitra"] || [];
+            const cloudFound = cloudRecords.find((r) => r.id === id || r.entry_id === id || String(r.id) === String(id));
+            if (cloudFound) return cloudFound;
+            // Fallback to local IDB
             const all = await idbGetAll_("karya_charitra");
-            return all.find((r) => r.id === id) || null;
+            return all.find((r) => r.id === id || r.entry_id === id) || null;
         }
 
         async function kcOpenShareModal(recordId) {
@@ -6995,7 +7101,7 @@
                     const stmCount = await idbCount_("stm_complaint");
                     if (stmCount > MAX_STM_ENTRIES) {
                         await idbDeleteOldest_("stm_complaint", stmCount - MAX_STM_ENTRIES);
-                        showToast(`Limit ${MAX_STM_ENTRIES} entries hai — sabse purani entry hata di gayi`, true);
+                        showToast(`Limit ${MAX_STM_ENTRIES} entries hai — sabse purani local entry auto-delete hui (cloud mein safe hai)`, true);
                     }
                     await checkStoreCapacityWarning_("stm_complaint", "STM Complaint");
                 } catch (_) {}
