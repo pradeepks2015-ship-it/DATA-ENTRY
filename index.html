@@ -1258,13 +1258,14 @@
             <div class="title-box-container"><div class="title-box" style="background:linear-gradient(135deg,#1e3a5f,#0f172a);"><span class="title-text-bold" style="color:#e2e8f0;">📋 कर्मचारी कार्य चरित्रावली</span></div></div>
             <div class="search-panel">
 
-                <!-- Mode Tabs -->
-                <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:14px;">
-                    <button id="kc-tab-view" onclick="kcSetTab('view')" style="height:42px; border:none; border-radius:12px; background:linear-gradient(135deg,#1e3a5f,#0f172a); color:#fff; font-size:12px; font-weight:900; text-transform:uppercase;">📂 अभिलेख</button>
-                    <button id="kc-tab-je" onclick="kcSetTab('je')" style="height:42px; border:none; border-radius:12px; background:#e2e8f0; color:#1e293b; font-size:12px; font-weight:900; text-transform:uppercase;">🔐 JE / अधिकारी</button>
+                <!-- Mode Tabs — 3 columns -->
+                <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:6px; margin-bottom:14px;">
+                    <button id="kc-tab-view" onclick="kcSetTab('view')" style="height:42px; border:none; border-radius:12px; background:linear-gradient(135deg,#1e3a5f,#0f172a); color:#fff; font-size:10px; font-weight:900; text-transform:uppercase;">📂 अभिलेख</button>
+                    <button id="kc-tab-emp" onclick="kcSetTab('emp')" style="height:42px; border:none; border-radius:12px; background:#e2e8f0; color:#1e293b; font-size:10px; font-weight:900; text-transform:uppercase;">👤 मेरा SCN</button>
+                    <button id="kc-tab-je" onclick="kcSetTab('je')" style="height:42px; border:none; border-radius:12px; background:#e2e8f0; color:#1e293b; font-size:10px; font-weight:900; text-transform:uppercase;">🔐 JE</button>
                 </div>
 
-                <!-- ===== VIEW MODE — All can see, employee can reply ===== -->
+                <!-- ===== VIEW MODE — All can see ===== -->
                 <div id="kc-view-panel">
                     <div id="kc-all-employees-list">
                         <div style="text-align:center; padding:16px; font-size:12px; font-weight:800; color:#64748b;">Loading...</div>
@@ -1288,7 +1289,18 @@
                     </div>
                 </div>
 
-                <!-- ===== JE PANEL — Password protected ===== -->
+                <!-- ===== EMPLOYEE SELF-SERVICE PANEL ===== -->
+                <div id="kc-emp-panel" style="display:none;">
+                    <div style="background:linear-gradient(135deg,#f0f9ff,#e0f2fe); border:2px solid #0284c7; border-radius:16px; padding:16px; margin-bottom:12px;">
+                        <div style="font-size:13px; font-weight:900; color:#0c4a6e; text-transform:uppercase; margin-bottom:12px; text-align:center;">👤 अपना नाम चुनें</div>
+                        <select id="kc-emp-self-select" onchange="kcLoadMyScns()" style="width:100%; height:48px; border-radius:12px; border:2px solid #0284c7; padding:0 12px; font-size:14px; font-weight:700; color:#1e293b; background:#fff; outline:none;">
+                            <option value="">-- अपना नाम चुनें --</option>
+                        </select>
+                    </div>
+                    <div id="kc-my-scns-list"></div>
+                </div>
+
+                <!-- ===== JE PANEL ===== -->
                 <div id="kc-je-panel" style="display:none;">
                     <!-- Login Box -->
                     <div id="kc-je-login-box" style="background:#f8fafc; border-radius:14px; padding:14px; border:1.5px solid #1e3a5f; margin-bottom:12px;">
@@ -4815,13 +4827,67 @@
 
         async function kcGetAllRecords_() {
             try {
+                // Fetch from cloud
                 const cloudRecords = await fetchSharedEntries_("karya_charitra", true);
-                if (cloudRecords.length) {
-                    return cloudRecords.sort((a, b) => new Date(a.scn_date_iso) - new Date(b.scn_date_iso));
+                const cloudIds = new Set(cloudRecords.map((r) => r.entry_id).filter(Boolean));
+
+                // Get local IDB records
+                const localAll = await idbGetAll_("karya_charitra");
+
+                // Find local records that are NOT yet in cloud (old pre-sync entries)
+                const unsynced = localAll.filter((r) => !r.entry_id || !cloudIds.has(r.entry_id));
+
+                // Auto-migrate unsynced local records to cloud (fire and forget)
+                if (unsynced.length && sharedModuleSyncEnabled) {
+                    unsynced.forEach(async (record) => {
+                        try {
+                            const payload = new URLSearchParams();
+                            payload.append("module", "karya_charitra");
+                            payload.append("entry_json", JSON.stringify(record));
+                            const response = await fetch(sharedModuleSyncScriptUrl, {
+                                method: "POST",
+                                headers: { "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8" },
+                                body: payload.toString()
+                            });
+                            const parsed = JSON.parse((await response.text()) || "{}");
+                            if (parsed?.status === "success" && parsed.entry_id) {
+                                // Mark locally as synced
+                                await kcUpdateLocalEntryId_(record.id, parsed.entry_id);
+                                sharedModuleLastFetch["karya_charitra"] = 0;
+                            }
+                        } catch (_) {}
+                    });
                 }
+
+                // Merge cloud + unsynced local (so old entries show immediately even before migration completes)
+                const merged = [...cloudRecords];
+                unsynced.forEach((r) => {
+                    if (!merged.find((c) => c.dispatch_no === r.dispatch_no && c.emp_id === r.emp_id)) {
+                        merged.push(r);
+                    }
+                });
+
+                return merged.sort((a, b) => new Date(a.scn_date_iso) - new Date(b.scn_date_iso));
+            } catch (_) {
                 const all = await idbGetAll_("karya_charitra");
                 return all.sort((a, b) => new Date(a.scn_date_iso) - new Date(b.scn_date_iso));
-            } catch (_) { return []; }
+            }
+        }
+
+        async function kcUpdateLocalEntryId_(localId, entryId) {
+            try {
+                const db = await openPhotoDb_();
+                return new Promise((resolve) => {
+                    const tx = db.transaction("karya_charitra", "readwrite");
+                    const store = tx.objectStore("karya_charitra");
+                    const req = store.get(localId);
+                    req.onsuccess = () => {
+                        if (req.result) store.put({ ...req.result, entry_id: entryId });
+                    };
+                    tx.oncomplete = () => resolve(true);
+                    tx.onerror = () => resolve(false);
+                });
+            } catch (_) { return false; }
         }
 
         async function kcSaveRecord_(record) {
@@ -4963,23 +5029,137 @@
 
         function kcSetTab(tab) {
             const vp = document.getElementById("kc-view-panel");
+            const ep = document.getElementById("kc-emp-panel");
             const jp = document.getElementById("kc-je-panel");
             const tv = document.getElementById("kc-tab-view");
+            const te = document.getElementById("kc-tab-emp");
             const tj = document.getElementById("kc-tab-je");
+            const inactiveStyle = { background: "#e2e8f0", color: "#1e293b" };
+            [vp, ep, jp].forEach((p) => { if (p) p.style.display = "none"; });
+            [tv, te, tj].forEach((b) => { if (b) { b.style.background = "#e2e8f0"; b.style.color = "#1e293b"; } });
+
             if (tab === "view") {
-                vp.style.display = "block"; jp.style.display = "none";
-                tv.style.background = "linear-gradient(135deg,#1e3a5f,#0f172a)"; tv.style.color = "#fff";
-                tj.style.background = "#e2e8f0"; tj.style.color = "#1e293b";
+                if (vp) vp.style.display = "block";
+                if (tv) { tv.style.background = "linear-gradient(135deg,#1e3a5f,#0f172a)"; tv.style.color = "#fff"; }
                 kcRenderAllEmployees_();
+            } else if (tab === "emp") {
+                if (ep) ep.style.display = "block";
+                if (te) { te.style.background = "linear-gradient(135deg,#0284c7,#0c4a6e)"; te.style.color = "#fff"; }
+                kcRefreshEmpSelfDropdown_();
             } else {
-                vp.style.display = "none"; jp.style.display = "block";
-                tj.style.background = "linear-gradient(135deg,#1e3a5f,#0f172a)"; tj.style.color = "#fff";
-                tv.style.background = "#e2e8f0"; tv.style.color = "#1e293b";
+                if (jp) jp.style.display = "block";
+                if (tj) { tj.style.background = "linear-gradient(135deg,#1e3a5f,#0f172a)"; tj.style.color = "#fff"; }
                 if (!kcJeLoggedIn) {
                     document.getElementById("kc-je-login-box").style.display = "block";
                     document.getElementById("kc-je-logged-panel").style.display = "none";
                 }
             }
+        }
+
+
+        async function kcRefreshEmpSelfDropdown_() {
+            const sel = document.getElementById("kc-emp-self-select");
+            if (!sel) return;
+            const employees = await kcGetAllEmployees_();
+            const cur = sel.value;
+            sel.innerHTML = `<option value="">-- अपना नाम चुनें --</option>`;
+            employees.forEach((e) => {
+                const opt = document.createElement("option");
+                opt.value = e.emp_id;
+                opt.text = `${e.emp_name} (${e.emp_designation || "कर्मचारी"})`;
+                sel.appendChild(opt);
+            });
+            if (cur) { sel.value = cur; if (sel.value) kcLoadMyScns(); }
+        }
+
+        async function kcLoadMyScns() {
+            const empId = document.getElementById("kc-emp-self-select").value;
+            const container = document.getElementById("kc-my-scns-list");
+            if (!container) return;
+            if (!empId) { container.innerHTML = ""; return; }
+            container.innerHTML = `<div style="text-align:center; padding:16px; font-size:12px; font-weight:800; color:#0284c7;">Loading...</div>`;
+            const records = (await kcGetAllRecords_()).filter((r) => r.emp_id === empId);
+            if (!records.length) {
+                container.innerHTML = `<div style="text-align:center; padding:18px; font-size:13px; font-weight:800; color:#64748b; background:#f8fafc; border-radius:14px;">आपके नाम पर कोई SCN जारी नहीं है।</div>`;
+                return;
+            }
+            container.innerHTML = records.map((r) => {
+                const uid = r.entry_id || String(r.id);
+                const hasReplied = !!r.reply_text;
+                return `
+                <div style="border:2px solid ${hasReplied ? "#86efac" : "#fbbf24"}; border-radius:16px; margin-bottom:14px; overflow:hidden;">
+                    <div style="background:linear-gradient(135deg,#1e3a5f,#0f172a); padding:10px 14px; display:flex; justify-content:space-between; align-items:center;">
+                        <div>
+                            <div style="font-size:11px; font-weight:900; color:#e2e8f0;">SCN-${String(r.dispatch_no || "").padStart(4,"0")}</div>
+                            <div style="font-size:10px; font-weight:700; color:#94a3b8;">${kcFormatDate_(r.scn_date_iso)} | घटना: ${kcFormatDate_(r.incident_date)}</div>
+                        </div>
+                        <span style="background:${hasReplied ? "#dcfce7" : "#fef9c3"}; color:${hasReplied ? "#14532d" : "#713f12"}; border-radius:999px; padding:4px 10px; font-size:9px; font-weight:900; text-transform:uppercase;">${hasReplied ? "✅ उत्तर दिया" : "⚠️ उत्तर बाकी"}</span>
+                    </div>
+                    <div style="padding:12px;">
+                        <div style="background:#fef2f2; border-radius:10px; padding:10px; margin-bottom:10px;">
+                            <div style="font-size:10px; font-weight:900; color:#991b1b; text-transform:uppercase; margin-bottom:4px;">उल्लंघन का आरोप</div>
+                            <div style="font-size:12px; font-weight:900; color:#1e293b;">${escapeHtml(r.violation_type || "")}</div>
+                            <div style="font-size:12px; font-weight:700; color:#334155; margin-top:4px; line-height:1.5;">${escapeHtml(r.violation_desc || "")}</div>
+                        </div>
+                        <div style="background:#eff6ff; border-radius:10px; padding:10px; margin-bottom:10px;">
+                            <div style="font-size:10px; font-weight:900; color:#1d4ed8; text-transform:uppercase; margin-bottom:6px;">आपका स्पष्टीकरण / उत्तर</div>
+                            ${hasReplied
+                                ? `<div style="font-size:12px; font-weight:700; color:#1e293b; line-height:1.5;">${escapeHtml(r.reply_text)}</div>
+                                   <div style="font-size:10px; font-weight:700; color:#64748b; margin-top:4px;">(${kcFormatDate_(r.reply_date_iso)})</div>
+                                   <button onclick="kcEmpEditReply('${uid}')" style="margin-top:8px; border:none; background:#dbeafe; color:#1d4ed8; border-radius:8px; padding:6px 12px; font-size:10px; font-weight:900; text-transform:uppercase;">✏️ उत्तर बदलें</button>`
+                                : `<textarea id="kc-emp-self-reply-${uid}" placeholder="यहाँ अपना स्पष्टीकरण लिखें... (7 दिन के अंदर उत्तर देना अनिवार्य है)" style="width:100%; min-height:90px; border-radius:8px; border:1.5px solid #93c5fd; padding:8px; font-size:13px; font-weight:700; resize:vertical; outline:none; margin-bottom:8px;"></textarea>
+                                   <button onclick="kcSaveMyReply('${uid}')" style="width:100%; height:42px; border:none; border-radius:10px; background:linear-gradient(135deg,#1d4ed8,#1e3a5f); color:#fff; font-size:12px; font-weight:900; text-transform:uppercase;">💾 स्पष्टीकरण Submit करें</button>`
+                            }
+                        </div>
+                        ${r.remark_text ? `
+                        <div style="background:#fef9c3; border-radius:10px; padding:10px; margin-bottom:10px;">
+                            <div style="font-size:10px; font-weight:900; color:#713f12; text-transform:uppercase; margin-bottom:4px;">JE रिमार्क</div>
+                            <div style="font-size:12px; font-weight:700; color:#334155; line-height:1.5;">${escapeHtml(r.remark_text)}</div>
+                        </div>` : ""}
+                        <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:6px;">
+                            <button onclick="kcOpenShareModal('${uid}')" style="height:36px; border:none; border-radius:8px; background:linear-gradient(135deg,#25D366,#128C7E); color:#fff; font-size:10px; font-weight:900; text-transform:uppercase;">📤 WhatsApp</button>
+                            <button onclick="kcCopyScnText('${uid}')" style="height:36px; border:none; border-radius:8px; background:linear-gradient(135deg,#3b82f6,#1d4ed8); color:#fff; font-size:10px; font-weight:900; text-transform:uppercase;">📋 Copy</button>
+                        </div>
+                    </div>
+                </div>`;
+            }).join("");
+        }
+
+        async function kcSaveMyReply(uid) {
+            const textarea = document.getElementById(`kc-emp-self-reply-${uid}`);
+            const replyText = textarea?.value?.trim() || "";
+            if (!replyText) return showToast("स्पष्टीकरण लिखना आवश्यक है", false);
+            const ok = await kcUpdateRecord_(uid, { reply_text: replyText, reply_date_iso: kcTodayISO_() });
+            if (ok) {
+                showToast("स्पष्टीकरण Save हो गया — सभी को दिखेगा", true);
+                sharedModuleLastFetch["karya_charitra"] = 0;
+                await kcLoadMyScns();
+            } else {
+                showToast("Save karne mein error aaya", false);
+            }
+        }
+
+        async function kcEmpEditReply(uid) {
+            const overlay = document.createElement("div");
+            overlay.style.cssText = "position:fixed; inset:0; background:rgba(0,0,0,0.5); z-index:9999; display:flex; align-items:center; justify-content:center; padding:20px;";
+            const card = document.createElement("div");
+            card.style.cssText = "background:#fff; border-radius:16px; padding:18px; width:100%; max-width:300px; text-align:center;";
+            card.innerHTML = `
+                <div style="font-size:13px; font-weight:900; color:#1e3a5f; margin-bottom:10px;">उत्तर बदलें?</div>
+                <div style="font-size:12px; font-weight:700; color:#475569; margin-bottom:16px;">पुराना उत्तर हट जाएगा और आप नया उत्तर लिख सकेंगे।</div>
+                <div style="display:flex; gap:10px;">
+                    <button onclick="this.closest('[style*=fixed]').remove()" style="flex:1; height:40px; border:none; border-radius:10px; background:#e2e8f0; color:#1e293b; font-size:12px; font-weight:900;">Cancel</button>
+                    <button id="kc-edit-confirm-btn" style="flex:1; height:40px; border:none; border-radius:10px; background:#1d4ed8; color:#fff; font-size:12px; font-weight:900;">हाँ, बदलें</button>
+                </div>`;
+            overlay.appendChild(card);
+            overlay.addEventListener("click", (e) => { if (e.target === overlay) overlay.remove(); });
+            document.body.appendChild(overlay);
+            document.getElementById("kc-edit-confirm-btn").onclick = async () => {
+                overlay.remove();
+                await kcUpdateRecord_(uid, { reply_text: "", reply_date_iso: "" });
+                sharedModuleLastFetch["karya_charitra"] = 0;
+                await kcLoadMyScns();
+            };
         }
 
         function kcJeLogin() {
@@ -5466,7 +5646,6 @@
             await kcRefreshJeDropdowns_();
             const dateField = document.getElementById("kc-incident-date");
             if (dateField && !dateField.value) dateField.value = kcTodayISO_();
-            // Set default MIS dates to current month
             const now = new Date();
             const firstOfMonth = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,"0")}-01`;
             const today = kcTodayISO_();
@@ -5474,7 +5653,8 @@
             const mt = document.getElementById("kc-mis-to");
             if (mf && !mf.value) mf.value = firstOfMonth;
             if (mt && !mt.value) mt.value = today;
-            kcSetTab("view");
+            // Default to employee self-service tab
+            kcSetTab("emp");
         }
 
 
