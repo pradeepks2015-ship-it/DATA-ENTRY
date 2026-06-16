@@ -1757,7 +1757,7 @@
         async function syncEntryToCloud_(module, entry) {
             if (!sharedModuleSyncEnabled) return "";
             try {
-                // Step 1: Send entry metadata (without photo_data) to get entry_id
+                // Step 1: Send entry metadata only (no photo_data) to get entry_id
                 const entryToSync = JSON.parse(JSON.stringify(entry));
                 if (entryToSync.photo_data) delete entryToSync.photo_data;
                 if (Array.isArray(entryToSync.photos)) {
@@ -1780,8 +1780,9 @@
                 const entryId = parsed.entry_id || "";
                 if (!entryId) return "";
 
-                // Step 2: Upload each photo separately (one POST per photo, small payload)
-                // Each photo is sent with entry_id so backend can attach photo_url to the entry.
+                // Step 2: Upload each photo — AWAIT each one so they actually save to Drive
+                // before we return. This makes submit slightly slower but ensures photos
+                // are visible to other users immediately after submission.
                 const photoUploads = [];
                 if (entry.photo_data) {
                     photoUploads.push({ data: entry.photo_data, name: entry.photo_name || "", index: -1 });
@@ -1794,23 +1795,37 @@
                     });
                 }
 
-                // Upload photos in parallel (fire and forget — entry is already saved, photos are bonus)
-                photoUploads.forEach((photo) => {
-                    try {
-                        const photoPayload = new URLSearchParams();
-                        photoPayload.append("module", module);
-                        photoPayload.append("action", "uploadPhoto");
-                        photoPayload.append("entry_id", entryId);
-                        photoPayload.append("photo_data", photo.data);
-                        photoPayload.append("photo_name", photo.name);
-                        photoPayload.append("photo_index", String(photo.index));
-                        fetch(sharedModuleSyncScriptUrl, {
-                            method: "POST",
-                            headers: { "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8" },
-                            body: photoPayload.toString()
-                        }).catch(() => {});
-                    } catch (_) {}
-                });
+                // Upload photos sequentially with retry (sequential avoids overwhelming Apps Script)
+                for (const photo of photoUploads) {
+                    let uploaded = false;
+                    for (let attempt = 0; attempt < 3 && !uploaded; attempt++) {
+                        try {
+                            const photoPayload = new URLSearchParams();
+                            photoPayload.append("module", module);
+                            photoPayload.append("action", "uploadPhoto");
+                            photoPayload.append("entry_id", entryId);
+                            photoPayload.append("photo_data", photo.data);
+                            photoPayload.append("photo_name", photo.name);
+                            photoPayload.append("photo_index", String(photo.index));
+
+                            const photoResponse = await fetch(sharedModuleSyncScriptUrl, {
+                                method: "POST",
+                                headers: { "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8" },
+                                body: photoPayload.toString()
+                            });
+                            const photoResult = JSON.parse((await photoResponse.text()) || "{}");
+                            if (photoResult && photoResult.status === "success") {
+                                uploaded = true;
+                            }
+                        } catch (_) {
+                            // Wait 1s before retry
+                            await new Promise((r) => setTimeout(r, 1000));
+                        }
+                    }
+                }
+
+                // Invalidate cache so other users get fresh data with photos on next fetch
+                sharedModuleLastFetch[module] = 0;
 
                 return entryId;
             } catch (_) {
@@ -1823,7 +1838,7 @@
         async function fetchSharedEntries_(module, forceRefresh) {
             if (!sharedModuleSyncEnabled) return [];
             const now = Date.now();
-            if (!forceRefresh && sharedModuleLastFetch[module] && (now - sharedModuleLastFetch[module] < 30000)) {
+            if (!forceRefresh && sharedModuleLastFetch[module] && (now - sharedModuleLastFetch[module] < 10000)) {
                 return sharedModuleEntriesCache[module] || [];
             }
             try {
@@ -4205,8 +4220,8 @@
 
 
         // ===== Bijli Chori Ki Jankari feature =====
-        let bcPhotoSlots = [null, null, null]; // each: { name, photoData, geo } or null
-        const bcDefaultPhotoNames = ["Photo 1 - Site / Connection", "Photo 2 - Evidence", "Photo 3 - Surrounding Area"];
+        let bcPhotoSlots = [null]; // each: { name, photoData, geo } or null
+        const bcDefaultPhotoNames = ["Photo - Site / Evidence"];
 
         function renderBcPhotoSlots() {
             const container = document.getElementById("bc-photo-slots");
@@ -4351,6 +4366,12 @@
                     }))
                 };
 
+                // Show upload progress since photo uploads are awaited (may take 10-30 sec for 3 photos)
+                const photoCount = photos.filter((p) => p.photoData).length;
+                if (photoCount > 0) {
+                    submitBtn.innerText = `📤 ${photoCount} photo${photoCount > 1 ? "s" : ""} cloud par upload ho rahi hai...`;
+                }
+
                 const entryId = await syncEntryToCloud_("bijli_chori", entry);
                 if (entryId) {
                     entry.entry_id = entryId;
@@ -4358,18 +4379,20 @@
                     showToast("Internet/sync error: entry sirf is device par save hui, doosre users ko nahi dikhegi", false);
                 }
 
+                submitBtn.innerText = "Device par save ho rahi hai...";
+
                 const saved = await saveBijliChoriEntry_(entry);
                 if (!saved) {
                     return showToast("Save karne mein error aaya, dobara try karein", false);
                 }
 
-                showToast("Entry Saved Successfully!", true);
+                showToast("Entry Saved! Photos sabhi users ko dikh sakti hain.", true);
 
                 // Reset form
                 document.getElementById("bc-ivrs").value = "";
                 document.getElementById("bc-name").value = "";
                 document.getElementById("bc-remark").value = "";
-                bcPhotoSlots = [null, null, null];
+                bcPhotoSlots = [null];
                 renderBcPhotoSlots();
                 await refreshBijliChoriMisTotal();
                 await refreshStorageCounter_("bijli_chori");
