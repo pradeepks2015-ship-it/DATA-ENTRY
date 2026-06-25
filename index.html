@@ -3062,15 +3062,21 @@
             const fromLabel = `01-${monthPrefix.slice(5,7)}-${monthPrefix.slice(0,4)}`;
             const toLabel = formatFeederDateLabelFromKey_(selectedDateKey);
 
-            // 11 KV feeders progressive consumption
+            // Determine if this substation has any 11KV feeders
             const elevenKvRows = rows.filter((row) => !String(row.feederType || "").includes("33"));
-            let totalElevenKvConsumption = 0;
+            const thirtyThreeKvOnlySubstation = elevenKvRows.length === 0;
+            const displayRows = thirtyThreeKvOnlySubstation
+                ? rows.filter((row) => String(row.feederType || "").includes("33"))
+                : elevenKvRows;
+            const kvLabel = thirtyThreeKvOnlySubstation ? "33 KV Feeders" : "11 KV Feeders";
+
+            let totalConsumption = 0;
             let anyData = false;
-            const feederLines = elevenKvRows.map((row) => {
+            const feederLines = displayRows.map((row) => {
                 const progress = getFeederMonthlyProgress_(row, selectedDateKey);
                 if (progress.hasData) {
                     anyData = true;
-                    totalElevenKvConsumption += progress.consumption;
+                    totalConsumption += progress.consumption;
                 }
                 const valueText = progress.hasData
                     ? `${formatChhaparaNumber(progress.monthStartPrevious)} → ${formatChhaparaNumber(progress.latestCurrent)} | MF: ${formatChhaparaNumber(progress.mf)} | <strong>${formatChhaparaNumber(progress.consumption)}</strong>`
@@ -3125,15 +3131,26 @@
 
             panel.innerHTML = `
                 <div style="background:linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%); border:1.5px solid #10b981; border-radius:14px; padding:12px;">
-                    <div style="font-size:11px; font-weight:900; color:#065f46; text-transform:uppercase; margin-bottom:4px;">📈 Monthly Progressive Consumption (11 KV Feeders)</div>
+                    <div style="font-size:11px; font-weight:900; color:#065f46; text-transform:uppercase; margin-bottom:4px;">📈 Monthly Progressive Consumption (${escapeHtml(kvLabel)})</div>
                     <div style="font-size:10px; font-weight:700; color:#047857; margin-bottom:8px;">Period: ${escapeHtml(fromLabel)} to ${escapeHtml(toLabel)} (${escapeHtml(monthLabel)})</div>
-                    ${feederLines || `<div style="font-size:11px; font-weight:700; color:#64748b;">Koi 11 KV feeder nahi mila</div>`}
+                    ${feederLines || `<div style="font-size:11px; font-weight:700; color:#64748b;">Koi feeder nahi mila</div>`}
                     <div style="margin-top:8px; padding-top:8px; border-top:2px solid #10b981; font-size:13px; font-weight:900; color:#065f46; text-align:center;">
-                        ${anyData ? `Total 11 KV Progressive Consumption: ${formatChhaparaNumber(totalElevenKvConsumption)}` : "Is mahine ka data abhi nahi mila"}
+                        ${anyData ? `Total ${escapeHtml(kvLabel)} Progressive Consumption: ${formatChhaparaNumber(totalConsumption)}` : "Is mahine ka data abhi nahi mila"}
                     </div>
                 </div>
-                ${incomingHtml}
+                ${thirtyThreeKvOnlySubstation ? "" : incomingHtml}
             `;
+        }
+
+        // Returns the required reading dates for a given year-month: 1st, 10th, 20th, last day
+        function getRequiredReadingDatesForMonth_(year, month) {
+            const lastDay = new Date(year, month, 0).getDate(); // last day of month
+            const dates = [1, 10, 20, lastDay];
+            return [...new Set(dates)].map((d) => {
+                const mm = String(month).padStart(2, "0");
+                const dd = String(d).padStart(2, "0");
+                return `${year}-${mm}-${dd}`;
+            });
         }
 
         function buildFeederPendingDateKeys_(substation) {
@@ -3148,18 +3165,29 @@
             const pendingKeys = [];
             const todayKey = buildFeederDateKey_(getTodayIsoDate());
             if (!todayKey || todayKey <= feederAlertStartDateKey) return [];
-            const cursor = new Date(feederAlertStartDateKey);
-            const yesterday = new Date(todayKey);
+
+            // Only check required dates: 1st, 10th, 20th, last day of each month
+            const startDate = new Date(feederAlertStartDateKey);
+            const today = new Date(todayKey);
+            const yesterday = new Date(today);
             yesterday.setDate(yesterday.getDate() - 1);
-            while (cursor <= yesterday) {
-                const day = String(cursor.getDate()).padStart(2, "0");
-                const month = String(cursor.getMonth() + 1).padStart(2, "0");
-                const year = cursor.getFullYear();
-                const dateKey = `${year}-${month}-${day}`;
-                if (!submittedDates.has(dateKey)) {
-                    pendingKeys.push(dateKey);
+
+            let y = startDate.getFullYear();
+            let m = startDate.getMonth() + 1; // 1-based
+
+            while (true) {
+                const requiredDates = getRequiredReadingDatesForMonth_(y, m);
+                for (const dateKey of requiredDates) {
+                    if (dateKey < feederAlertStartDateKey) continue;
+                    if (dateKey > buildFeederDateKey_(yesterday.toISOString().split("T")[0])) continue;
+                    if (!submittedDates.has(dateKey)) {
+                        pendingKeys.push(dateKey);
+                    }
                 }
-                cursor.setDate(cursor.getDate() + 1);
+                // Move to next month
+                if (m === 12) { y++; m = 1; } else { m++; }
+                // Stop if we've passed today's month
+                if (y > today.getFullYear() || (y === today.getFullYear() && m > today.getMonth() + 1)) break;
             }
             return pendingKeys;
         }
