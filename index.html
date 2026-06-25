@@ -450,7 +450,7 @@
                 <button class="dashboard-btn" style="background: linear-gradient(135deg, #6366f1 0%, #312e81 100%);" onclick="switchView('pdc-nontraceable')">4. 📄 PDC / NON-TRACEABLE</button>
                 <button class="dashboard-btn bg-cyan-grad" onclick="askPassword('STOCK')">5. STOCK MATERIAL</button>
                 <button class="dashboard-btn bg-indigo-grad" onclick="switchView('shms-entry')">6. SHMS ENTRY</button>
-                <button class="dashboard-btn btn-feeder-light-pink" onclick="switchView('feeder-reading')">7. FEEDER READING</button>
+                <button class="dashboard-btn btn-feeder-light-pink" onclick="switchView('feeder-reading')">7. FEEDER / SS WISE INPUT</button>
                 <button class="dashboard-btn btn-stm-complaint" onclick="switchView('stm-complaint')">8. STM COMPLAINT</button>
                 <button class="dashboard-btn btn-daily-houry-peak-load" onclick="switchView('daily-hourly-peak-load')">9. DAILY HOURLY PEAK LOAD</button>
                 <button class="dashboard-btn" style="background: linear-gradient(135deg, #dc2626 0%, #7f1d1d 100%);" onclick="switchView('bijli-chori')">10. ⚠️ बिजली चोरी की जानकारी</button>
@@ -911,7 +911,7 @@
               <div class="px-2">
                   <div class="progress-module-box">
                       <div id="progress-shms-btn" class="progress-module-btn active" onclick="setReportSource('SHMS')">SHMS</div>
-                      <div id="progress-feeder-btn" class="progress-module-btn" onclick="setReportSource('FEEDER')">Feeder Reading</div>
+                      <div id="progress-feeder-btn" class="progress-module-btn" onclick="setReportSource('FEEDER')">Feeder/SS Input</div>
                   </div>
                   <div class="report-type-box">
                       <div id="shms-progress-daily-btn" class="report-opt active" onclick="setShmsProgressMode('DAILY')">Daily</div>
@@ -1534,13 +1534,16 @@
             ],
             "11KV DUDWARA DL": [
                 { dcName: "ADEGAON", percent: 100 }
+            ],
+            "33KV ADEGAON FEEDER": [
+                { dcName: "ADEGAON", percent: 100 }
             ]
         };
         let feederRows = [];
         let feederSubstations = ["BAMHANWADA", "BARRA", "BHIMGARH", "CHAMARI", "CHHAPARA", "GANESHGANJ", "KEOLARI", "ADEGAON", "MADHI"];
         let allFeederSubstations = ["BAMHANWADA", "BARRA", "BHIMGARH", "CHAMARI", "CHHAPARA", "GANESHGANJ", "KEOLARI", "ADEGAON", "MADHI"];
         // Only these 33/11 KV substations are shown in the Feeder Reading tab.
-        const FEEDER_VISIBLE_SUBSTATIONS = ["ADEGAON", "MADHI", "CHAMARI", "DUDWARA"];
+        const FEEDER_VISIBLE_SUBSTATIONS = ["ADEGAON", "MADHI", "CHAMARI", "DUDWARA", "132KV LAKHNADON"];
         let feederDataLoaded = false;
         // Fallback feeder rows used when the Google Sheet (feederCsvUrl) hasn't loaded yet.
         const fallbackFeederRows = [
@@ -1555,6 +1558,8 @@
             // DUDWARA 33/11 KV Substation (SS Code 5097)
             { "33/11 KV SUBSTATION": "DUDWARA", "33 AND 11 KV FEEDER": "11KV KHAPA MIX", substation: "DUDWARA", feeder: "11KV KHAPA MIX", meterNo: "BS12773341", mf: "4000", ssCode: "5097" },
             { "33/11 KV SUBSTATION": "DUDWARA", "33 AND 11 KV FEEDER": "11KV DUDWARA DL", substation: "DUDWARA", feeder: "11KV DUDWARA DL", meterNo: "BS12773342", mf: "4000", ssCode: "5097" },
+            // 132KV LAKHNADON Substation
+            { "33/11 KV SUBSTATION": "132KV LAKHNADON", "33 AND 11 KV FEEDER": "33KV ADEGAON FEEDER", substation: "132KV LAKHNADON", feeder: "33KV ADEGAON FEEDER", meterNo: "MPP28230", mf: "120", feederType: "33 KV" },
             // 33 KV Feeders (MF readings)
             { "33/11 KV SUBSTATION": "ADEGAON", "33 AND 11 KV FEEDER": "33KV ADEGAON", substation: "ADEGAON", feeder: "33KV ADEGAON", meterNo: "BS12775548", mf: "12000", feederType: "33 KV" },
             { "33/11 KV SUBSTATION": "ADEGAON", "33 AND 11 KV FEEDER": "33KV ADEGAON-CHAMARI", substation: "ADEGAON", feeder: "33KV ADEGAON-CHAMARI", meterNo: "BS12775550", mf: "12000", feederType: "33 KV" },
@@ -10108,7 +10113,7 @@
                 let headerTitle = "SEONI CIRCLE";
                 if (id === "dc-selection") headerTitle = activeDiv;
                 if (id === "dc-dashboard") headerTitle = `DC: ${activeDC}`;
-                if (id === "feeder-reading") headerTitle = "FEEDER READING";
+                if (id === "feeder-reading") headerTitle = "FEEDER / SS WISE INPUT";
                 if (id === "daily-hourly-peak-load") headerTitle = "DAILY HOURLY PEAK LOAD";
                 if (id === "stm-complaint") headerTitle = "STM COMPLAINT";
                 if (id === "stock-material") headerTitle = "STOCK MATERIAL";
