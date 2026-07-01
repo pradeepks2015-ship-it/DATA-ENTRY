@@ -961,6 +961,11 @@
                     <h3 class="stock-section-title">Material Receive Entry</h3>
                     <div class="stock-form" style="margin-top: 14px;">
                         <div class="stock-search-wrap">
+                            <!-- Dropdown selector -->
+                            <select id="receive-dropdown" onchange="selectFromDropdown('receive')" style="width:100%; height:44px; border-radius:10px; border:1.5px solid #16a34a; padding:0 12px; font-size:13px; font-weight:700; color:#1e293b; background:#f0fdf4; outline:none; margin-bottom:8px;">
+                                <option value="">-- Dropdown से Material चुनें --</option>
+                            </select>
+                            <div style="text-align:center; font-size:11px; font-weight:700; color:#64748b; margin-bottom:6px;">— या Search करें —</div>
                             <input id="receive-search" class="stock-input stock-search-highlight" type="text" placeholder="Search Material Name">
                             <div id="receive-suggestions" class="stock-suggestion-box"></div>
                             <div id="receive-selected-chip" class="stock-picked-chip" style="display:none;"></div>
@@ -991,6 +996,10 @@
                     </div>
                     <div class="stock-form" style="margin-top: 14px;">
                         <div class="stock-search-wrap">
+                            <select id="issue-dropdown" onchange="selectFromDropdown('issue')" style="width:100%; height:44px; border-radius:10px; border:1.5px solid #ef4444; padding:0 12px; font-size:13px; font-weight:700; color:#1e293b; background:#fef2f2; outline:none; margin-bottom:8px;">
+                                <option value="">-- Dropdown से Material चुनें --</option>
+                            </select>
+                            <div style="text-align:center; font-size:11px; font-weight:700; color:#64748b; margin-bottom:6px;">— या Search करें —</div>
                             <input id="issue-search" class="stock-input stock-search-highlight" type="text" placeholder="Search Material Name">
                             <div id="issue-suggestions" class="stock-suggestion-box"></div>
                             <div id="issue-selected-chip" class="stock-picked-chip" style="display:none;"></div>
@@ -1948,6 +1957,7 @@
             loadStockMaterialsData();
             initChhaparaFeederCalculator();
             renderStockDashboard();
+            refreshStockDropdowns_();
             setupStockEntrySearch("receive");
             setupStockEntrySearch("issue");
             renderIssueDcDropdown();
@@ -3440,6 +3450,7 @@
                     selectedStockReceiveItem = null;
                     selectedStockIssueItem = null;
                     renderStockDashboard();
+                    refreshStockDropdowns_();
                 }
             } catch (_) {}
         }
@@ -9428,7 +9439,42 @@
             const todayDate = getCurrentDateDDMMYYYY().replace(/-/g, "/");
             const todayReceiveEntries = stockMovements.filter((item) => item.type === "RECEIVE" && item.date === todayDate).slice(0, 6);
             const todayIssueEntries = stockMovements.filter((item) => item.type === "ISSUE" && item.date === todayDate).slice(0, 6);
+
             document.getElementById("stock-dashboard-content").innerHTML = `
+
+                <!-- ===== AVAILABLE STOCK PANEL ===== -->
+                <div style="background:linear-gradient(135deg,#f0fdf4,#dcfce7); border:2px solid #16a34a; border-radius:16px; padding:14px; margin-bottom:14px;">
+                    <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:10px;">
+                        <div style="font-size:13px; font-weight:900; color:#14532d; text-transform:uppercase;">📦 उपलब्ध Stock</div>
+                        <button onclick="showAddMaterialModal()" style="border:none; background:linear-gradient(135deg,#16a34a,#15803d); color:#fff; border-radius:999px; padding:6px 14px; font-size:11px; font-weight:900; text-transform:uppercase; cursor:pointer;">➕ नया Material</button>
+                    </div>
+                    ${stockMaterials.length === 0
+                        ? `<div style="text-align:center; font-size:12px; font-weight:700; color:#64748b; padding:12px;">कोई material नहीं मिला। नया material जोड़ें।</div>`
+                        : `<div style="display:flex; flex-direction:column; gap:6px;">
+                            ${stockMaterials.map((item) => {
+                                const bal = getStockBalance(item);
+                                const status = getStockStatus(item);
+                                const pct = item.opening > 0 ? Math.min(100, Math.round(bal / item.opening * 100)) : 0;
+                                const barColor = bal <= 0 ? "#ef4444" : bal <= item.min + 15 ? "#f59e0b" : "#16a34a";
+                                return `<div style="background:#fff; border-radius:10px; padding:10px 12px; border:1px solid #bbf7d0;">
+                                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+                                        <div style="font-size:13px; font-weight:900; color:#1e293b;">${escapeHtml(item.name)}</div>
+                                        <div style="font-size:13px; font-weight:900; color:${barColor};">${bal} <span style="font-size:10px; font-weight:700; color:#64748b;">${escapeHtml(item.unit)}</span></div>
+                                    </div>
+                                    <div style="background:#e2e8f0; border-radius:999px; height:6px; margin-bottom:4px;">
+                                        <div style="background:${barColor}; border-radius:999px; height:6px; width:${pct}%;"></div>
+                                    </div>
+                                    <div style="display:flex; justify-content:space-between; font-size:10px; font-weight:700; color:#64748b;">
+                                        <span>Opening: ${item.opening} | Inward: ${item.inward} | Issue: ${item.issue}</span>
+                                        <span class="stock-chip ${status.className}" style="font-size:9px; padding:1px 6px;">${status.label}</span>
+                                    </div>
+                                </div>`;
+                            }).join("")}
+                        </div>`
+                    }
+                </div>
+
+                <!-- ===== TODAY SUMMARY ===== -->
                 <div class="stock-mini-summary">
                     <div class="stock-summary-box">
                         <h4>Today Received</h4>
@@ -9451,6 +9497,60 @@
             renderPendingStockList("receive");
             renderPendingStockList("issue");
         }
+
+        function showAddMaterialModal() {
+            const overlay = document.createElement("div");
+            overlay.style.cssText = "position:fixed; inset:0; background:rgba(0,0,0,0.5); z-index:9999; display:flex; align-items:center; justify-content:center; padding:20px;";
+            const card = document.createElement("div");
+            card.style.cssText = "background:#fff; border-radius:18px; padding:18px; width:100%; max-width:340px; box-shadow:0 12px 30px rgba(0,0,0,0.25);";
+            card.innerHTML = `
+                <div style="font-size:14px; font-weight:900; color:#15803d; text-transform:uppercase; margin-bottom:12px;">➕ नया Material जोड़ें</div>
+                <input type="text" id="new-mat-name" placeholder="Material का नाम *" style="width:100%; height:42px; border-radius:10px; border:1.5px solid #16a34a; padding:0 12px; font-size:13px; font-weight:700; outline:none; margin-bottom:10px;">
+                <input type="text" id="new-mat-unit" placeholder="Unit (Nos, Mtr, Kg, Set...)" style="width:100%; height:42px; border-radius:10px; border:1.5px solid #cbd5e1; padding:0 12px; font-size:13px; font-weight:700; outline:none; margin-bottom:10px;">
+                <input type="number" id="new-mat-opening" placeholder="Opening Stock (शुरुआती मात्रा)" min="0" style="width:100%; height:42px; border-radius:10px; border:1.5px solid #cbd5e1; padding:0 12px; font-size:13px; font-weight:700; outline:none; margin-bottom:14px;">
+                <div style="display:flex; gap:10px;">
+                    <button onclick="this.closest('[style*=fixed]').remove()" style="flex:1; height:44px; border:none; border-radius:12px; background:#e2e8f0; color:#1e293b; font-size:12px; font-weight:900; text-transform:uppercase;">Cancel</button>
+                    <button onclick="confirmAddNewMaterialDirect()" style="flex:1; height:44px; border:none; border-radius:12px; background:linear-gradient(135deg,#16a34a,#15803d); color:#fff; font-size:12px; font-weight:900; text-transform:uppercase;">जोड़ें</button>
+                </div>`;
+            overlay.appendChild(card);
+            overlay.addEventListener("click", (e) => { if (e.target === overlay) overlay.remove(); });
+            document.body.appendChild(overlay);
+            document.getElementById("new-mat-name").focus();
+        }
+
+        async function confirmAddNewMaterialDirect() {
+            const materialName = document.getElementById("new-mat-name")?.value?.trim() || "";
+            if (!materialName) return showToast("Material का नाम ज़रूरी है", false);
+            await confirmAddNewMaterial("receive", materialName);
+        }
+
+        function refreshStockDropdowns_() {
+            ["receive-dropdown", "issue-dropdown"].forEach((id) => {
+                const sel = document.getElementById(id);
+                if (!sel) return;
+                const cur = sel.value;
+                const isIssue = id.startsWith("issue");
+                sel.innerHTML = `<option value="">-- Dropdown से Material चुनें --</option>`;
+                stockMaterials.forEach((item) => {
+                    const opt = document.createElement("option");
+                    opt.value = item.id;
+                    const bal = getStockBalance(item);
+                    opt.text = `${item.name} (${bal} ${item.unit})`;
+                    if (isIssue && bal <= 0) opt.style.color = "#ef4444";
+                    sel.appendChild(opt);
+                });
+                if (cur) sel.value = cur;
+            });
+        }
+
+        function selectFromDropdown(type) {
+            const sel = document.getElementById(`${type}-dropdown`);
+            if (!sel || !sel.value) return;
+            selectStockSuggestion(type, sel.value);
+            // Reset dropdown visual
+            sel.value = "";
+        }
+
 
         function renderIssueDcDropdown() {
             const menu = document.getElementById("issue-dc-menu");
@@ -9598,6 +9698,7 @@
             document.querySelector("[style*='position:fixed'][style*='z-index:9999']")?.remove();
 
             showToast(`"${materialName}" material जोड़ा गया`, true);
+            refreshStockDropdowns_();
 
             // Auto-select this new material
             selectStockSuggestion(type, newId);
