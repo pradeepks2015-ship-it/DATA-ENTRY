@@ -9483,40 +9483,34 @@
         }
 
         function renderStockDashboard() {
-            const todayDate = getCurrentDateDDMMYYYY().replace(/-/g, "/");
-            const todayReceiveEntries = stockMovements.filter((item) => item.type === "RECEIVE" && item.date === todayDate).slice(0, 6);
-            const todayIssueEntries = stockMovements.filter((item) => item.type === "ISSUE" && item.date === todayDate).slice(0, 6);
 
             document.getElementById("stock-dashboard-content").innerHTML = `
 
-                <!-- ===== AVAILABLE STOCK PANEL ===== -->
-                <div style="background:linear-gradient(135deg,#f0fdf4,#dcfce7); border:2px solid #16a34a; border-radius:16px; padding:14px; margin-bottom:14px;">
+                <!-- ===== SECTION 1: STOCK AVAILABILITY ===== -->
+                <div style="margin-bottom:18px;">
                     <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:10px;">
-                        <div style="font-size:13px; font-weight:900; color:#14532d; text-transform:uppercase;">📦 उपलब्ध Stock</div>
-                        <button onclick="showAddMaterialModal()" style="border:none; background:linear-gradient(135deg,#16a34a,#15803d); color:#fff; border-radius:999px; padding:6px 14px; font-size:11px; font-weight:900; text-transform:uppercase; cursor:pointer;">➕ नया Material</button>
+                        <div style="display:flex; align-items:center; gap:8px;">
+                            <div style="width:4px; height:20px; background:#16a34a; border-radius:2px;"></div>
+                            <div style="font-size:13px; font-weight:900; color:#14532d; text-transform:uppercase; letter-spacing:0.5px;">📦 उपलब्ध सामग्री</div>
+                        </div>
+                        <button onclick="showAddMaterialModal()" style="border:none; background:#16a34a; color:#fff; border-radius:8px; padding:6px 12px; font-size:11px; font-weight:900; cursor:pointer; display:flex; align-items:center; gap:4px;">➕ जोड़ें</button>
                     </div>
                     ${stockMaterials.length === 0
-                        ? `<div style="text-align:center; font-size:12px; font-weight:700; color:#64748b; padding:12px;">कोई material नहीं मिला। नया material जोड़ें।</div>`
-                        : `<div style="display:flex; flex-direction:column; gap:6px;">
+                        ? `<div style="text-align:center; padding:20px; background:#f8fafc; border-radius:12px; font-size:12px; font-weight:700; color:#64748b; border:2px dashed #e2e8f0;">कोई material नहीं मिला।<br>नया material जोड़ें।</div>`
+                        : `<div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
                             ${stockMaterials.map((item) => {
                                 const bal = getStockBalance(item);
-                                const status = getStockStatus(item);
-                                const pct = item.opening > 0 ? Math.min(100, Math.round(bal / item.opening * 100)) : 0;
-                                const barColor = bal <= 0 ? "#ef4444" : bal <= item.min + 15 ? "#f59e0b" : "#16a34a";
-                                return `<div style="background:#fff; border-radius:10px; padding:10px 12px; border:1px solid #bbf7d0;">
-                                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
-                                        <div style="font-size:13px; font-weight:900; color:#1e293b;">${escapeHtml(item.name)}</div>
-                                        <div style="display:flex; align-items:center; gap:8px;">
-                                            <div style="font-size:13px; font-weight:900; color:${barColor};">${bal} <span style="font-size:10px; font-weight:700; color:#64748b;">${escapeHtml(item.unit)}</span></div>
-                                            <button onclick="deleteStockMaterial('${item.id}')" style="border:none; background:#fee2e2; color:#b91c1c; border-radius:6px; padding:3px 8px; font-size:10px; font-weight:900; cursor:pointer;">🗑️</button>
-                                        </div>
-                                    </div>
-                                    <div style="background:#e2e8f0; border-radius:999px; height:6px; margin-bottom:4px;">
-                                        <div style="background:${barColor}; border-radius:999px; height:6px; width:${pct}%;"></div>
-                                    </div>
-                                    <div style="display:flex; justify-content:space-between; font-size:10px; font-weight:700; color:#64748b;">
-                                        <span>Opening: ${item.opening} | Inward: ${item.inward} | Issue: ${item.issue}</span>
-                                        <span class="stock-chip ${status.className}" style="font-size:9px; padding:1px 6px;">${status.label}</span>
+                                const pct = item.opening > 0 ? Math.min(100, Math.round(bal / item.opening * 100)) : (bal > 0 ? 100 : 0);
+                                const color = bal <= 0 ? "#ef4444" : bal <= (item.min||0) + 5 ? "#f59e0b" : "#16a34a";
+                                const bg = bal <= 0 ? "#fef2f2" : bal <= (item.min||0) + 5 ? "#fffbeb" : "#f0fdf4";
+                                const border = bal <= 0 ? "#fca5a5" : bal <= (item.min||0) + 5 ? "#fcd34d" : "#86efac";
+                                return `<div style="background:${bg}; border:1.5px solid ${border}; border-radius:12px; padding:10px; position:relative;">
+                                    <button onclick="deleteStockMaterial('${item.id}')" style="position:absolute; top:6px; right:6px; border:none; background:rgba(239,68,68,0.1); color:#ef4444; border-radius:6px; width:22px; height:22px; font-size:11px; cursor:pointer; display:flex; align-items:center; justify-content:center; padding:0;">🗑</button>
+                                    <div style="font-size:11px; font-weight:900; color:#1e293b; margin-bottom:2px; padding-right:24px; line-height:1.3;">${escapeHtml(item.name)}</div>
+                                    <div style="font-size:20px; font-weight:900; color:${color}; line-height:1;">${bal}</div>
+                                    <div style="font-size:10px; font-weight:700; color:#64748b; margin-bottom:6px;">${escapeHtml(item.unit)}</div>
+                                    <div style="background:#e2e8f0; border-radius:999px; height:4px;">
+                                        <div style="background:${color}; border-radius:999px; height:4px; width:${pct}%; transition:width 0.3s;"></div>
                                     </div>
                                 </div>`;
                             }).join("")}
@@ -9524,42 +9518,83 @@
                     }
                 </div>
 
-                <!-- ===== ISSUE HISTORY PANEL ===== -->
+                <!-- ===== SECTION 2: ISSUE HISTORY ===== -->
                 ${(() => {
-                    const log = getIssueLog_().slice().reverse().slice(0, 20);
-                    if (!log.length) return "";
-                    return `<div style="background:linear-gradient(135deg,#f0f9ff,#e0f2fe); border:2px solid #0284c7; border-radius:16px; padding:14px; margin-bottom:14px;">
-                        <div style="font-size:13px; font-weight:900; color:#0c4a6e; text-transform:uppercase; margin-bottom:10px;">📋 Issue इतिहास</div>
-                        <div style="display:flex; flex-direction:column; gap:8px;">
-                        ${log.map((e) => `
-                            <div style="background:#fff; border-radius:10px; padding:10px 12px; border:1.5px solid ${e.returned ? "#bbf7d0" : e.return_type === "non_returnable" ? "#e2e8f0" : "#fde68a"};">
-                                <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:6px; margin-bottom:4px;">
-                                    <div style="font-size:12px; font-weight:900; color:#1e293b;">${escapeHtml(e.issued_to)}</div>
-                                    <span style="flex-shrink:0; font-size:9px; font-weight:900; border-radius:999px; padding:2px 8px; background:${e.returned ? "#dcfce7" : e.return_type === "non_returnable" ? "#f1f5f9" : "#fef9c3"}; color:${e.returned ? "#14532d" : e.return_type === "non_returnable" ? "#475569" : "#713f12"}; text-transform:uppercase;">${e.returned ? "✅ वापस" : e.return_type === "non_returnable" ? "🚫 Non-Ret." : "⏳ Pending"}</span>
+                    const log = getIssueLog_().slice().reverse();
+                    if (!log.length) return `
+                        <div style="margin-bottom:18px;">
+                            <div style="display:flex; align-items:center; gap:8px; margin-bottom:10px;">
+                                <div style="width:4px; height:20px; background:#0284c7; border-radius:2px;"></div>
+                                <div style="font-size:13px; font-weight:900; color:#0c4a6e; text-transform:uppercase; letter-spacing:0.5px;">📋 Issue इतिहास</div>
+                            </div>
+                            <div style="text-align:center; padding:16px; background:#f8fafc; border-radius:12px; font-size:12px; font-weight:700; color:#64748b; border:2px dashed #e2e8f0;">अभी तक कोई Issue नहीं किया गया।</div>
+                        </div>`;
+                    return `
+                        <div style="margin-bottom:18px;">
+                            <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:10px;">
+                                <div style="display:flex; align-items:center; gap:8px;">
+                                    <div style="width:4px; height:20px; background:#0284c7; border-radius:2px;"></div>
+                                    <div style="font-size:13px; font-weight:900; color:#0c4a6e; text-transform:uppercase; letter-spacing:0.5px;">📋 Issue इतिहास</div>
                                 </div>
-                                <div style="font-size:11px; font-weight:700; color:#334155;">${escapeHtml(e.material_name)}: <strong>${e.qty} ${escapeHtml(e.unit)}</strong></div>
-                                <div style="font-size:10px; font-weight:700; color:#64748b;">Issue: ${escapeHtml(e.issue_date)} ${escapeHtml(e.issue_time)}${e.returned ? " | वापसी: "+escapeHtml(e.return_date)+" "+escapeHtml(e.return_time) : e.expected_return_date ? " | Expected: "+escapeHtml(e.expected_return_date) : ""}</div>
-                                ${e.remark ? `<div style="font-size:10px; font-weight:700; color:#94a3b8;">${escapeHtml(e.remark)}</div>` : ""}
-                            </div>`).join("")}
+                                <div style="font-size:10px; font-weight:700; color:#64748b;">${log.length} entries</div>
+                            </div>
+                            <div style="display:flex; flex-direction:column; gap:8px;">
+                            ${log.map((e) => {
+                                const statusColor = e.returned ? "#14532d" : e.return_type === "non_returnable" ? "#475569" : "#b45309";
+                                const statusBg = e.returned ? "#dcfce7" : e.return_type === "non_returnable" ? "#f1f5f9" : "#fef9c3";
+                                const statusText = e.returned ? "✅ वापस" : e.return_type === "non_returnable" ? "🚫 Non-Ret." : "⏳ Pending";
+                                const cardBorder = e.returned ? "#86efac" : e.return_type === "non_returnable" ? "#cbd5e1" : "#fcd34d";
+                                const cardBg = e.returned ? "#f0fdf4" : e.return_type === "non_returnable" ? "#f8fafc" : "#fffbeb";
+                                return `
+                                <div style="background:${cardBg}; border:1.5px solid ${cardBorder}; border-radius:12px; padding:12px;">
+                                    <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:6px;">
+                                        <div>
+                                            <div style="font-size:13px; font-weight:900; color:#1e293b;">${escapeHtml(e.issued_to)}</div>
+                                            <div style="font-size:10px; font-weight:700; color:#64748b;">${escapeHtml(e.issue_date)} | ${escapeHtml(e.issue_time)}</div>
+                                        </div>
+                                        <span style="font-size:9px; font-weight:900; border-radius:999px; padding:3px 10px; background:${statusBg}; color:${statusColor}; text-transform:uppercase; flex-shrink:0;">${statusText}</span>
+                                    </div>
+                                    <div style="background:rgba(0,0,0,0.04); border-radius:8px; padding:8px; margin-bottom:8px;">
+                                        <div style="font-size:12px; font-weight:700; color:#334155;">${escapeHtml(e.material_name)} — <strong>${e.qty} ${escapeHtml(e.unit)}</strong></div>
+                                        ${e.remark ? `<div style="font-size:10px; font-weight:700; color:#94a3b8; margin-top:2px;">📝 ${escapeHtml(e.remark)}</div>` : ""}
+                                        ${e.returned ? `<div style="font-size:10px; font-weight:700; color:#16a34a; margin-top:2px;">वापसी: ${escapeHtml(e.return_date)} ${escapeHtml(e.return_time)}</div>` : ""}
+                                        ${!e.returned && e.expected_return_date ? `<div style="font-size:10px; font-weight:700; color:#b45309; margin-top:2px;">Expected: ${escapeHtml(e.expected_return_date)}</div>` : ""}
+                                    </div>
+                                    <div style="display:grid; grid-template-columns:${!e.returned && e.return_type === "returnable" ? "1fr 1fr" : "1fr"}; gap:8px;">
+                                        ${!e.returned && e.return_type === "returnable"
+                                            ? `<button onclick="markMaterialReturned('${e.id}')" style="height:36px; border:none; border-radius:8px; background:linear-gradient(135deg,#16a34a,#15803d); color:#fff; font-size:11px; font-weight:900; cursor:pointer;">↩️ Mark Return</button>`
+                                            : ""}
+                                        <button onclick="deleteIssueLogEntry('${e.id}')" style="height:36px; border:none; border-radius:8px; background:#fee2e2; color:#b91c1c; font-size:11px; font-weight:900; cursor:pointer;">🗑️ हटाएं</button>
+                                    </div>
+                                </div>`;
+                            }).join("")}
+                            </div>
+                        </div>`;
+                })()}
+
+                <!-- ===== SECTION 3: TODAY'S ACTIVITY ===== -->
+                ${(() => {
+                    const todayDate = getCurrentDateDDMMYYYY().replace(/-/g, "/");
+                    const rec = stockMovements.filter((m) => m.type === "RECEIVE" && m.date === todayDate).slice(0,5);
+                    const iss = stockMovements.filter((m) => m.type === "ISSUE" && m.date === todayDate).slice(0,5);
+                    if (!rec.length && !iss.length) return "";
+                    return `<div style="margin-bottom:14px;">
+                        <div style="display:flex; align-items:center; gap:8px; margin-bottom:10px;">
+                            <div style="width:4px; height:20px; background:#8b5cf6; border-radius:2px;"></div>
+                            <div style="font-size:13px; font-weight:900; color:#4c1d95; text-transform:uppercase; letter-spacing:0.5px;">📅 आज की गतिविधि</div>
+                        </div>
+                        <div class="stock-mini-summary">
+                            <div class="stock-summary-box">
+                                <h4>Received</h4>
+                                ${rec.length ? rec.map((m) => `<div class="stock-summary-line"><span>${escapeHtml(m.material)}</span><span>${m.qty}</span></div>`).join("") : `<div class="stock-summary-empty">—</div>`}
+                            </div>
+                            <div class="stock-summary-box">
+                                <h4>Issued</h4>
+                                ${iss.length ? iss.map((m) => `<div class="stock-summary-line"><span>${escapeHtml(m.material)}</span><span>${m.qty}</span></div>`).join("") : `<div class="stock-summary-empty">—</div>`}
+                            </div>
                         </div>
                     </div>`;
                 })()}
-
-                <!-- ===== TODAY SUMMARY ===== -->
-                <div class="stock-mini-summary">
-                    <div class="stock-summary-box">
-                        <h4>Today Received</h4>
-                        ${todayReceiveEntries.length ? todayReceiveEntries.map((entry) => `
-                            <div class="stock-summary-line"><span>${entry.material}</span><span>${entry.qty}</span></div>
-                        `).join("") : `<div class="stock-summary-empty">Aaj abhi receive entry nahi hai.</div>`}
-                    </div>
-                    <div class="stock-summary-box">
-                        <h4>Today Issued</h4>
-                        ${todayIssueEntries.length ? todayIssueEntries.map((entry) => `
-                            <div class="stock-summary-line"><span>${entry.material}</span><span>${entry.qty}</span></div>
-                        `).join("") : `<div class="stock-summary-empty">Aaj abhi issue entry nahi hai.</div>`}
-                    </div>
-                </div>
             `;
             renderMaterialList();
             renderLiveStock();
@@ -9567,7 +9602,34 @@
             renderStockReport();
             renderPendingStockList("receive");
             renderPendingStockList("issue");
+            refreshStockDropdowns_();
         }
+
+        function deleteIssueLogEntry(logId) {
+            const overlay = document.createElement("div");
+            overlay.style.cssText = "position:fixed; inset:0; background:rgba(0,0,0,0.5); z-index:9999; display:flex; align-items:center; justify-content:center; padding:20px;";
+            const card = document.createElement("div");
+            card.style.cssText = "background:#fff; border-radius:16px; padding:18px; width:100%; max-width:300px; text-align:center;";
+            card.innerHTML = `
+                <div style="font-size:13px; font-weight:900; color:#991b1b; margin-bottom:10px;">🗑️ Issue Entry हटाएं?</div>
+                <div style="font-size:12px; font-weight:700; color:#475569; margin-bottom:16px;">यह entry issue log से हट जाएगी।<br>Stock balance प्रभावित नहीं होगा।</div>
+                <div style="display:flex; gap:10px;">
+                    <button onclick="this.closest('[style*=fixed]').remove()" style="flex:1; height:40px; border:none; border-radius:10px; background:#e2e8f0; color:#1e293b; font-size:12px; font-weight:900;">Cancel</button>
+                    <button id="del-log-confirm" style="flex:1; height:40px; border:none; border-radius:10px; background:#ef4444; color:#fff; font-size:12px; font-weight:900;">हाँ, हटाएं</button>
+                </div>`;
+            overlay.appendChild(card);
+            overlay.addEventListener("click", (e) => { if (e.target === overlay) overlay.remove(); });
+            document.body.appendChild(overlay);
+            document.getElementById("del-log-confirm").onclick = () => {
+                overlay.remove();
+                const log = getIssueLog_().filter((e) => e.id !== logId);
+                saveIssueLog_(log);
+                showToast("Entry हट गई", true);
+                renderStockDashboard();
+            };
+        }
+
+
 
         function showAddMaterialModal() {
             const overlay = document.createElement("div");
