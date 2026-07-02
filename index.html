@@ -9900,33 +9900,38 @@
             if (field) field.style.display = isReturnable ? "block" : "none";
         }
 
+        // Store pending delete itemId globally to avoid closure issues in template literals
+        let _pendingDeleteMatId = null;
+
         function deleteStockMaterial(itemId) {
             const item = stockMaterials.find((m) => m.id === itemId);
             if (!item) return;
+            _pendingDeleteMatId = itemId;
+            document.getElementById("del-mat-overlay")?.remove();
             const overlay = document.createElement("div");
+            overlay.id = "del-mat-overlay";
             overlay.style.cssText = "position:fixed; inset:0; background:rgba(0,0,0,0.5); z-index:9999; display:flex; align-items:center; justify-content:center; padding:20px;";
-            const card = document.createElement("div");
-            card.style.cssText = "background:#fff; border-radius:18px; padding:18px; width:100%; max-width:300px; text-align:center;";
-            card.innerHTML = `
-                <div style="font-size:13px; font-weight:900; color:#991b1b; margin-bottom:8px;">🗑️ Material हटाएं?</div>
-                <div style="font-size:13px; font-weight:700; color:#1e293b; margin-bottom:4px;"><strong>${escapeHtml(item.name)}</strong></div>
-                <div style="font-size:11px; font-weight:700; color:#64748b; margin-bottom:16px;">Current Balance: ${getStockBalance(item)} ${item.unit}</div>
-                <div style="display:flex; gap:10px;">
-                    <button onclick="this.closest('[style*=fixed]').remove()" style="flex:1; height:40px; border:none; border-radius:10px; background:#e2e8f0; color:#1e293b; font-size:12px; font-weight:900;">Cancel</button>
-                    <button onclick="confirmDeleteMaterial('${itemId}')" style="flex:1; height:40px; border:none; border-radius:10px; background:#ef4444; color:#fff; font-size:12px; font-weight:900;">हाँ, हटाएं</button>
+            overlay.innerHTML = `
+                <div style="background:#fff; border-radius:18px; padding:18px; width:100%; max-width:300px; text-align:center;">
+                    <div style="font-size:13px; font-weight:900; color:#991b1b; margin-bottom:8px;">🗑️ Material हटाएं?</div>
+                    <div style="font-size:13px; font-weight:700; color:#1e293b; margin-bottom:4px;"><strong>${item.name}</strong></div>
+                    <div style="font-size:11px; font-weight:700; color:#64748b; margin-bottom:16px;">Balance: ${getStockBalance(item)} ${item.unit}</div>
+                    <div style="display:flex; gap:10px;">
+                        <button id="del-mat-cancel" style="flex:1; height:40px; border:none; border-radius:10px; background:#e2e8f0; color:#1e293b; font-size:12px; font-weight:900;">Cancel</button>
+                        <button id="del-mat-ok" style="flex:1; height:40px; border:none; border-radius:10px; background:#ef4444; color:#fff; font-size:12px; font-weight:900;">हाँ, हटाएं</button>
+                    </div>
                 </div>`;
-            overlay.appendChild(card);
-            overlay.addEventListener("click", (e) => { if (e.target === overlay) overlay.remove(); });
             document.body.appendChild(overlay);
+            document.getElementById("del-mat-cancel").onclick = () => overlay.remove();
+            document.getElementById("del-mat-ok").onclick = () => { overlay.remove(); confirmDeleteMaterial(_pendingDeleteMatId); };
+            overlay.onclick = (e) => { if (e.target === overlay) overlay.remove(); };
         }
 
         async function confirmDeleteMaterial(itemId) {
-            document.querySelector("[style*='position:fixed'][style*='z-index:9999']")?.remove();
             const item = stockMaterials.find((m) => m.id === itemId);
             if (!item) return;
             stockMaterials = stockMaterials.filter((m) => m.id !== itemId);
-            showToast(`"${item.name}" हटा दिया गया`, true);
-            // Delete from backend
+            showToast(item.name + " हटा दिया गया", true);
             try {
                 const payload = new URLSearchParams();
                 payload.append("module", "stock");
