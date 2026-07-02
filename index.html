@@ -898,9 +898,10 @@
                         </div>
                     </div>
                 </div>
-                <div class="stock-top-actions">
-                    <button class="stock-top-btn form-green" onclick="openStockSection('material-receive')">Receive</button>
-                    <button class="stock-top-btn form-red" onclick="openStockSection('material-issue')">Issue</button>
+                <div class="stock-top-actions" style="grid-template-columns:1fr 1fr 1fr;">
+                    <button class="stock-top-btn form-green" onclick="openStockSection('material-receive')">📥 Receive</button>
+                    <button class="stock-top-btn form-red" onclick="openStockSection('material-issue')">📤 Issue</button>
+                    <button class="stock-top-btn" style="background:linear-gradient(135deg,#f59e0b,#b45309);" onclick="openStockSection('stock-return'); renderStockReturnList();">↩️ Return</button>
                 </div>
                 <div id="stock-dashboard-content"></div>
             </div>
@@ -1009,9 +1010,53 @@
                             <button class="stock-small-btn form-red" onclick="addStockEntryToList('issue')">Add To List</button>
                         </div>
                         <div id="issue-added-list" class="stock-added-list"></div>
-                        <input id="issue-to" class="stock-input" type="text" placeholder="Issue To Person Name">
-                        <input id="issue-remark" class="stock-input" type="text" placeholder="Remark">
+                        <input id="issue-to" class="stock-input" type="text" placeholder="किसे Issue किया (व्यक्ति का नाम) *">
+
+                        <!-- Issue Date & Time -->
+                        <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:8px;">
+                            <div>
+                                <div style="font-size:10px; font-weight:800; color:#64748b; margin-bottom:3px;">Issue दिनांक</div>
+                                <input type="date" id="issue-date" class="stock-input" style="height:40px;">
+                            </div>
+                            <div>
+                                <div style="font-size:10px; font-weight:800; color:#64748b; margin-bottom:3px;">Issue समय</div>
+                                <input type="time" id="issue-time" class="stock-input" style="height:40px;">
+                            </div>
+                        </div>
+
+                        <!-- Returnable / Non-Returnable -->
+                        <div style="background:#f8fafc; border-radius:10px; padding:10px; margin-bottom:8px; border:1.5px solid #e2e8f0;">
+                            <div style="font-size:11px; font-weight:900; color:#334155; margin-bottom:8px;">वापसी का प्रकार:</div>
+                            <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
+                                <label style="display:flex; align-items:center; gap:8px; background:#dcfce7; border-radius:8px; padding:8px 10px; cursor:pointer; border:2px solid transparent;" id="returnable-label">
+                                    <input type="radio" name="issue-return-type" value="returnable" id="issue-returnable" onchange="toggleReturnDateField()" checked style="accent-color:#16a34a;">
+                                    <span style="font-size:12px; font-weight:900; color:#14532d;">↩️ Returnable</span>
+                                </label>
+                                <label style="display:flex; align-items:center; gap:8px; background:#fee2e2; border-radius:8px; padding:8px 10px; cursor:pointer; border:2px solid transparent;" id="non-returnable-label">
+                                    <input type="radio" name="issue-return-type" value="non_returnable" id="issue-non-returnable" onchange="toggleReturnDateField()" style="accent-color:#ef4444;">
+                                    <span style="font-size:12px; font-weight:900; color:#991b1b;">🚫 Non-Returnable</span>
+                                </label>
+                            </div>
+                            <!-- Expected return date (only for returnable) -->
+                            <div id="return-date-field" style="margin-top:8px;">
+                                <div style="font-size:10px; font-weight:800; color:#64748b; margin-bottom:3px;">वापसी की अपेक्षित तिथि</div>
+                                <input type="date" id="issue-expected-return" class="stock-input" style="height:40px;">
+                            </div>
+                        </div>
+
+                        <input id="issue-remark" class="stock-input" type="text" placeholder="Remark (वैकल्पिक)">
                         <button class="stock-submit form-red" onclick="submitStockDemo('issue')">Save Issue Entry</button>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <main id="stock-return-view" class="view">
+            <div class="stock-wrap">
+                <div class="stock-section-card">
+                    <h3 class="stock-section-title">📦 Material वापसी Entry</h3>
+                    <div id="stock-return-list" style="margin-top:10px;">
+                        <div class="stock-empty">Loading...</div>
                     </div>
                 </div>
             </div>
@@ -1454,18 +1499,20 @@
 
         const shmsCsvUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTbq-yne90yg9Vn8eylxM3zKMfZjPLlVhca3JhsjAzMlcm6MAVl8vAA-xXVgZI_XjWQBHyjB36YO1Cz/pub?output=csv";
         let stockMaterials = [
-            { id: "M001", name: "AB Cable 3X95+1X50", unit: "Meter", opening: 1200, inward: 380, issue: 910, min: 300 },
-            { id: "M002", name: "PVC Insulated Wire 10 SQMM", unit: "Coil", opening: 42, inward: 16, issue: 31, min: 10 },
-            { id: "M003", name: "Stay Set Complete", unit: "Nos", opening: 18, inward: 8, issue: 20, min: 8 },
-            { id: "M004", name: "Disc Insulator", unit: "Nos", opening: 75, inward: 20, issue: 63, min: 25 },
-            { id: "M005", name: "LT Pin Insulator", unit: "Nos", opening: 140, inward: 40, issue: 149, min: 35 }
+            { id: "M001", name: "Pin Insulator", unit: "Nos", opening: 0, inward: 0, issue: 0, min: 10 },
+            { id: "M002", name: "Disc Insulator", unit: "Nos", opening: 0, inward: 0, issue: 0, min: 10 },
+            { id: "M003", name: "रस्सा (Rope)", unit: "Nos", opening: 0, inward: 0, issue: 0, min: 2 },
+            { id: "M004", name: "Discharge Rod", unit: "Nos", opening: 0, inward: 0, issue: 0, min: 2 },
+            { id: "M005", name: "Hand Gloves", unit: "Pair", opening: 0, inward: 0, issue: 0, min: 4 },
+            { id: "M006", name: "Torch", unit: "Nos", opening: 0, inward: 0, issue: 0, min: 2 },
+            { id: "M007", name: "Lightning Arrester", unit: "Nos", opening: 0, inward: 0, issue: 0, min: 5 },
+            { id: "M008", name: "Neon Tester", unit: "Nos", opening: 0, inward: 0, issue: 0, min: 2 },
+            { id: "M009", name: "Conductor", unit: "Kg", opening: 0, inward: 0, issue: 0, min: 50 },
+            { id: "M010", name: "Cable", unit: "Meter", opening: 0, inward: 0, issue: 0, min: 100 },
+            { id: "M011", name: "DTR (Transformer)", unit: "Nos", opening: 0, inward: 0, issue: 0, min: 1 },
+            { id: "M012", name: "Stay Set Complete", unit: "Nos", opening: 0, inward: 0, issue: 0, min: 4 }
         ];
-        let stockMovements = [
-            { type: "RECEIVE", material: "AB Cable 3X95+1X50", qty: 180, date: "23/04/2026", note: "Main Store Challan 17" },
-            { type: "ISSUE", material: "Disc Insulator", qty: 12, date: "23/04/2026", note: "11 KV line maintenance" },
-            { type: "RECEIVE", material: "Stay Set Complete", qty: 8, date: "22/04/2026", note: "Emergency stock refill" },
-            { type: "ISSUE", material: "LT Pin Insulator", qty: 20, date: "22/04/2026", note: "Village feeder replacement" }
-        ];
+        let stockMovements = [];
 
         let activeDiv = "", activeDC = "", activeGrad = "bg-teal-grad", summaryMode = "DAILY", summaryModule = "MOBILE", activeViewLevel = "", currentData = null, pendingLevel = "", dcCacheRaw = {}, dcCacheRows = {}, uiListSummary = [], grandTC = 0, grandTU = 0;
         let selectedStockReceiveItem = null, selectedStockIssueItem = null, pendingReceiveItems = [], pendingIssueItems = [];
@@ -9459,7 +9506,10 @@
                                 return `<div style="background:#fff; border-radius:10px; padding:10px 12px; border:1px solid #bbf7d0;">
                                     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
                                         <div style="font-size:13px; font-weight:900; color:#1e293b;">${escapeHtml(item.name)}</div>
-                                        <div style="font-size:13px; font-weight:900; color:${barColor};">${bal} <span style="font-size:10px; font-weight:700; color:#64748b;">${escapeHtml(item.unit)}</span></div>
+                                        <div style="display:flex; align-items:center; gap:8px;">
+                                            <div style="font-size:13px; font-weight:900; color:${barColor};">${bal} <span style="font-size:10px; font-weight:700; color:#64748b;">${escapeHtml(item.unit)}</span></div>
+                                            <button onclick="deleteStockMaterial('${item.id}')" style="border:none; background:#fee2e2; color:#b91c1c; border-radius:6px; padding:3px 8px; font-size:10px; font-weight:900; cursor:pointer;">🗑️</button>
+                                        </div>
                                     </div>
                                     <div style="background:#e2e8f0; border-radius:999px; height:6px; margin-bottom:4px;">
                                         <div style="background:${barColor}; border-radius:999px; height:6px; width:${pct}%;"></div>
@@ -9473,6 +9523,27 @@
                         </div>`
                     }
                 </div>
+
+                <!-- ===== ISSUE HISTORY PANEL ===== -->
+                ${(() => {
+                    const log = getIssueLog_().slice().reverse().slice(0, 20);
+                    if (!log.length) return "";
+                    return `<div style="background:linear-gradient(135deg,#f0f9ff,#e0f2fe); border:2px solid #0284c7; border-radius:16px; padding:14px; margin-bottom:14px;">
+                        <div style="font-size:13px; font-weight:900; color:#0c4a6e; text-transform:uppercase; margin-bottom:10px;">📋 Issue इतिहास</div>
+                        <div style="display:flex; flex-direction:column; gap:8px;">
+                        ${log.map((e) => `
+                            <div style="background:#fff; border-radius:10px; padding:10px 12px; border:1.5px solid ${e.returned ? "#bbf7d0" : e.return_type === "non_returnable" ? "#e2e8f0" : "#fde68a"};">
+                                <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:6px; margin-bottom:4px;">
+                                    <div style="font-size:12px; font-weight:900; color:#1e293b;">${escapeHtml(e.issued_to)}</div>
+                                    <span style="flex-shrink:0; font-size:9px; font-weight:900; border-radius:999px; padding:2px 8px; background:${e.returned ? "#dcfce7" : e.return_type === "non_returnable" ? "#f1f5f9" : "#fef9c3"}; color:${e.returned ? "#14532d" : e.return_type === "non_returnable" ? "#475569" : "#713f12"}; text-transform:uppercase;">${e.returned ? "✅ वापस" : e.return_type === "non_returnable" ? "🚫 Non-Ret." : "⏳ Pending"}</span>
+                                </div>
+                                <div style="font-size:11px; font-weight:700; color:#334155;">${escapeHtml(e.material_name)}: <strong>${e.qty} ${escapeHtml(e.unit)}</strong></div>
+                                <div style="font-size:10px; font-weight:700; color:#64748b;">Issue: ${escapeHtml(e.issue_date)} ${escapeHtml(e.issue_time)}${e.returned ? " | वापसी: "+escapeHtml(e.return_date)+" "+escapeHtml(e.return_time) : e.expected_return_date ? " | Expected: "+escapeHtml(e.expected_return_date) : ""}</div>
+                                ${e.remark ? `<div style="font-size:10px; font-weight:700; color:#94a3b8;">${escapeHtml(e.remark)}</div>` : ""}
+                            </div>`).join("")}
+                        </div>
+                    </div>`;
+                })()}
 
                 <!-- ===== TODAY SUMMARY ===== -->
                 <div class="stock-mini-summary">
@@ -9761,6 +9832,126 @@
             `).join("");
         }
 
+        function toggleReturnDateField() {
+            const isReturnable = document.getElementById("issue-returnable")?.checked;
+            const field = document.getElementById("return-date-field");
+            if (field) field.style.display = isReturnable ? "block" : "none";
+        }
+
+        function deleteStockMaterial(itemId) {
+            const item = stockMaterials.find((m) => m.id === itemId);
+            if (!item) return;
+            const overlay = document.createElement("div");
+            overlay.style.cssText = "position:fixed; inset:0; background:rgba(0,0,0,0.5); z-index:9999; display:flex; align-items:center; justify-content:center; padding:20px;";
+            const card = document.createElement("div");
+            card.style.cssText = "background:#fff; border-radius:18px; padding:18px; width:100%; max-width:300px; text-align:center;";
+            card.innerHTML = `
+                <div style="font-size:13px; font-weight:900; color:#991b1b; margin-bottom:8px;">🗑️ Material हटाएं?</div>
+                <div style="font-size:13px; font-weight:700; color:#1e293b; margin-bottom:4px;"><strong>${escapeHtml(item.name)}</strong></div>
+                <div style="font-size:11px; font-weight:700; color:#64748b; margin-bottom:16px;">Current Balance: ${getStockBalance(item)} ${item.unit}</div>
+                <div style="display:flex; gap:10px;">
+                    <button onclick="this.closest('[style*=fixed]').remove()" style="flex:1; height:40px; border:none; border-radius:10px; background:#e2e8f0; color:#1e293b; font-size:12px; font-weight:900;">Cancel</button>
+                    <button onclick="confirmDeleteMaterial('${itemId}')" style="flex:1; height:40px; border:none; border-radius:10px; background:#ef4444; color:#fff; font-size:12px; font-weight:900;">हाँ, हटाएं</button>
+                </div>`;
+            overlay.appendChild(card);
+            overlay.addEventListener("click", (e) => { if (e.target === overlay) overlay.remove(); });
+            document.body.appendChild(overlay);
+        }
+
+        async function confirmDeleteMaterial(itemId) {
+            document.querySelector("[style*='position:fixed'][style*='z-index:9999']")?.remove();
+            const item = stockMaterials.find((m) => m.id === itemId);
+            if (!item) return;
+            stockMaterials = stockMaterials.filter((m) => m.id !== itemId);
+            showToast(`"${item.name}" हटा दिया गया`, true);
+            // Delete from backend
+            try {
+                const payload = new URLSearchParams();
+                payload.append("module", "stock");
+                payload.append("action", "deleteMaterial");
+                payload.append("material_name", item.name);
+                await fetch(stockSubmitScriptUrl, { method:"POST", headers:{"Content-Type":"application/x-www-form-urlencoded;charset=UTF-8"}, body: payload.toString() });
+            } catch(_) {}
+            renderStockDashboard();
+            refreshStockDropdowns_();
+        }
+
+        // Issue Tracking — stored in localStorage
+        function getIssueLog_() {
+            try { return JSON.parse(localStorage.getItem("stock-issue-log") || "[]"); } catch(_) { return []; }
+        }
+        function saveIssueLog_(log) {
+            try { localStorage.setItem("stock-issue-log", JSON.stringify(log)); } catch(_) {}
+        }
+
+        function addToIssueLog_(items, issueTo, issueDate, issueTime, returnType, expectedReturn, remark) {
+            const log = getIssueLog_();
+            items.forEach((entry) => {
+                log.push({
+                    id: Date.now() + "_" + Math.random().toString(36).slice(2),
+                    material_name: entry.item.name,
+                    material_id: entry.item.id,
+                    unit: entry.item.unit,
+                    qty: entry.qty,
+                    issued_to: issueTo,
+                    issue_date: issueDate,
+                    issue_time: issueTime,
+                    return_type: returnType,
+                    expected_return_date: expectedReturn,
+                    remark: remark,
+                    returned: false,
+                    return_date: "",
+                    return_time: ""
+                });
+            });
+            saveIssueLog_(log);
+        }
+
+        function renderStockReturnList() {
+            const container = document.getElementById("stock-return-list");
+            if (!container) return;
+            const log = getIssueLog_().filter((e) => e.return_type === "returnable" && !e.returned);
+            if (!log.length) {
+                container.innerHTML = `<div class="stock-empty">कोई pending return नहीं है।</div>`;
+                return;
+            }
+            container.innerHTML = log.map((entry) => `
+                <div style="border:1.5px solid #f59e0b; border-radius:12px; padding:12px; margin-bottom:10px; background:#fffbeb;">
+                    <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:6px;">
+                        <div>
+                            <div style="font-size:13px; font-weight:900; color:#1e293b;">${escapeHtml(entry.material_name)}</div>
+                            <div style="font-size:11px; font-weight:700; color:#64748b;">Qty: ${entry.qty} ${escapeHtml(entry.unit)} | किसे: ${escapeHtml(entry.issued_to)}</div>
+                            <div style="font-size:11px; font-weight:700; color:#64748b;">Issue: ${escapeHtml(entry.issue_date)} ${escapeHtml(entry.issue_time)}</div>
+                            ${entry.expected_return_date ? `<div style="font-size:11px; font-weight:700; color:#b45309;">Expected Return: ${escapeHtml(entry.expected_return_date)}</div>` : ""}
+                        </div>
+                        <span style="background:#fef3c7; color:#b45309; border-radius:999px; padding:3px 10px; font-size:9px; font-weight:900; text-transform:uppercase; flex-shrink:0;">Pending</span>
+                    </div>
+                    <button onclick="markMaterialReturned('${entry.id}')" style="width:100%; height:40px; border:none; border-radius:10px; background:linear-gradient(135deg,#16a34a,#15803d); color:#fff; font-size:12px; font-weight:900; text-transform:uppercase;">✅ वापस आ गया — Mark Return</button>
+                </div>
+            `).join("");
+        }
+
+        function markMaterialReturned(logId) {
+            const log = getIssueLog_();
+            const entry = log.find((e) => e.id === logId);
+            if (!entry) return;
+            const now = new Date();
+            entry.returned = true;
+            entry.return_date = `${String(now.getDate()).padStart(2,"0")}/${String(now.getMonth()+1).padStart(2,"0")}/${now.getFullYear()}`;
+            entry.return_time = `${String(now.getHours()).padStart(2,"0")}:${String(now.getMinutes()).padStart(2,"0")}`;
+            saveIssueLog_(log);
+            // Add back to stock balance
+            const item = stockMaterials.find((m) => m.id === entry.material_id || m.name === entry.material_name);
+            if (item) {
+                item.currentBalance = getStockBalance(item) + entry.qty;
+                stockMovements.unshift({ type:"RECEIVE", material: entry.material_name, qty: entry.qty, date: entry.return_date, note:`Return from ${entry.issued_to}` });
+            }
+            showToast(`"${entry.material_name}" वापस आ गया — Stock update हो गया`, true);
+            renderStockReturnList();
+            renderStockDashboard();
+        }
+
+
         function removePendingStockItem(type, itemId) {
             if (type === "receive") pendingReceiveItems = pendingReceiveItems.filter((entry) => entry.item.id !== itemId);
             else pendingIssueItems = pendingIssueItems.filter((entry) => entry.item.id !== itemId);
@@ -9949,6 +10140,87 @@
             switchView(id);
         }
 
+        const ISSUE_PASSWORD = "GP123"; // Gatepass issuer password
+
+        function verifyIssuerPassword_() {
+            return new Promise((resolve) => {
+                const overlay = document.createElement("div");
+                overlay.style.cssText = "position:fixed; inset:0; background:rgba(0,0,0,0.55); z-index:9999; display:flex; align-items:center; justify-content:center; padding:20px;";
+                const card = document.createElement("div");
+                card.style.cssText = "background:#fff; border-radius:18px; padding:18px; width:100%; max-width:320px; box-shadow:0 12px 30px rgba(0,0,0,0.25);";
+                card.innerHTML = `
+                    <div style="font-size:13px; font-weight:900; color:#1e3a5f; text-align:center; margin-bottom:12px;">🔐 Issue करने की अनुमति</div>
+                    <div style="font-size:11px; font-weight:700; color:#64748b; text-align:center; margin-bottom:12px;">Gatepass जारी करने के लिए पासवर्ड डालें</div>
+                    <input type="password" id="issuer-pwd-input" placeholder="Issue Password..." style="width:100%; height:44px; border-radius:10px; border:1.5px solid #1e3a5f; padding:0 12px; font-size:14px; font-weight:700; outline:none; margin-bottom:12px;">
+                    <div style="display:flex; gap:10px;">
+                        <button onclick="this.closest('[style*=fixed]').remove(); arguments[0].resolve(false);" style="flex:1; height:42px; border:none; border-radius:10px; background:#e2e8f0; color:#1e293b; font-size:12px; font-weight:900;">Cancel</button>
+                        <button id="issuer-pwd-ok" style="flex:1; height:42px; border:none; border-radius:10px; background:linear-gradient(135deg,#1e3a5f,#0f172a); color:#fff; font-size:12px; font-weight:900;">OK</button>
+                    </div>`;
+                overlay.appendChild(card);
+                document.body.appendChild(overlay);
+                const check = () => {
+                    if (document.getElementById("issuer-pwd-input")?.value === ISSUE_PASSWORD) {
+                        overlay.remove(); resolve(true);
+                    } else {
+                        showToast("गलत पासवर्ड", false);
+                    }
+                };
+                document.getElementById("issuer-pwd-ok").onclick = check;
+                document.getElementById("issuer-pwd-input").onkeydown = (e) => { if (e.key === "Enter") check(); };
+                overlay.onclick = (e) => { if (e.target === overlay) { overlay.remove(); resolve(false); } };
+            });
+        }
+
+        function getNextGatepassNo_() {
+            const n = parseInt(localStorage.getItem("gatepass-counter") || "0") + 1;
+            localStorage.setItem("gatepass-counter", String(n));
+            return `GP-${String(n).padStart(4,"0")}/${new Date().getFullYear()}`;
+        }
+
+        function showGatepassModal_(gpNo, issueTo, issueDate, issueTime, returnType, expectedReturn, items, remark) {
+            const itemLines = items.map((e) => `${e.item.name}: ${e.qty} ${e.item.unit}`).join("\n");
+            const returnLabel = returnType === "returnable"
+                ? `↩️ Returnable${expectedReturn ? " | वापसी तिथि: "+expectedReturn : ""}`
+                : "🚫 Non-Returnable";
+
+            const gpText =
+`गेटपास / GATE PASS
+आदेगांव बिजली वितरण केंद्र
+लखनदोंन डिवीज़न, सर्किल सिवनी
+━━━━━━━━━━━━━━━━━━━━━
+गेटपास नं: ${gpNo}
+दिनांक: ${issueDate}  समय: ${issueTime}
+━━━━━━━━━━━━━━━━━━━━━
+जारी किया गया: ${issueTo}
+━━━━━━━━━━━━━━━━━━━━━
+सामग्री विवरण:
+${itemLines}
+━━━━━━━━━━━━━━━━━━━━━
+प्रकार: ${returnLabel}
+${remark ? "रिमार्क: " + remark : ""}
+━━━━━━━━━━━━━━━━━━━━━
+जारीकर्ता: कनिष्ठ यंत्री
+आदेगांव बिजली वितरण केंद्र`;
+
+            const encoded = encodeURIComponent(gpText);
+            const overlay = document.createElement("div");
+            overlay.style.cssText = "position:fixed; inset:0; background:rgba(0,0,0,0.6); z-index:9999; display:flex; align-items:center; justify-content:center; padding:16px; overflow-y:auto;";
+            const card = document.createElement("div");
+            card.style.cssText = "background:#fff; border-radius:18px; padding:18px; width:100%; max-width:360px; box-shadow:0 12px 30px rgba(0,0,0,0.3);";
+            card.innerHTML = `
+                <div style="background:linear-gradient(135deg,#1e3a5f,#0f172a); border-radius:12px; padding:14px; margin-bottom:14px; text-align:center;">
+                    <div style="font-size:14px; font-weight:900; color:#e2e8f0; text-transform:uppercase; margin-bottom:4px;">🧾 गेटपास जारी</div>
+                    <div style="font-size:18px; font-weight:900; color:#fbbf24;">${escapeHtml(gpNo)}</div>
+                </div>
+                <div style="background:#f8fafc; border-radius:10px; padding:12px; margin-bottom:12px; font-size:12px; font-weight:700; color:#334155; line-height:1.8; white-space:pre-wrap;">${escapeHtml(gpText)}</div>
+                <a href="https://wa.me/?text=${encoded}" target="_blank" rel="noopener" style="display:flex; align-items:center; justify-content:center; gap:8px; width:100%; height:46px; border-radius:12px; background:linear-gradient(135deg,#25D366,#128C7E); color:#fff; font-size:13px; font-weight:900; text-decoration:none; margin-bottom:8px;">📱 WhatsApp पर भेजें</a>
+                <button onclick="navigator.clipboard?.writeText(document.querySelector('[style*=white-space]').innerText).then(()=>showToast('Copy ho gaya',true))" style="width:100%; height:44px; border:none; border-radius:12px; background:linear-gradient(135deg,#3b82f6,#1d4ed8); color:#fff; font-size:12px; font-weight:900; margin-bottom:8px;">📋 Copy करें (Print/Word)</button>
+                <button onclick="this.closest('[style*=fixed]').remove()" style="width:100%; height:40px; border:none; border-radius:12px; background:#e2e8f0; color:#1e293b; font-size:12px; font-weight:900;">बंद करें</button>`;
+            overlay.appendChild(card);
+            overlay.addEventListener("click", (e) => { if (e.target === overlay) overlay.remove(); });
+            document.body.appendChild(overlay);
+        }
+
         async function submitStockDemo(type) {
             if (type === "receive") {
                 const source = document.getElementById("receive-source").value.trim();
@@ -9957,73 +10229,72 @@
                 if (!source) return showToast("Received From darj kariye", false);
                 if (!person) return showToast("Receive Person Name darj kariye", false);
                 const submitBtn = document.querySelector("#material-receive-view .stock-submit");
-                submitBtn.innerText = "Submitting...";
-                submitBtn.disabled = true;
+                submitBtn.innerText = "Submitting..."; submitBtn.disabled = true;
                 try {
                     await submitStockEntriesToSheet("receive");
                     pendingReceiveItems.forEach((entry) => {
                         entry.item.inward += entry.qty;
                         entry.item.currentBalance = getStockBalance(entry.item) + entry.qty;
-                        stockMovements.unshift({
-                            type: "RECEIVE",
-                            material: entry.item.name,
-                            qty: entry.qty,
-                            date: getCurrentDateDDMMYYYY().replace(/-/g, "/"),
-                            note: `${source} | Received By ${person}`
-                        });
+                        stockMovements.unshift({ type:"RECEIVE", material:entry.item.name, qty:entry.qty, date:getCurrentDateDDMMYYYY().replace(/-/g,"/"), note:`${source} | Received By ${person}` });
                     });
                     pendingReceiveItems = [];
                     document.getElementById("receive-source").value = "";
                     document.getElementById("receive-person").value = "";
                     resetStockSearchSelection("receive");
-                    renderStockDashboard();
-                    showToast("Receive entry list save ho gayi", true);
-                } catch (error) {
-                    showToast(error.message || "Receive submit failed", false);
-                } finally {
-                    submitBtn.innerText = "Save Receive Entry";
-                    submitBtn.disabled = false;
-                }
+                    renderStockDashboard(); refreshStockDropdowns_();
+                    showToast("Receive entry save ho gayi", true);
+                } catch(err) { showToast(err.message || "Receive submit failed", false); }
+                finally { submitBtn.innerText = "Save Receive Entry"; submitBtn.disabled = false; }
+
             } else {
-                const issueTo = document.getElementById("issue-to").value.trim();
-                const issueRemark = document.getElementById("issue-remark").value.trim();
+                // Issue — requires password + gatepass
+                const issueTo  = document.getElementById("issue-to").value.trim();
+                const remark   = document.getElementById("issue-remark").value.trim();
+                const issueDate = document.getElementById("issue-date").value || new Date().toISOString().split("T")[0];
+                const issueTime = document.getElementById("issue-time").value || `${String(new Date().getHours()).padStart(2,"0")}:${String(new Date().getMinutes()).padStart(2,"0")}`;
+                const returnType = document.getElementById("issue-returnable")?.checked ? "returnable" : "non_returnable";
+                const expectedReturn = document.getElementById("issue-expected-return")?.value || "";
+
                 if (!pendingIssueItems.length) return showToast("Pehle material list me add kariye", false);
-                if (!activeIssueDc) return showToast("Select DC Name kariye", false);
-                if (!issueTo) return showToast("Issue To Person Name darj kariye", false);
+                if (!issueTo) return showToast("किसे Issue किया — नाम ज़रूरी है", false);
                 for (const entry of pendingIssueItems) {
-                    if (getStockBalance(entry.item) <= 0) return showToast("Stock Not Available", false);
-                    if (entry.qty > getStockBalance(entry.item)) return showToast(`${entry.item.name} ka stock kam hai`, false);
+                    if (getStockBalance(entry.item) < entry.qty) return showToast(`${entry.item.name} ka stock kam hai`, false);
                 }
+
+                // Verify issuer password
+                const ok = await verifyIssuerPassword_();
+                if (!ok) return;
+
                 const submitBtn = document.querySelector("#material-issue-view .stock-submit");
-                submitBtn.innerText = "Submitting...";
-                submitBtn.disabled = true;
+                submitBtn.innerText = "Submitting..."; submitBtn.disabled = true;
                 try {
                     await submitStockEntriesToSheet("issue");
+                    const gpNo = getNextGatepassNo_();
+                    const issueDateDisplay = issueDate.split("-").reverse().join("/");
+
                     pendingIssueItems.forEach((entry) => {
                         entry.item.issue += entry.qty;
                         entry.item.currentBalance = Math.max(0, getStockBalance(entry.item) - entry.qty);
-                        stockMovements.unshift({
-                            type: "ISSUE",
-                            material: entry.item.name,
-                            qty: entry.qty,
-                            date: getCurrentDateDDMMYYYY().replace(/-/g, "/"),
-                            note: `${activeIssueDc} | Issued To ${issueTo}${issueRemark ? ` | ${issueRemark}` : ""}`
-                        });
+                        stockMovements.unshift({ type:"ISSUE", material:entry.item.name, qty:entry.qty, date:issueDateDisplay, note:`${issueTo} | GP: ${gpNo}${remark ? " | "+remark : ""}` });
                     });
+
+                    // Save to issue log
+                    addToIssueLog_(pendingIssueItems, issueTo, issueDateDisplay, issueTime, returnType, expectedReturn, remark);
+
+                    const itemsForGp = [...pendingIssueItems];
                     pendingIssueItems = [];
                     document.getElementById("issue-to").value = "";
                     document.getElementById("issue-remark").value = "";
-                    activeIssueDc = "";
-                    document.getElementById("issue-dc-label").innerText = "Select DC Name...";
+                    if (document.getElementById("issue-date")) document.getElementById("issue-date").value = "";
+                    if (document.getElementById("issue-time")) document.getElementById("issue-time").value = "";
                     resetStockSearchSelection("issue");
-                    renderStockDashboard();
-                    showToast("Issue entry list save ho gayi", true);
-                } catch (error) {
-                    showToast(error.message || "Issue submit failed", false);
-                } finally {
-                    submitBtn.innerText = "Save Issue Entry";
-                    submitBtn.disabled = false;
-                }
+                    renderStockDashboard(); refreshStockDropdowns_();
+
+                    // Show gatepass modal
+                    showGatepassModal_(gpNo, issueTo, issueDateDisplay, issueTime, returnType, expectedReturn, itemsForGp, remark);
+
+                } catch(err) { showToast(err.message || "Issue submit failed", false); }
+                finally { submitBtn.innerText = "Save Issue Entry"; submitBtn.disabled = false; }
             }
         }
 
