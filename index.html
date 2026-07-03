@@ -9629,7 +9629,7 @@
                                         <span style="font-size:9px; font-weight:900; border-radius:999px; padding:3px 10px; background:${statusBg}; color:${statusColor}; text-transform:uppercase; flex-shrink:0;">${statusText}</span>
                                     </div>
                                     <div style="background:rgba(0,0,0,0.04); border-radius:8px; padding:8px; margin-bottom:8px;">
-                                        <div style="font-size:12px; font-weight:700; color:#334155;">${escapeHtml(e.material_name)} — <strong>${e.qty} ${escapeHtml(e.unit)}</strong></div>
+                                        <div style="font-size:12px; font-weight:700; color:#334155;">${escapeHtml(e.material_name)}</div><div style="font-size:13px; font-weight:900; color:#1e293b;">मात्रा: <strong>${e.qty} ${escapeHtml(e.unit)}</strong></div>
                                         ${e.remark ? `<div style="font-size:10px; font-weight:700; color:#94a3b8; margin-top:2px;">📝 ${escapeHtml(e.remark)}</div>` : ""}
                                         ${e.returned ? `<div style="font-size:10px; font-weight:700; color:#16a34a; margin-top:2px;">वापसी: ${escapeHtml(e.return_date)} ${escapeHtml(e.return_time)}</div>` : ""}
                                         ${!e.returned && e.expected_return_date ? `<div style="font-size:10px; font-weight:700; color:#b45309; margin-top:2px;">Expected: ${escapeHtml(e.expected_return_date)}</div>` : ""}
@@ -9807,7 +9807,7 @@
             card.style.cssText = "background:#fff; border-radius:16px; padding:18px; width:100%; max-width:300px; text-align:center;";
             card.innerHTML = `
                 <div style="font-size:13px; font-weight:900; color:#991b1b; margin-bottom:8px;">🗑️ Issue Entry हटाएं?</div>
-                ${entry ? `<div style="font-size:12px; font-weight:700; color:#1e293b; margin-bottom:6px;">${escapeHtml(entry.material_name)} — ${entry.qty} ${entry.unit||""}</div>` : ""}
+                ${entry ? `<div style="font-size:12px; font-weight:700; color:#1e293b; margin-bottom:6px;">${escapeHtml(entry.material_name)} | मात्रा: ${entry.qty} ${entry.unit||""}</div>` : ""}
                 <div style="font-size:11px; font-weight:700; color:${isNonReturnable ? "#b45309" : "#475569"}; background:${isNonReturnable ? "#fef9c3" : "#f8fafc"}; border-radius:8px; padding:8px; margin-bottom:14px;">
                     ${isNonReturnable
                         ? "🚫 Non-Returnable है — हटाने पर Stock में वापस नहीं जुड़ेगा"
