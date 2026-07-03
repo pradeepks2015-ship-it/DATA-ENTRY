@@ -3473,7 +3473,7 @@
                     const unit = String(item.unit || item["UNIT"] || "Nos").trim();
                     const balanceStock = Number(item.balance_stock ?? item["BALANCE STOCK"] ?? 0) || 0;
                     if (!name) return null;
-                    return { id: String(item.id || `M${String(index+1).padStart(3,"0")}`), name, unit, currentBalance: balanceStock, inward: 0, issue: 0, min: 0 };
+                    return { id: String(item.id || `M${String(index+1).padStart(3,"0")}`), name, unit, currentBalance: balanceStock, originalBalance: balanceStock, inward: 0, issue: 0, min: 0 };
                 }).filter(Boolean);
 
                 // Deduplicate by name — keep highest balance if duplicates exist
@@ -9580,13 +9580,13 @@
                                             <div style="font-size:9px; font-weight:700; color:#94a3b8;">${escapeHtml(item.unit)}</div>
                                         </div>
                                         <div style="background:rgba(37,99,235,0.08); border-radius:8px; padding:6px; text-align:center;">
-                                            <div style="font-size:9px; font-weight:900; color:#1d4ed8; text-transform:uppercase; margin-bottom:2px;">Balance</div>
+                                            <div style="font-size:9px; font-weight:900; color:#1d4ed8; text-transform:uppercase; margin-bottom:2px;">बाकी</div>
                                             <div style="font-size:18px; font-weight:900; color:#2563eb; line-height:1;">${bal}</div>
                                             <div style="font-size:9px; font-weight:700; color:#94a3b8;">${escapeHtml(item.unit)}</div>
                                         </div>
                                         <div onclick="editMaterialBalance('${item.id}')" style="background:${bg}; border:1.5px solid ${border}; border-radius:8px; padding:6px; text-align:center; cursor:pointer;">
                                             <div style="font-size:9px; font-weight:900; color:${color}; text-transform:uppercase; margin-bottom:2px;">Total ✏️</div>
-                                            <div style="font-size:18px; font-weight:900; color:${color}; line-height:1;">${bal}</div>
+                                            <div style="font-size:18px; font-weight:900; color:${color}; line-height:1;">${item.originalBalance ?? bal}</div>
                                             <div style="font-size:9px; font-weight:700; color:#94a3b8;">${escapeHtml(item.unit)}</div>
                                         </div>
                                     </div>
@@ -9732,7 +9732,11 @@
                 const updates = [];
                 stockMaterials.forEach((item) => {
                     const val = parseFloat(document.getElementById(`bulk-${item.id}`)?.value);
-                    if (!isNaN(val) && val >= 0) { item.currentBalance = val; updates.push({ name: item.name, bal: val }); }
+                    if (!isNaN(val) && val >= 0) {
+                        item.currentBalance = val;
+                        item.originalBalance = val; // cap for return
+                        updates.push({ name: item.name, bal: val });
+                    }
                 });
                 overlay.remove();
                 // Single API call with all updates — much faster than one call per material
@@ -10207,7 +10211,7 @@
                 overlay.innerHTML = `
                     <div style="background:#fff; border-radius:18px; padding:18px; width:100%; max-width:320px; box-shadow:0 12px 30px rgba(0,0,0,0.25);">
                         <div style="font-size:14px; font-weight:900; color:#15803d; margin-bottom:4px;">↩️ वापसी — ${escapeHtml(entry.material_name)}</div>
-                        <div style="font-size:11px; font-weight:700; color:#64748b; margin-bottom:12px;">Issue किया था: <strong>${entry.qty} ${entry.unit||""}</strong> को <strong>${escapeHtml(entry.issued_to)}</strong></div>
+                        <div style="font-size:11px; font-weight:700; color:#64748b; margin-bottom:12px;">Issue: <strong>${entry.qty} ${entry.unit||""}</strong> → <strong>${escapeHtml(entry.issued_to)}</strong></div>
                         <div style="font-size:11px; font-weight:700; color:#64748b; margin-bottom:10px;">वापस आई मात्रा (अधिकतम ${maxReturn} ${entry.unit||""}):</div>
                         <input type="number" id="return-qty-input" min="1" max="${maxReturn}" value="${maxReturn}" style="width:100%; height:46px; border-radius:12px; border:2px solid #16a34a; padding:0 14px; font-size:18px; font-weight:900; text-align:center; outline:none; margin-bottom:8px;">
                         <div style="font-size:10px; font-weight:700; color:#94a3b8; margin-bottom:10px; text-align:center;">Current Stock: ${currentBal} ${entry.unit||""}</div>
@@ -10242,7 +10246,9 @@
             saveIssueLog_(log);
 
             if (item) {
-                item.currentBalance = getStockBalance(item) + confirmed;
+                const maxAllowed = item.originalBalance || item.currentBalance;
+                const newBal = Math.min(maxAllowed, getStockBalance(item) + confirmed);
+                item.currentBalance = newBal;
                 stockMovements.unshift({ type:"RECEIVE", material: entry.material_name, qty: confirmed, date: entry.return_date, note:`Return from ${entry.issued_to}` });
                 try {
                     const payload = new URLSearchParams();
