@@ -3470,42 +3470,44 @@
 
         async function loadStockMaterialsData() {
             try {
-                const rawData = await loadRemoteJson(`${stockSubmitScriptUrl}?module=stock&action=getMasterStock`);
-                const rows = Array.isArray(rawData) ? rawData : Array.isArray(rawData?.data) ? rawData.data : [];
-                const parsedMaterials = rows.map((item, index) => {
-                    const name = String(item.material_name || item["MATERIAL NAME"] || item.name || "").trim();
-                    const unit = String(item.unit || item["UNIT"] || "Nos").trim();
-                    const balanceStock = Number(item.balance_stock ?? item["BALANCE STOCK"] ?? 0) || 0;
-                    if (!name) return null;
-                    return { id: String(item.id || `M${String(index+1).padStart(3,"0")}`), name, unit, currentBalance: balanceStock, originalBalance: balanceStock, inward: 0, issue: 0, min: 0 };
-                }).filter(Boolean);
+                // 8 second timeout — agar sheet respond na kare toh local data use karo
+                const fetchWithTimeout = (url, ms) => {
+                    const controller = new AbortController();
+                    const timer = setTimeout(() => controller.abort(), ms);
+                    return fetch(url, { signal: controller.signal }).finally(() => clearTimeout(timer));
+                };
 
-                // Deduplicate by name — keep highest balance if duplicates exist
-                const seen = {};
-                const dedupedMaterials = [];
-                parsedMaterials.forEach((item) => {
-                    const key = item.name.trim().toLowerCase();
-                    if (seen[key] !== undefined) {
-                        // Keep the one with higher balance
-                        if (item.currentBalance > dedupedMaterials[seen[key]].currentBalance) {
-                            dedupedMaterials[seen[key]] = item;
-                        }
-                    } else {
-                        seen[key] = dedupedMaterials.length;
-                        dedupedMaterials.push(item);
+                let rows = [];
+                try {
+                    const rawData = await loadRemoteJson(`${stockSubmitScriptUrl}?module=stock&action=getMasterStock`);
+                    rows = Array.isArray(rawData) ? rawData : Array.isArray(rawData?.data) ? rawData.data : [];
+                } catch(_) {}
+
+                if (rows.length) {
+                    const seen = {};
+                    const deduped = [];
+                    rows.forEach((item, index) => {
+                        const name = String(item.material_name || item["MATERIAL NAME"] || item.name || "").trim();
+                        if (!name) return;
+                        const unit = String(item.unit || item["UNIT"] || "Nos").trim();
+                        const bal  = Number(item.balance_stock ?? item["BALANCE STOCK"] ?? 0) || 0;
+                        const key  = name.toLowerCase();
+                        const obj  = { id: `M${String(index+1).padStart(3,"0")}`, name, unit, currentBalance: bal, originalBalance: bal, inward: 0, issue: 0, min: 0 };
+                        if (seen[key] === undefined) { seen[key] = deduped.length; deduped.push(obj); }
+                        else if (bal > deduped[seen[key]].currentBalance) deduped[seen[key]] = obj;
+                    });
+                    if (deduped.length) {
+                        stockMaterials = deduped;
+                        pendingReceiveItems = []; pendingIssueItems = [];
+                        selectedStockReceiveItem = null; selectedStockIssueItem = null;
                     }
-                });
-                if (dedupedMaterials.length) {
-                    stockMaterials = dedupedMaterials;
-                    pendingReceiveItems = []; pendingIssueItems = [];
-                    selectedStockReceiveItem = null; selectedStockIssueItem = null;
                 }
-                // Load transactions from cloud
+
+                // Load transactions
                 try {
                     const txRaw = await loadRemoteJson(`${stockSubmitScriptUrl}?module=stock&action=getTransactions`);
                     const txRows = Array.isArray(txRaw) ? txRaw : Array.isArray(txRaw?.data) ? txRaw.data : [];
                     if (txRows.length) {
-                        // stockMovements for today's activity panel
                         stockMovements = txRows.map((row) => {
                             const items = (() => { try { return JSON.parse(row.items_json || "[]"); } catch(_) { return []; } })();
                             const isRec = String(row.type || "").toUpperCase() === "RECEIVE";
@@ -3519,49 +3521,41 @@
                             }));
                         }).flat().reverse();
 
-                        // Build cloud issue log entries
-                        const cloudLog = txRows
-                            .filter((row) => String(row.type || "").toUpperCase() === "ISSUE")
+                        const cloudLog = txRows.filter((row) => String(row.type||"").toUpperCase() === "ISSUE")
                             .map((row) => {
-                                const items = (() => { try { return JSON.parse(row.items_json || "[]"); } catch(_) { return []; } })();
-                                const ts = String(row.timestamp || "");
+                                const items = (() => { try { return JSON.parse(row.items_json||"[]"); } catch(_) { return []; } })();
+                                const ts = String(row.timestamp||"");
                                 const dateStr = ts.slice(0,10).split("-").reverse().join("/");
                                 const timeStr = ts.slice(11,16);
                                 return items.map((item, idx) => ({
                                     id: `cloud_${ts}_${idx}`,
-                                    material_name: item.material_name || "",
-                                    material_id: "",
-                                    unit: item.unit || "",
-                                    qty: Number(item.qty) || 0,
-                                    issued_to: row.issue_to_person_name || "",
-                                    issue_date: dateStr,
-                                    issue_time: timeStr,
-                                    return_type: row.return_type || "returnable",
-                                    expected_return_date: row.expected_return_date || "",
-                                    remark: row.remark || "",
-                                    returned: String(row.returned||"").toLowerCase() === "true",
-                                    return_date: row.return_date || "",
-                                    return_time: row.return_time || "",
+                                    material_name: item.material_name||"", material_id: "",
+                                    unit: item.unit||"", qty: Number(item.qty)||0,
+                                    issued_to: row.issue_to_person_name||"",
+                                    issue_date: dateStr, issue_time: timeStr,
+                                    return_type: row.return_type||"returnable",
+                                    expected_return_date: row.expected_return_date||"",
+                                    remark: row.remark||"",
+                                    returned: String(row.returned||"").toLowerCase()==="true",
+                                    return_date: row.return_date||"", return_time: row.return_time||"",
                                     _from_cloud: true
                                 }));
                             }).flat();
-
-                        // Merge with local (local return status takes priority)
                         const localLog = getIssueLog_().filter((e) => !e._from_cloud);
                         const merged = [...localLog];
                         cloudLog.forEach((ce) => {
-                            const exists = merged.some((le) =>
-                                le.id === ce.id ||
-                                (le.material_name === ce.material_name && le.issued_to === ce.issued_to && le.issue_date === ce.issue_date && le.qty === ce.qty)
-                            );
+                            const exists = merged.some((le) => le.id===ce.id || (le.material_name===ce.material_name && le.issued_to===ce.issued_to && le.issue_date===ce.issue_date && le.qty===ce.qty));
                             if (!exists) merged.push(ce);
                         });
                         saveIssueLog_(merged);
                     }
                 } catch(_) {}
-                renderStockDashboard();
-                refreshStockDropdowns_();
+
             } catch(_) {}
+
+            // Always render — even if cloud failed, show local data
+            renderStockDashboard();
+            refreshStockDropdowns_();
         }
 
         function getCurrentPositionAsync() {
