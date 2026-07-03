@@ -889,10 +889,9 @@
 
         <main id="stock-material-view" class="view">
             <div class="stock-wrap">
-                <div class="stock-top-actions" style="grid-template-columns:1fr 1fr 1fr;">
+                <div class="stock-top-actions" style="grid-template-columns:1fr 1fr;">
                     <button class="stock-top-btn form-green" onclick="openStockSection('material-receive')">📥 Receive</button>
                     <button class="stock-top-btn form-red" onclick="openStockSection('material-issue')">📤 Issue</button>
-                    <button class="stock-top-btn" style="background:linear-gradient(135deg,#f59e0b,#b45309);" onclick="openStockSection('stock-return'); renderStockReturnList();">↩️ Return</button>
                 </div>
                 <div id="stock-dashboard-content"></div>
             </div>
@@ -10877,7 +10876,8 @@ ${remark ? "रिमार्क: " + remark : ""}
                     setDefaultMisDates_("peakload-mis-from-date", "peakload-mis-to-date");
                 }
                 if (id === "stock-material") {
-                    setDefaultMisDates_("stock-mis-from-date", "stock-mis-to-date");
+                    // Reload fresh data from cloud every time tab is opened
+                    loadStockMaterialsData();
                 }
                 if (id === "stm-complaint") {
                     initStmComplaintSignup();
