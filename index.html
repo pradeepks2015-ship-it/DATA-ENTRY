@@ -9565,7 +9565,6 @@
                                 const issLog = getIssueLog_().filter((e) => e.material_name === item.name && !e.returned);
                                 const totalIssued = issLog.reduce((s, e) => s + (Number(e.qty)||0), 0);
                                 // Total = balance + currently issued (not returned)
-                                const total = bal + totalIssued;
                                 const color  = bal <= 0 ? "#ef4444" : bal <= (item.min||0) + 5 ? "#f59e0b" : "#16a34a";
                                 const bg     = bal <= 0 ? "#fef2f2" : bal <= (item.min||0) + 5 ? "#fffbeb" : "#f0fdf4";
                                 const border = bal <= 0 ? "#fca5a5" : bal <= (item.min||0) + 5 ? "#fcd34d" : "#86efac";
@@ -9587,7 +9586,7 @@
                                         </div>
                                         <div onclick="editMaterialBalance('${item.id}')" style="background:${bg}; border:1.5px solid ${border}; border-radius:8px; padding:6px; text-align:center; cursor:pointer;">
                                             <div style="font-size:9px; font-weight:900; color:${color}; text-transform:uppercase; margin-bottom:2px;">Total ✏️</div>
-                                            <div style="font-size:18px; font-weight:900; color:${color}; line-height:1;">${total}</div>
+                                            <div style="font-size:18px; font-weight:900; color:${color}; line-height:1;">${bal}</div>
                                             <div style="font-size:9px; font-weight:700; color:#94a3b8;">${escapeHtml(item.unit)}</div>
                                         </div>
                                     </div>
@@ -10546,11 +10545,19 @@ ${remark ? "रिमार्क: " + remark : ""}
                 submitBtn.innerText = "Submitting..."; submitBtn.disabled = true;
                 try {
                     await submitStockEntriesToSheet("receive");
-                    pendingReceiveItems.forEach((entry) => {
+                    for (const entry of pendingReceiveItems) {
                         entry.item.inward += entry.qty;
                         entry.item.currentBalance = getStockBalance(entry.item) + entry.qty;
                         stockMovements.unshift({ type:"RECEIVE", material:entry.item.name, qty:entry.qty, date:getCurrentDateDDMMYYYY().replace(/-/g,"/"), note:`${source} | Received By ${person}` });
-                    });
+                        // Update balance in cloud sheet so all users see updated Total
+                        try {
+                            const bp = new URLSearchParams();
+                            bp.append("module","stock"); bp.append("action","updateBalance");
+                            bp.append("material_name", entry.item.name);
+                            bp.append("balance_stock", String(entry.item.currentBalance));
+                            await fetch(stockSubmitScriptUrl, { method:"POST", headers:{"Content-Type":"application/x-www-form-urlencoded;charset=UTF-8"}, body: bp.toString() });
+                        } catch(_) {}
+                    }
                     pendingReceiveItems = [];
                     document.getElementById("receive-source").value = "";
                     document.getElementById("receive-person").value = "";
