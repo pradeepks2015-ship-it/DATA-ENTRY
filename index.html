@@ -3471,13 +3471,28 @@
                 const parsedMaterials = rows.map((item, index) => {
                     const name = String(item.material_name || item["MATERIAL NAME"] || item.name || "").trim();
                     const unit = String(item.unit || item["UNIT"] || "Nos").trim();
-                    const openingStock = Number(item.opening_stock ?? item["OPENING STOCK"] ?? 0) || 0;
-                    const balanceStock = Number(item.balance_stock ?? item["BALANCE STOCK"] ?? openingStock) || 0;
+                    const balanceStock = Number(item.balance_stock ?? item["BALANCE STOCK"] ?? 0) || 0;
                     if (!name) return null;
-                    return { id: String(item.id || `M${String(index+1).padStart(3,"0")}`), name, unit, opening: openingStock, currentBalance: balanceStock, inward: 0, issue: 0, min: 0 };
+                    return { id: String(item.id || `M${String(index+1).padStart(3,"0")}`), name, unit, currentBalance: balanceStock, inward: 0, issue: 0, min: 0 };
                 }).filter(Boolean);
-                if (parsedMaterials.length) {
-                    stockMaterials = parsedMaterials;
+
+                // Deduplicate by name — keep highest balance if duplicates exist
+                const seen = {};
+                const dedupedMaterials = [];
+                parsedMaterials.forEach((item) => {
+                    const key = item.name.trim().toLowerCase();
+                    if (seen[key] !== undefined) {
+                        // Keep the one with higher balance
+                        if (item.currentBalance > dedupedMaterials[seen[key]].currentBalance) {
+                            dedupedMaterials[seen[key]] = item;
+                        }
+                    } else {
+                        seen[key] = dedupedMaterials.length;
+                        dedupedMaterials.push(item);
+                    }
+                });
+                if (dedupedMaterials.length) {
+                    stockMaterials = dedupedMaterials;
                     pendingReceiveItems = []; pendingIssueItems = [];
                     selectedStockReceiveItem = null; selectedStockIssueItem = null;
                 }
@@ -9699,7 +9714,7 @@
             overlay.style.cssText = "position:fixed; inset:0; background:rgba(0,0,0,0.6); z-index:9999; display:flex; align-items:flex-start; justify-content:center; padding:16px; overflow-y:auto;";
             const rows = stockMaterials.map((item) => `
                 <div style="display:flex; align-items:center; gap:10px; margin-bottom:8px;">
-                    <div style="flex:1; font-size:12px; font-weight:900; color:#1e293b;">${escapeHtml(item.name)}<br><span style="font-size:10px; font-weight:700; color:#64748b;">${escapeHtml(item.unit)}</span></div>
+                    <div style="flex:1; font-size:13px; font-weight:900; color:#1e293b;">${escapeHtml(item.name)}<br><span style="font-size:10px; font-weight:700; color:#94a3b8;">${escapeHtml(item.unit)}</span></div>
                     <input type="number" min="0" value="${getStockBalance(item)}" id="bulk-${item.id}" style="width:90px; height:38px; border-radius:8px; border:1.5px solid #0284c7; padding:0 10px; font-size:14px; font-weight:900; text-align:center; outline:none;">
                 </div>`).join("");
             overlay.innerHTML = `
