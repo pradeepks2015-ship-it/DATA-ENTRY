@@ -10898,7 +10898,9 @@ ${remark ? "रिमार्क: " + remark : ""}
                     setDefaultMisDates_("peakload-mis-from-date", "peakload-mis-to-date");
                 }
                 if (id === "stock-material") {
-                    // Reload fresh data from cloud every time tab is opened
+                    // Show loading immediately, then fetch fresh data
+                    const dash = document.getElementById("stock-dashboard-content");
+                    if (dash) dash.innerHTML = `<div style="text-align:center; padding:30px; font-size:13px; font-weight:800; color:#0284c7;">⏳ Loading...</div>`;
                     loadStockMaterialsData();
                 }
                 if (id === "stm-complaint") {
