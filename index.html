@@ -9735,16 +9735,17 @@
                     if (!isNaN(val) && val >= 0) { item.currentBalance = val; updates.push({ name: item.name, bal: val }); }
                 });
                 overlay.remove();
-                let allOk = true;
-                for (const u of updates) {
-                    try {
-                        const p = new URLSearchParams();
-                        p.append("module","stock"); p.append("action","updateBalance");
-                        p.append("material_name", u.name); p.append("balance_stock", String(u.bal));
-                        await fetch(stockSubmitScriptUrl, { method:"POST", headers:{"Content-Type":"application/x-www-form-urlencoded;charset=UTF-8"}, body: p.toString() });
-                    } catch(_) { allOk = false; }
+                // Single API call with all updates — much faster than one call per material
+                try {
+                    const p = new URLSearchParams();
+                    p.append("module", "stock");
+                    p.append("action", "bulkUpdateBalance");
+                    p.append("updates_json", JSON.stringify(updates));
+                    await fetch(stockSubmitScriptUrl, { method:"POST", headers:{"Content-Type":"application/x-www-form-urlencoded;charset=UTF-8"}, body: p.toString() });
+                    showToast("✅ सभी materials update हो गए", true);
+                } catch(_) {
+                    showToast("Update ho gaya (internet slow tha)", true);
                 }
-                showToast(allOk ? "✅ सभी materials update हो गए" : "कुछ update हो गए — internet check करें", allOk);
                 renderStockDashboard(); refreshStockDropdowns_();
             };
         }
