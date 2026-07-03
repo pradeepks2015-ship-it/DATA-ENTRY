@@ -9516,7 +9516,7 @@
             if (item && typeof item.currentBalance === "number" && !Number.isNaN(item.currentBalance)) {
                 return item.currentBalance;
             }
-            return item.opening + item.inward - item.issue;
+            return item.inward - item.issue;
         }
 
         function getStockStatus(item) {
@@ -9538,29 +9538,40 @@
                             <div style="font-size:13px; font-weight:900; color:#14532d; text-transform:uppercase; letter-spacing:0.5px;">📦 उपलब्ध सामग्री</div>
                         </div>
                         <div style="display:flex; gap:6px;">
-                            <button onclick="showBulkStockUpdate()" style="border:none; background:#0284c7; color:#fff; border-radius:8px; padding:6px 10px; font-size:11px; font-weight:900; cursor:pointer;">📝 सब Update</button>
+                            <button onclick="showBulkStockUpdate()" style="border:none; background:#0284c7; color:#fff; border-radius:8px; padding:6px 10px; font-size:11px; font-weight:900; cursor:pointer;">📝 All Update</button>
                             <button onclick="showAddMaterialModal()" style="border:none; background:#16a34a; color:#fff; border-radius:8px; padding:6px 10px; font-size:11px; font-weight:900; cursor:pointer;">➕ जोड़ें</button>
                         </div>
                     </div>
                     ${stockMaterials.length === 0
-                        ? `<div style="text-align:center; padding:20px; background:#f8fafc; border-radius:12px; font-size:12px; font-weight:700; color:#64748b; border:2px dashed #e2e8f0;">कोई material नहीं मिला।<br>नया material जोड़ें।</div>`
-                        : `<div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
+                        ? `<div style="text-align:center; padding:20px; background:#f8fafc; border-radius:12px; font-size:12px; font-weight:700; color:#64748b; border:2px dashed #e2e8f0;">कोई material नहीं मिला।</div>`
+                        : `<div style="display:flex; flex-direction:column; gap:8px;">
                             ${stockMaterials.map((item) => {
-                                const bal = getStockBalance(item);
-                                const pct = item.opening > 0 ? Math.min(100, Math.round(bal / item.opening * 100)) : (bal > 0 ? 100 : 0);
-                                const color = bal <= 0 ? "#ef4444" : bal <= (item.min||0) + 5 ? "#f59e0b" : "#16a34a";
-                                const bg = bal <= 0 ? "#fef2f2" : bal <= (item.min||0) + 5 ? "#fffbeb" : "#f0fdf4";
+                                const bal  = getStockBalance(item);
+                                const iss  = item.issue  || 0;
+                                const color  = bal <= 0 ? "#ef4444" : bal <= (item.min||0) + 5 ? "#f59e0b" : "#16a34a";
+                                const bg     = bal <= 0 ? "#fef2f2" : bal <= (item.min||0) + 5 ? "#fffbeb" : "#f0fdf4";
                                 const border = bal <= 0 ? "#fca5a5" : bal <= (item.min||0) + 5 ? "#fcd34d" : "#86efac";
-                                return `<div style="background:${bg}; border:1.5px solid ${border}; border-radius:12px; padding:10px; position:relative;">
-                                    <div style="position:absolute; top:6px; right:6px; display:flex; gap:4px;">
-                                        <button onclick="editMaterialBalance('${item.id}')" style="border:none; background:rgba(37,99,235,0.1); color:#1d4ed8; border-radius:6px; width:22px; height:22px; font-size:11px; cursor:pointer; padding:0;">✏️</button>
-                                        <button onclick="deleteStockMaterial('${item.id}')" style="border:none; background:rgba(239,68,68,0.1); color:#ef4444; border-radius:6px; width:22px; height:22px; font-size:11px; cursor:pointer; padding:0;">🗑</button>
+                                return `<div style="background:${bg}; border:1.5px solid ${border}; border-radius:14px; padding:12px;">
+                                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+                                        <div style="font-size:13px; font-weight:900; color:#1e293b;">${escapeHtml(item.name)}</div>
+                                        <button onclick="deleteStockMaterial('${item.id}')" style="border:none; background:rgba(239,68,68,0.12); color:#ef4444; border-radius:6px; width:26px; height:26px; font-size:13px; cursor:pointer; padding:0; flex-shrink:0;">🗑</button>
                                     </div>
-                                    <div style="font-size:11px; font-weight:900; color:#1e293b; margin-bottom:2px; padding-right:52px; line-height:1.3;">${escapeHtml(item.name)}</div>
-                                    <div style="font-size:20px; font-weight:900; color:${color}; line-height:1;">${bal}</div>
-                                    <div style="font-size:10px; font-weight:700; color:#64748b; margin-bottom:6px;">${escapeHtml(item.unit)}</div>
-                                    <div style="background:#e2e8f0; border-radius:999px; height:4px;">
-                                        <div style="background:${color}; border-radius:999px; height:4px; width:${pct}%; transition:width 0.3s;"></div>
+                                    <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:6px;">
+                                        <div style="background:rgba(239,68,68,0.08); border-radius:8px; padding:6px; text-align:center;">
+                                            <div style="font-size:9px; font-weight:900; color:#b91c1c; text-transform:uppercase; margin-bottom:2px;">Issue</div>
+                                            <div style="font-size:18px; font-weight:900; color:#ef4444; line-height:1;">${iss}</div>
+                                            <div style="font-size:9px; font-weight:700; color:#94a3b8;">${escapeHtml(item.unit)}</div>
+                                        </div>
+                                        <div style="background:rgba(37,99,235,0.08); border-radius:8px; padding:6px; text-align:center;">
+                                            <div style="font-size:9px; font-weight:900; color:#1d4ed8; text-transform:uppercase; margin-bottom:2px;">Balance</div>
+                                            <div style="font-size:18px; font-weight:900; color:#2563eb; line-height:1;">${bal}</div>
+                                            <div style="font-size:9px; font-weight:700; color:#94a3b8;">${escapeHtml(item.unit)}</div>
+                                        </div>
+                                        <div onclick="editMaterialBalance('${item.id}')" style="background:${bg}; border:1.5px solid ${border}; border-radius:8px; padding:6px; text-align:center; cursor:pointer;">
+                                            <div style="font-size:9px; font-weight:900; color:${color}; text-transform:uppercase; margin-bottom:2px;">Total ✏️</div>
+                                            <div style="font-size:18px; font-weight:900; color:${color}; line-height:1;">${bal}</div>
+                                            <div style="font-size:9px; font-weight:700; color:#94a3b8;">${escapeHtml(item.unit)}</div>
+                                        </div>
                                     </div>
                                 </div>`;
                             }).join("")}
