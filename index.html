@@ -1502,7 +1502,7 @@
             { id: "M011", name: "DTR (Transformer)",  unit: "Nos",   opening: 0, currentBalance: 0, inward: 0, issue: 0, min: 1  },
             { id: "M012", name: "Stay Set Complete",  unit: "Nos",   opening: 0, currentBalance: 0, inward: 0, issue: 0, min: 4  }
         ];
-        let stockMovements = [];
+        let stockMovements = []; localStorage.removeItem("stock-movements-cache");
 
         let activeDiv = "", activeDC = "", activeGrad = "bg-teal-grad", summaryMode = "DAILY", summaryModule = "MOBILE", activeViewLevel = "", currentData = null, pendingLevel = "", dcCacheRaw = {}, dcCacheRows = {}, uiListSummary = [], grandTC = 0, grandTU = 0;
         let selectedStockReceiveItem = null, selectedStockIssueItem = null, pendingReceiveItems = [], pendingIssueItems = [];
@@ -1991,10 +1991,18 @@
                     }
                 } catch (e) {}
             });
-            // Clear ALL issue/return log entries
-            (function clearAllIssueLog() {
+            // Reset all stock data to zero
+            (function resetAllStockData() {
                 try {
                     localStorage.setItem("stock-issue-log", "[]");
+                    // Reset all material balances to 0
+                    stockMaterials.forEach((m) => {
+                        m.currentBalance = 0;
+                        m.originalBalance = 0;
+                        m.inward = 0;
+                        m.issue = 0;
+                    });
+                    stockMovements = [];
                 } catch(_) {}
             })();
             loadStockMaterialsData();
