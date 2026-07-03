@@ -1991,14 +1991,10 @@
                     }
                 } catch (e) {}
             });
-            // Clear today's issue log entries (user instruction: aaj ki entries nil karo)
-            (function clearTodayIssueLog() {
+            // Clear ALL issue/return log entries
+            (function clearAllIssueLog() {
                 try {
-                    const today = new Date();
-                    const todayStr = `${String(today.getDate()).padStart(2,"0")}/${String(today.getMonth()+1).padStart(2,"0")}/${today.getFullYear()}`;
-                    const log = JSON.parse(localStorage.getItem("stock-issue-log") || "[]");
-                    const filtered = log.filter((e) => e.issue_date !== todayStr);
-                    localStorage.setItem("stock-issue-log", JSON.stringify(filtered));
+                    localStorage.setItem("stock-issue-log", "[]");
                 } catch(_) {}
             })();
             loadStockMaterialsData();
@@ -9800,27 +9796,37 @@
             };
         }
         function deleteIssueLogEntry(logId) {
+            const entry = getIssueLog_().find((e) => e.id === logId);
+            const isNonReturnable = entry && entry.return_type === "non_returnable";
 
-
+            document.getElementById("del-mat-overlay")?.remove();
             const overlay = document.createElement("div");
+            overlay.id = "del-mat-overlay";
             overlay.style.cssText = "position:fixed; inset:0; background:rgba(0,0,0,0.5); z-index:9999; display:flex; align-items:center; justify-content:center; padding:20px;";
             const card = document.createElement("div");
             card.style.cssText = "background:#fff; border-radius:16px; padding:18px; width:100%; max-width:300px; text-align:center;";
             card.innerHTML = `
-                <div style="font-size:13px; font-weight:900; color:#991b1b; margin-bottom:10px;">🗑️ Issue Entry हटाएं?</div>
-                <div style="font-size:12px; font-weight:700; color:#475569; margin-bottom:16px;">यह entry issue log से हट जाएगी।<br>Stock balance प्रभावित नहीं होगा।</div>
+                <div style="font-size:13px; font-weight:900; color:#991b1b; margin-bottom:8px;">🗑️ Issue Entry हटाएं?</div>
+                ${entry ? `<div style="font-size:12px; font-weight:700; color:#1e293b; margin-bottom:6px;">${escapeHtml(entry.material_name)} — ${entry.qty} ${entry.unit||""}</div>` : ""}
+                <div style="font-size:11px; font-weight:700; color:${isNonReturnable ? "#b45309" : "#475569"}; background:${isNonReturnable ? "#fef9c3" : "#f8fafc"}; border-radius:8px; padding:8px; margin-bottom:14px;">
+                    ${isNonReturnable
+                        ? "🚫 Non-Returnable है — हटाने पर Stock में वापस नहीं जुड़ेगा"
+                        : "Stock balance प्रभावित नहीं होगा।"}
+                </div>
                 <div style="display:flex; gap:10px;">
-                    <button onclick="this.closest('[style*=fixed]').remove()" style="flex:1; height:40px; border:none; border-radius:10px; background:#e2e8f0; color:#1e293b; font-size:12px; font-weight:900;">Cancel</button>
+                    <button id="del-log-cancel" style="flex:1; height:40px; border:none; border-radius:10px; background:#e2e8f0; color:#1e293b; font-size:12px; font-weight:900;">Cancel</button>
                     <button id="del-log-confirm" style="flex:1; height:40px; border:none; border-radius:10px; background:#ef4444; color:#fff; font-size:12px; font-weight:900;">हाँ, हटाएं</button>
                 </div>`;
             overlay.appendChild(card);
             overlay.addEventListener("click", (e) => { if (e.target === overlay) overlay.remove(); });
             document.body.appendChild(overlay);
+            document.getElementById("del-log-cancel").onclick = () => overlay.remove();
             document.getElementById("del-log-confirm").onclick = () => {
                 overlay.remove();
+                // Remove from log ONLY — do NOT touch stockMaterials balance
                 const log = getIssueLog_().filter((e) => e.id !== logId);
                 saveIssueLog_(log);
-                showToast("Entry हट गई", true);
+                showToast("Entry हट गई — Stock balance unchanged", true);
                 renderStockDashboard();
             };
         }
