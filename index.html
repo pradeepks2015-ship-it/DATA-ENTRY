@@ -1490,18 +1490,18 @@
 
         const shmsCsvUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTbq-yne90yg9Vn8eylxM3zKMfZjPLlVhca3JhsjAzMlcm6MAVl8vAA-xXVgZI_XjWQBHyjB36YO1Cz/pub?output=csv";
         let stockMaterials = [
-            { id: "M001", name: "Pin Insulator", unit: "Nos", opening: 0, inward: 0, issue: 0, min: 10 },
-            { id: "M002", name: "Disc Insulator", unit: "Nos", opening: 0, inward: 0, issue: 0, min: 10 },
-            { id: "M003", name: "रस्सा (Rope)", unit: "Nos", opening: 0, inward: 0, issue: 0, min: 2 },
-            { id: "M004", name: "Discharge Rod", unit: "Nos", opening: 0, inward: 0, issue: 0, min: 2 },
-            { id: "M005", name: "Hand Gloves", unit: "Pair", opening: 0, inward: 0, issue: 0, min: 4 },
-            { id: "M006", name: "Torch", unit: "Nos", opening: 0, inward: 0, issue: 0, min: 2 },
-            { id: "M007", name: "Lightning Arrester", unit: "Nos", opening: 0, inward: 0, issue: 0, min: 5 },
-            { id: "M008", name: "Neon Tester", unit: "Nos", opening: 0, inward: 0, issue: 0, min: 2 },
-            { id: "M009", name: "Conductor", unit: "Kg", opening: 0, inward: 0, issue: 0, min: 50 },
-            { id: "M010", name: "Cable", unit: "Meter", opening: 0, inward: 0, issue: 0, min: 100 },
-            { id: "M011", name: "DTR (Transformer)", unit: "Nos", opening: 0, inward: 0, issue: 0, min: 1 },
-            { id: "M012", name: "Stay Set Complete", unit: "Nos", opening: 0, inward: 0, issue: 0, min: 4 }
+            { id: "M001", name: "Pin Insulator",      unit: "Nos",   opening: 0, currentBalance: 0, inward: 0, issue: 0, min: 10 },
+            { id: "M002", name: "Disc Insulator",     unit: "Nos",   opening: 0, currentBalance: 0, inward: 0, issue: 0, min: 10 },
+            { id: "M003", name: "रस्सा (Rope)",        unit: "Nos",   opening: 0, currentBalance: 0, inward: 0, issue: 0, min: 2  },
+            { id: "M004", name: "Discharge Rod",      unit: "Nos",   opening: 0, currentBalance: 0, inward: 0, issue: 0, min: 2  },
+            { id: "M005", name: "Hand Gloves",        unit: "Pair",  opening: 0, currentBalance: 0, inward: 0, issue: 0, min: 4  },
+            { id: "M006", name: "Torch",              unit: "Nos",   opening: 0, currentBalance: 0, inward: 0, issue: 0, min: 2  },
+            { id: "M007", name: "Lightning Arrester", unit: "Nos",   opening: 0, currentBalance: 0, inward: 0, issue: 0, min: 5  },
+            { id: "M008", name: "Neon Tester",        unit: "Nos",   opening: 0, currentBalance: 0, inward: 0, issue: 0, min: 2  },
+            { id: "M009", name: "Conductor",          unit: "Kg",    opening: 0, currentBalance: 0, inward: 0, issue: 0, min: 50 },
+            { id: "M010", name: "Cable",              unit: "Meter", opening: 0, currentBalance: 0, inward: 0, issue: 0, min: 100},
+            { id: "M011", name: "DTR (Transformer)",  unit: "Nos",   opening: 0, currentBalance: 0, inward: 0, issue: 0, min: 1  },
+            { id: "M012", name: "Stay Set Complete",  unit: "Nos",   opening: 0, currentBalance: 0, inward: 0, issue: 0, min: 4  }
         ];
         let stockMovements = [];
 
@@ -9527,7 +9527,10 @@
                             <div style="width:4px; height:20px; background:#16a34a; border-radius:2px;"></div>
                             <div style="font-size:13px; font-weight:900; color:#14532d; text-transform:uppercase; letter-spacing:0.5px;">📦 उपलब्ध सामग्री</div>
                         </div>
-                        <button onclick="showAddMaterialModal()" style="border:none; background:#16a34a; color:#fff; border-radius:8px; padding:6px 12px; font-size:11px; font-weight:900; cursor:pointer; display:flex; align-items:center; gap:4px;">➕ जोड़ें</button>
+                        <div style="display:flex; gap:6px;">
+                            <button onclick="showBulkStockUpdate()" style="border:none; background:#0284c7; color:#fff; border-radius:8px; padding:6px 10px; font-size:11px; font-weight:900; cursor:pointer;">📝 सब Update</button>
+                            <button onclick="showAddMaterialModal()" style="border:none; background:#16a34a; color:#fff; border-radius:8px; padding:6px 10px; font-size:11px; font-weight:900; cursor:pointer;">➕ जोड़ें</button>
+                        </div>
                     </div>
                     ${stockMaterials.length === 0
                         ? `<div style="text-align:center; padding:20px; background:#f8fafc; border-radius:12px; font-size:12px; font-weight:700; color:#64748b; border:2px dashed #e2e8f0;">कोई material नहीं मिला।<br>नया material जोड़ें।</div>`
@@ -9640,6 +9643,60 @@
             renderPendingStockList("receive");
             renderPendingStockList("issue");
             refreshStockDropdowns_();
+        }
+
+        function showBulkStockUpdate() {
+            document.getElementById("bulk-stock-overlay")?.remove();
+            const overlay = document.createElement("div");
+            overlay.id = "bulk-stock-overlay";
+            overlay.style.cssText = "position:fixed; inset:0; background:rgba(0,0,0,0.6); z-index:9999; display:flex; align-items:flex-start; justify-content:center; padding:16px; overflow-y:auto;";
+            const rows = stockMaterials.map((item) => {
+                const bal = getStockBalance(item);
+                return `<div style="display:flex; align-items:center; gap:10px; margin-bottom:8px;">
+                    <div style="flex:1; font-size:12px; font-weight:900; color:#1e293b;">${escapeHtml(item.name)}<br><span style="font-size:10px; font-weight:700; color:#64748b;">${escapeHtml(item.unit)}</span></div>
+                    <input type="number" min="0" value="${bal}" id="bulk-${item.id}" style="width:90px; height:38px; border-radius:8px; border:1.5px solid #0284c7; padding:0 10px; font-size:14px; font-weight:900; text-align:center; outline:none;">
+                </div>`;
+            }).join("");
+            overlay.innerHTML = `
+                <div style="background:#fff; border-radius:18px; padding:18px; width:100%; max-width:360px; margin-top:20px; box-shadow:0 12px 30px rgba(0,0,0,0.3);">
+                    <div style="font-size:14px; font-weight:900; color:#0284c7; margin-bottom:4px;">📝 सभी सामग्री की मात्रा Update करें</div>
+                    <div style="font-size:11px; font-weight:700; color:#64748b; margin-bottom:14px;">अभी उपलब्ध मात्रा भरें — Google Sheet में save हो जाएगी</div>
+                    ${rows}
+                    <div style="display:flex; gap:10px; margin-top:14px;">
+                        <button id="bulk-cancel" style="flex:1; height:44px; border:none; border-radius:12px; background:#e2e8f0; color:#1e293b; font-size:12px; font-weight:900;">Cancel</button>
+                        <button id="bulk-save" style="flex:1; height:44px; border:none; border-radius:12px; background:linear-gradient(135deg,#0284c7,#0c4a6e); color:#fff; font-size:12px; font-weight:900;">💾 Save करें</button>
+                    </div>
+                </div>`;
+            document.body.appendChild(overlay);
+            document.getElementById("bulk-cancel").onclick = () => overlay.remove();
+            overlay.onclick = (e) => { if (e.target === overlay) overlay.remove(); };
+            document.getElementById("bulk-save").onclick = async () => {
+                let allOk = true;
+                const updates = [];
+                stockMaterials.forEach((item) => {
+                    const val = parseFloat(document.getElementById(`bulk-${item.id}`)?.value);
+                    if (!isNaN(val) && val >= 0) {
+                        item.currentBalance = val;
+                        item.opening = val;
+                        updates.push({ material_name: item.name, balance: val });
+                    }
+                });
+                overlay.remove();
+                // Save each to cloud
+                for (const upd of updates) {
+                    try {
+                        const payload = new URLSearchParams();
+                        payload.append("module", "stock");
+                        payload.append("action", "updateBalance");
+                        payload.append("material_name", upd.material_name);
+                        payload.append("balance_stock", String(upd.balance));
+                        await fetch(stockSubmitScriptUrl, { method:"POST", headers:{"Content-Type":"application/x-www-form-urlencoded;charset=UTF-8"}, body: payload.toString() });
+                    } catch(_) { allOk = false; }
+                }
+                showToast(allOk ? "सभी materials update हो गए ✅" : "कुछ update हो गए — internet check करें", allOk);
+                renderStockDashboard();
+                refreshStockDropdowns_();
+            };
         }
 
         function editMaterialBalance(itemId) {
