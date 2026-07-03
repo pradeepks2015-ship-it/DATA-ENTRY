@@ -1991,13 +1991,9 @@
                     }
                 } catch (e) {}
             });
-            // Clear all issue history and today's activity
-            (function clearAllStockHistory() {
-                try {
-                    localStorage.setItem("stock-issue-log", "[]");
-                    stockMovements = [];
-                } catch(_) {}
-            })();
+
+            localStorage.setItem("stock-issue-log", "[]");
+            stockMovements = [];
             loadStockMaterialsData();
             initChhaparaFeederCalculator();
             renderStockDashboard();
@@ -3493,8 +3489,8 @@
                 }
             } catch(_) { /* cloud unavailable — show local default materials */ }
 
-            // Load transactions in background
-            try {
+            // Transactions loading disabled — Issue History stays empty
+            if (false) try {
                 const txRaw = await Promise.race([
                     loadRemoteJson(`${stockSubmitScriptUrl}?module=stock&action=getTransactions`),
                     new Promise((_, reject) => setTimeout(() => reject(new Error("timeout")), 6000))
