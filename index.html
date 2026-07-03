@@ -9709,43 +9709,47 @@
             overlay.style.cssText = "position:fixed; inset:0; background:rgba(0,0,0,0.6); z-index:9999; display:flex; align-items:flex-start; justify-content:center; padding:16px; overflow-y:auto;";
             const rows = stockMaterials.map((item) => `
                 <div style="display:flex; align-items:center; gap:10px; margin-bottom:8px;">
-                    <div style="flex:1; font-size:13px; font-weight:900; color:#1e293b;">${escapeHtml(item.name)}<br><span style="font-size:10px; font-weight:700; color:#94a3b8;">${escapeHtml(item.unit)}</span></div>
-                    <input type="number" min="0" value="${getStockBalance(item)}" id="bulk-${item.id}" style="width:90px; height:38px; border-radius:8px; border:1.5px solid #0284c7; padding:0 10px; font-size:14px; font-weight:900; text-align:center; outline:none;">
+                    <div style="flex:1; font-size:13px; font-weight:900; color:#1e293b;">${escapeHtml(item.name)}<br><span style="font-size:10px; font-weight:700; color:#64748b;">${escapeHtml(item.unit)} | अभी: ${getStockBalance(item)}</span></div>
+                    <input type="number" min="0" value="0" id="bulk-${item.id}" style="width:80px; height:38px; border-radius:8px; border:1.5px solid #16a34a; padding:0 10px; font-size:14px; font-weight:900; text-align:center; outline:none;">
                 </div>`).join("");
             overlay.innerHTML = `
                 <div style="background:#fff; border-radius:18px; padding:18px; width:100%; max-width:360px; margin-top:20px; box-shadow:0 12px 30px rgba(0,0,0,0.3);">
-                    <div style="font-size:14px; font-weight:900; color:#0284c7; margin-bottom:4px;">📝 सामग्री मात्रा Update</div>
-                    <div style="font-size:11px; font-weight:700; color:#64748b; margin-bottom:14px;">उपलब्ध मात्रा भरें</div>
+                    <div style="font-size:14px; font-weight:900; color:#0284c7; margin-bottom:10px;">📝 Stock Update</div>
+                    <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:10px;">
+                        <button id="mode-add-btn" onclick="window._bulkMode='add'; document.getElementById('mode-add-btn').style.background='linear-gradient(135deg,#16a34a,#15803d)'; document.getElementById('mode-add-btn').style.color='#fff'; document.getElementById('mode-set-btn').style.background='#e2e8f0'; document.getElementById('mode-set-btn').style.color='#1e293b'; document.getElementById('bulk-mode-desc').innerHTML='➕ <b>जोड़ें:</b> मात्रा existing में add होगी'; stockMaterials.forEach(m=>{var i=document.getElementById('bulk-'+m.id); if(i) i.value='0';});" style="height:40px; border:none; border-radius:10px; background:linear-gradient(135deg,#16a34a,#15803d); color:#fff; font-size:12px; font-weight:900;">➕ जोड़ें</button>
+                        <button id="mode-set-btn" onclick="window._bulkMode='set'; document.getElementById('mode-set-btn').style.background='linear-gradient(135deg,#0284c7,#0c4a6e)'; document.getElementById('mode-set-btn').style.color='#fff'; document.getElementById('mode-add-btn').style.background='#e2e8f0'; document.getElementById('mode-add-btn').style.color='#1e293b'; document.getElementById('bulk-mode-desc').innerHTML='🔄 <b>Set करें:</b> पुरानी मात्रा बदल जाएगी'; stockMaterials.forEach(m=>{var i=document.getElementById('bulk-'+m.id); if(i) i.value=String(${JSON.stringify(0)});});" style="height:40px; border:none; border-radius:10px; background:#e2e8f0; color:#1e293b; font-size:12px; font-weight:900;">🔄 Set करें</button>
+                    </div>
+                    <div id="bulk-mode-desc" style="font-size:11px; font-weight:700; color:#16a34a; background:#f0fdf4; border-radius:8px; padding:8px; margin-bottom:12px; text-align:center;">➕ <b>जोड़ें:</b> मात्रा existing में add होगी</div>
                     ${rows}
                     <div style="display:flex; gap:10px; margin-top:14px;">
                         <button onclick="this.closest('[style*=fixed]').remove()" style="flex:1; height:44px; border:none; border-radius:12px; background:#e2e8f0; color:#1e293b; font-size:12px; font-weight:900;">Cancel</button>
-                        <button id="bulk-save-btn" style="flex:1; height:44px; border:none; border-radius:12px; background:linear-gradient(135deg,#0284c7,#0c4a6e); color:#fff; font-size:12px; font-weight:900;">💾 Save</button>
+                        <button id="bulk-save-btn" style="flex:1; height:44px; border:none; border-radius:12px; background:linear-gradient(135deg,#16a34a,#15803d); color:#fff; font-size:12px; font-weight:900;">💾 Save</button>
                     </div>
                 </div>`;
             document.body.appendChild(overlay);
+            window._bulkMode = "add";
             overlay.onclick = (e) => { if (e.target === overlay) overlay.remove(); };
             document.getElementById("bulk-save-btn").onclick = async () => {
+                const mode = window._bulkMode || "add";
                 const updates = [];
                 stockMaterials.forEach((item) => {
                     const val = parseFloat(document.getElementById(`bulk-${item.id}`)?.value);
-                    if (!isNaN(val) && val >= 0) {
-                        item.currentBalance = val;
-                        item.originalBalance = val; // cap for return
-                        updates.push({ name: item.name, bal: val });
+                    if (!isNaN(val) && (mode === "add" ? val > 0 : val >= 0)) {
+                        const newBal = mode === "add" ? getStockBalance(item) + val : val;
+                        item.currentBalance = newBal;
+                        item.originalBalance = newBal;
+                        updates.push({ name: item.name, bal: newBal });
                     }
                 });
                 overlay.remove();
-                // Single API call with all updates — much faster than one call per material
+                if (!updates.length) { showToast("कोई मात्रा नहीं डाली गई", false); return; }
                 try {
                     const p = new URLSearchParams();
-                    p.append("module", "stock");
-                    p.append("action", "bulkUpdateBalance");
+                    p.append("module","stock"); p.append("action","bulkUpdateBalance");
                     p.append("updates_json", JSON.stringify(updates));
                     await fetch(stockSubmitScriptUrl, { method:"POST", headers:{"Content-Type":"application/x-www-form-urlencoded;charset=UTF-8"}, body: p.toString() });
-                    showToast("✅ सभी materials update हो गए", true);
-                } catch(_) {
-                    showToast("Update ho gaya (internet slow tha)", true);
-                }
+                    showToast(`✅ ${updates.length} materials ${mode==="add"?"में जोड़ा":"set हो गया"}`, true);
+                } catch(_) { showToast("Locally update ho gaya", true); }
                 renderStockDashboard(); refreshStockDropdowns_();
             };
         }
