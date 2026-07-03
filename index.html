@@ -9539,8 +9539,11 @@
                                 const bg = bal <= 0 ? "#fef2f2" : bal <= (item.min||0) + 5 ? "#fffbeb" : "#f0fdf4";
                                 const border = bal <= 0 ? "#fca5a5" : bal <= (item.min||0) + 5 ? "#fcd34d" : "#86efac";
                                 return `<div style="background:${bg}; border:1.5px solid ${border}; border-radius:12px; padding:10px; position:relative;">
-                                    <button onclick="deleteStockMaterial('${item.id}')" style="position:absolute; top:6px; right:6px; border:none; background:rgba(239,68,68,0.1); color:#ef4444; border-radius:6px; width:22px; height:22px; font-size:11px; cursor:pointer; display:flex; align-items:center; justify-content:center; padding:0;">🗑</button>
-                                    <div style="font-size:11px; font-weight:900; color:#1e293b; margin-bottom:2px; padding-right:24px; line-height:1.3;">${escapeHtml(item.name)}</div>
+                                    <div style="position:absolute; top:6px; right:6px; display:flex; gap:4px;">
+                                        <button onclick="editMaterialBalance('${item.id}')" style="border:none; background:rgba(37,99,235,0.1); color:#1d4ed8; border-radius:6px; width:22px; height:22px; font-size:11px; cursor:pointer; padding:0;">✏️</button>
+                                        <button onclick="deleteStockMaterial('${item.id}')" style="border:none; background:rgba(239,68,68,0.1); color:#ef4444; border-radius:6px; width:22px; height:22px; font-size:11px; cursor:pointer; padding:0;">🗑</button>
+                                    </div>
+                                    <div style="font-size:11px; font-weight:900; color:#1e293b; margin-bottom:2px; padding-right:52px; line-height:1.3;">${escapeHtml(item.name)}</div>
                                     <div style="font-size:20px; font-weight:900; color:${color}; line-height:1;">${bal}</div>
                                     <div style="font-size:10px; font-weight:700; color:#64748b; margin-bottom:6px;">${escapeHtml(item.unit)}</div>
                                     <div style="background:#e2e8f0; border-radius:999px; height:4px;">
@@ -9639,7 +9642,51 @@
             refreshStockDropdowns_();
         }
 
+        function editMaterialBalance(itemId) {
+            const item = stockMaterials.find((m) => m.id === itemId);
+            if (!item) return;
+            const cur = getStockBalance(item);
+            document.getElementById("del-mat-overlay")?.remove();
+            const overlay = document.createElement("div");
+            overlay.id = "del-mat-overlay";
+            overlay.style.cssText = "position:fixed; inset:0; background:rgba(0,0,0,0.5); z-index:9999; display:flex; align-items:center; justify-content:center; padding:20px;";
+            overlay.innerHTML = `
+                <div style="background:#fff; border-radius:18px; padding:18px; width:100%; max-width:320px; box-shadow:0 12px 30px rgba(0,0,0,0.25);">
+                    <div style="font-size:14px; font-weight:900; color:#1d4ed8; margin-bottom:4px;">✏️ Stock मात्रा Update करें</div>
+                    <div style="font-size:12px; font-weight:700; color:#475569; margin-bottom:12px;"><strong>${escapeHtml(item.name)}</strong> | Current: ${cur} ${escapeHtml(item.unit)}</div>
+                    <input type="number" id="edit-bal-input" value="${cur}" min="0" style="width:100%; height:48px; border-radius:12px; border:2px solid #1d4ed8; padding:0 14px; font-size:18px; font-weight:900; outline:none; margin-bottom:8px; text-align:center;">
+                    <div style="font-size:10px; font-weight:700; color:#94a3b8; text-align:center; margin-bottom:12px;">नई मात्रा (${escapeHtml(item.unit)}) दर्ज करें</div>
+                    <div style="display:flex; gap:10px;">
+                        <button id="edit-bal-cancel" style="flex:1; height:42px; border:none; border-radius:10px; background:#e2e8f0; color:#1e293b; font-size:12px; font-weight:900;">Cancel</button>
+                        <button id="edit-bal-ok" style="flex:1; height:42px; border:none; border-radius:10px; background:linear-gradient(135deg,#1d4ed8,#1e3a5f); color:#fff; font-size:12px; font-weight:900;">Update करें</button>
+                    </div>
+                </div>`;
+            document.body.appendChild(overlay);
+            document.getElementById("edit-bal-cancel").onclick = () => overlay.remove();
+            overlay.onclick = (e) => { if (e.target === overlay) overlay.remove(); };
+            document.getElementById("edit-bal-input").focus();
+            document.getElementById("edit-bal-ok").onclick = async () => {
+                const newBal = parseFloat(document.getElementById("edit-bal-input").value);
+                if (isNaN(newBal) || newBal < 0) return showToast("सही मात्रा दर्ज करें", false);
+                overlay.remove();
+                item.currentBalance = newBal;
+                // Update in cloud sheet
+                try {
+                    const payload = new URLSearchParams();
+                    payload.append("module", "stock");
+                    payload.append("action", "updateBalance");
+                    payload.append("material_name", item.name);
+                    payload.append("balance_stock", String(newBal));
+                    await fetch(stockSubmitScriptUrl, { method:"POST", headers:{"Content-Type":"application/x-www-form-urlencoded;charset=UTF-8"}, body: payload.toString() });
+                } catch(_) {}
+                showToast(`${item.name}: Balance ${newBal} ${item.unit} update ho gaya`, true);
+                renderStockDashboard();
+                refreshStockDropdowns_();
+            };
+        }
         function deleteIssueLogEntry(logId) {
+
+
             const overlay = document.createElement("div");
             overlay.style.cssText = "position:fixed; inset:0; background:rgba(0,0,0,0.5); z-index:9999; display:flex; align-items:center; justify-content:center; padding:20px;";
             const card = document.createElement("div");
@@ -10032,21 +10079,38 @@
             `).join("");
         }
 
-        function markMaterialReturned(logId) {
+        async function markMaterialReturned(logId) {
             const log = getIssueLog_();
             const entry = log.find((e) => e.id === logId);
             if (!entry) return;
+
+            // Require GP123 password before accepting return
+            const ok = await verifyIssuerPassword_();
+            if (!ok) return;
+
             const now = new Date();
             entry.returned = true;
             entry.return_date = `${String(now.getDate()).padStart(2,"0")}/${String(now.getMonth()+1).padStart(2,"0")}/${now.getFullYear()}`;
             entry.return_time = `${String(now.getHours()).padStart(2,"0")}:${String(now.getMinutes()).padStart(2,"0")}`;
             saveIssueLog_(log);
-            // Add back to stock balance
+
+            // Update balance locally
             const item = stockMaterials.find((m) => m.id === entry.material_id || m.name === entry.material_name);
             if (item) {
                 item.currentBalance = getStockBalance(item) + entry.qty;
                 stockMovements.unshift({ type:"RECEIVE", material: entry.material_name, qty: entry.qty, date: entry.return_date, note:`Return from ${entry.issued_to}` });
+                // Update balance in cloud sheet
+                try {
+                    const payload = new URLSearchParams();
+                    payload.append("module", "stock");
+                    payload.append("receved_from", "RETURN");
+                    payload.append("receive_person_name", entry.issued_to);
+                    payload.append("remark", `Return: ${entry.material_name} from ${entry.issued_to}`);
+                    payload.append("items_json", JSON.stringify([{ material_name: entry.material_name, unit: entry.unit || "", qty: entry.qty }]));
+                    await fetch(stockSubmitScriptUrl, { method:"POST", headers:{"Content-Type":"application/x-www-form-urlencoded;charset=UTF-8"}, body: payload.toString() });
+                } catch(_) {}
             }
+
             showToast(`"${entry.material_name}" वापस आ गया — Stock update हो गया`, true);
             renderStockReturnList();
             renderStockDashboard();
