@@ -1992,6 +1992,16 @@
                     }
                 } catch (e) {}
             });
+            // Clear today's issue log entries (user instruction: aaj ki entries nil karo)
+            (function clearTodayIssueLog() {
+                try {
+                    const today = new Date();
+                    const todayStr = `${String(today.getDate()).padStart(2,"0")}/${String(today.getMonth()+1).padStart(2,"0")}/${today.getFullYear()}`;
+                    const log = JSON.parse(localStorage.getItem("stock-issue-log") || "[]");
+                    const filtered = log.filter((e) => e.issue_date !== todayStr);
+                    localStorage.setItem("stock-issue-log", JSON.stringify(filtered));
+                } catch(_) {}
+            })();
             loadStockMaterialsData();
             initChhaparaFeederCalculator();
             renderStockDashboard();
@@ -9647,61 +9657,76 @@
 
         function showBulkStockUpdate() {
             document.getElementById("bulk-stock-overlay")?.remove();
-            const overlay = document.createElement("div");
-            overlay.id = "bulk-stock-overlay";
-            overlay.style.cssText = "position:fixed; inset:0; background:rgba(0,0,0,0.6); z-index:9999; display:flex; align-items:flex-start; justify-content:center; padding:16px; overflow-y:auto;";
-            const rows = stockMaterials.map((item) => {
-                const bal = getStockBalance(item);
-                return `<div style="display:flex; align-items:center; gap:10px; margin-bottom:8px;">
-                    <div style="flex:1; font-size:12px; font-weight:900; color:#1e293b;">${escapeHtml(item.name)}<br><span style="font-size:10px; font-weight:700; color:#64748b;">${escapeHtml(item.unit)}</span></div>
-                    <input type="number" min="0" value="${bal}" id="bulk-${item.id}" style="width:90px; height:38px; border-radius:8px; border:1.5px solid #0284c7; padding:0 10px; font-size:14px; font-weight:900; text-align:center; outline:none;">
+            const authOverlay = document.createElement("div");
+            authOverlay.id = "bulk-stock-overlay";
+            authOverlay.style.cssText = "position:fixed; inset:0; background:rgba(0,0,0,0.6); z-index:9999; display:flex; align-items:center; justify-content:center; padding:20px;";
+            authOverlay.innerHTML = `
+                <div style="background:#fff; border-radius:18px; padding:18px; width:100%; max-width:300px; text-align:center;">
+                    <div style="font-size:14px; font-weight:900; color:#0284c7; margin-bottom:8px;">🔐 Stock Update</div>
+                    <div style="font-size:11px; font-weight:700; color:#64748b; margin-bottom:12px;">JE Password डालें</div>
+                    <input type="password" id="bulk-pwd" placeholder="Password..." style="width:100%; height:46px; border-radius:12px; border:2px solid #0284c7; padding:0 14px; font-size:16px; font-weight:900; text-align:center; outline:none; margin-bottom:12px;">
+                    <div style="display:flex; gap:10px;">
+                        <button onclick="document.getElementById('bulk-stock-overlay').remove()" style="flex:1; height:42px; border:none; border-radius:10px; background:#e2e8f0; color:#1e293b; font-size:12px; font-weight:900;">Cancel</button>
+                        <button id="bulk-auth-ok" style="flex:1; height:42px; border:none; border-radius:10px; background:linear-gradient(135deg,#0284c7,#0c4a6e); color:#fff; font-size:12px; font-weight:900;">OK</button>
+                    </div>
                 </div>`;
-            }).join("");
+            document.body.appendChild(authOverlay);
+            const proceed = () => {
+                if ((document.getElementById("bulk-pwd")?.value || "") !== "JE123") return showToast("गलत पासवर्ड", false);
+                authOverlay.remove();
+                showBulkStockForm_();
+            };
+            document.getElementById("bulk-auth-ok").onclick = proceed;
+            document.getElementById("bulk-pwd").onkeydown = (e) => { if (e.key === "Enter") proceed(); };
+        }
+
+        function showBulkStockForm_() {
+            const overlay = document.createElement("div");
+            overlay.style.cssText = "position:fixed; inset:0; background:rgba(0,0,0,0.6); z-index:9999; display:flex; align-items:flex-start; justify-content:center; padding:16px; overflow-y:auto;";
+            const rows = stockMaterials.map((item) => `
+                <div style="display:flex; align-items:center; gap:10px; margin-bottom:8px;">
+                    <div style="flex:1; font-size:12px; font-weight:900; color:#1e293b;">${escapeHtml(item.name)}<br><span style="font-size:10px; font-weight:700; color:#64748b;">${escapeHtml(item.unit)}</span></div>
+                    <input type="number" min="0" value="${getStockBalance(item)}" id="bulk-${item.id}" style="width:90px; height:38px; border-radius:8px; border:1.5px solid #0284c7; padding:0 10px; font-size:14px; font-weight:900; text-align:center; outline:none;">
+                </div>`).join("");
             overlay.innerHTML = `
                 <div style="background:#fff; border-radius:18px; padding:18px; width:100%; max-width:360px; margin-top:20px; box-shadow:0 12px 30px rgba(0,0,0,0.3);">
-                    <div style="font-size:14px; font-weight:900; color:#0284c7; margin-bottom:4px;">📝 सभी सामग्री की मात्रा Update करें</div>
-                    <div style="font-size:11px; font-weight:700; color:#64748b; margin-bottom:14px;">अभी उपलब्ध मात्रा भरें — Google Sheet में save हो जाएगी</div>
+                    <div style="font-size:14px; font-weight:900; color:#0284c7; margin-bottom:4px;">📝 सामग्री मात्रा Update</div>
+                    <div style="font-size:11px; font-weight:700; color:#64748b; margin-bottom:14px;">उपलब्ध मात्रा भरें</div>
                     ${rows}
                     <div style="display:flex; gap:10px; margin-top:14px;">
-                        <button id="bulk-cancel" style="flex:1; height:44px; border:none; border-radius:12px; background:#e2e8f0; color:#1e293b; font-size:12px; font-weight:900;">Cancel</button>
-                        <button id="bulk-save" style="flex:1; height:44px; border:none; border-radius:12px; background:linear-gradient(135deg,#0284c7,#0c4a6e); color:#fff; font-size:12px; font-weight:900;">💾 Save करें</button>
+                        <button onclick="this.closest('[style*=fixed]').remove()" style="flex:1; height:44px; border:none; border-radius:12px; background:#e2e8f0; color:#1e293b; font-size:12px; font-weight:900;">Cancel</button>
+                        <button id="bulk-save-btn" style="flex:1; height:44px; border:none; border-radius:12px; background:linear-gradient(135deg,#0284c7,#0c4a6e); color:#fff; font-size:12px; font-weight:900;">💾 Save</button>
                     </div>
                 </div>`;
             document.body.appendChild(overlay);
-            document.getElementById("bulk-cancel").onclick = () => overlay.remove();
             overlay.onclick = (e) => { if (e.target === overlay) overlay.remove(); };
-            document.getElementById("bulk-save").onclick = async () => {
-                let allOk = true;
+            document.getElementById("bulk-save-btn").onclick = async () => {
                 const updates = [];
                 stockMaterials.forEach((item) => {
                     const val = parseFloat(document.getElementById(`bulk-${item.id}`)?.value);
-                    if (!isNaN(val) && val >= 0) {
-                        item.currentBalance = val;
-                        item.opening = val;
-                        updates.push({ material_name: item.name, balance: val });
-                    }
+                    if (!isNaN(val) && val >= 0) { item.currentBalance = val; updates.push({ name: item.name, bal: val }); }
                 });
                 overlay.remove();
-                // Save each to cloud
-                for (const upd of updates) {
+                let allOk = true;
+                for (const u of updates) {
                     try {
-                        const payload = new URLSearchParams();
-                        payload.append("module", "stock");
-                        payload.append("action", "updateBalance");
-                        payload.append("material_name", upd.material_name);
-                        payload.append("balance_stock", String(upd.balance));
-                        await fetch(stockSubmitScriptUrl, { method:"POST", headers:{"Content-Type":"application/x-www-form-urlencoded;charset=UTF-8"}, body: payload.toString() });
+                        const p = new URLSearchParams();
+                        p.append("module","stock"); p.append("action","updateBalance");
+                        p.append("material_name", u.name); p.append("balance_stock", String(u.bal));
+                        await fetch(stockSubmitScriptUrl, { method:"POST", headers:{"Content-Type":"application/x-www-form-urlencoded;charset=UTF-8"}, body: p.toString() });
                     } catch(_) { allOk = false; }
                 }
-                showToast(allOk ? "सभी materials update हो गए ✅" : "कुछ update हो गए — internet check करें", allOk);
-                renderStockDashboard();
-                refreshStockDropdowns_();
+                showToast(allOk ? "✅ सभी materials update हो गए" : "कुछ update हो गए — internet check करें", allOk);
+                renderStockDashboard(); refreshStockDropdowns_();
             };
         }
 
         function editMaterialBalance(itemId) {
             const item = stockMaterials.find((m) => m.id === itemId);
             if (!item) return;
+            // Require JE123 password
+            const pwd = prompt("🔐 JE Password डालें:");
+            if (pwd !== "JE123") { if (pwd !== null) showToast("गलत पासवर्ड", false); return; }
             const cur = getStockBalance(item);
             document.getElementById("del-mat-overlay")?.remove();
             const overlay = document.createElement("div");
