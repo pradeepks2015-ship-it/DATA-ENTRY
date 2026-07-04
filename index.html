@@ -5976,65 +5976,79 @@
 
             const lossHtml = `
                 <div style="background:#fff; border-radius:10px; padding:10px; margin-bottom:8px; border:1.5px solid #fbbf24;">
-                    <div style="font-size:12px; font-weight:900; color:#b45309; margin-bottom:4px; text-transform:uppercase;">⚡ Loss Analysis</div>
-                    <div style="font-size:10px; font-weight:700; color:#64748b; margin-bottom:8px;">Total Incoming (BS12775548): <strong style="color:#1e293b;">${fmt(totalIncoming)} kWh</strong></div>
-
-                    <!-- Adegaon SS Input — 33KV side calculation -->
-                    <div style="background:#fff; border-radius:8px; padding:8px 10px; margin-bottom:8px; border-left:4px solid #7c3aed;">
-                        <div style="font-size:11px; font-weight:900; color:#1e293b; margin-bottom:2px;">Adegaon SS Input (33KV side)</div>
-                        <div style="font-size:10px; font-weight:700; color:#64748b; margin-bottom:4px;">BS548 − (BS550 + BS133) = ${fmt(BS12775548)} − (${fmt(BS12775550)} + ${fmt(BS12776133)})</div>
-                        <div style="display:flex; gap:8px; flex-wrap:wrap;">
-                            <span style="background:#f5f3ff; border-radius:6px; padding:3px 8px; font-size:12px; font-weight:900; color:#7c3aed;">${fmt(adegaonSSInput)} kWh</span>
-                            <span style="background:#eff6ff; border-radius:6px; padding:3px 8px; font-size:11px; font-weight:700; color:#1d4ed8;">${pct(adegaonSSInput,BS12775548)} of Incoming</span>
-                        </div>
+                    <div style="font-size:12px; font-weight:900; color:#b45309; margin-bottom:4px; text-transform:uppercase;">⚡ Input & Loss Analysis</div>
+                    <div style="font-size:10px; font-weight:700; color:#64748b; margin-bottom:8px;">
+                        Total Incoming BS12775548: <strong style="color:#1e293b;">${fmt(totalIncoming)} kWh</strong><br>
+                        <span style="font-size:9px; color:#94a3b8;">= Adegaon SS + Chamari Line + Madhi Line + Madhi SS (all losses included)</span>
                     </div>
 
+                    <!-- ROW 1: Adegaon SS Input -->
                     ${lossRow(
-                        "Adegaon SS Line Loss",
-                        `Adegaon SS Input − Σ 11KV Feeders = ${fmt(adegaonSSInput)} − ${fmt(adegaon11KVTotal)}`,
+                        "1. Adegaon SS Input",
+                        `BS548 − (BS550 + BS133) = ${fmt(BS12775548)} − (${fmt(BS12775550)} + ${fmt(BS12776133)})`,
+                        adegaonSSInput,
+                        pct(adegaonSSInput, BS12775548),
+                        pctInc(adegaonSSInput)
+                    )}
+                    ${lossRow(
+                        "   ↳ Adegaon SS Line Loss",
+                        `AdSS Input − Σ 4×11KV = ${fmt(adegaonSSInput)} − ${fmt(adegaon11KVTotal)}`,
                         adegaonSSLineLoss,
                         pct(adegaonSSLineLoss, adegaonSSInput),
                         pctInc(adegaonSSLineLoss)
                     )}
-
-                    <!-- Adegaon SS Total Input — prominent box -->
-                    <div style="background:linear-gradient(135deg,#f0fdf4,#dcfce7); border:2px solid #16a34a; border-radius:10px; padding:10px 12px; margin-bottom:8px;">
-                        <div style="font-size:10px; font-weight:900; color:#14532d; text-transform:uppercase; margin-bottom:4px;">✅ Adegaon SS Total Input</div>
-                        <div style="font-size:10px; font-weight:700; color:#64748b; margin-bottom:6px;">
-                            Σ 11KV Feeders (${fmt(adegaon11KVTotal)}) + SS Line Loss (${fmt(adegaonSSLineLoss)})
-                        </div>
-                        <div style="display:flex; justify-content:space-between; align-items:center;">
-                            <div style="font-size:20px; font-weight:900; color:#16a34a;">${fmt(adegaon11KVTotal + adegaonSSLineLoss)} <span style="font-size:11px; font-weight:700; color:#64748b;">kWh</span></div>
-                            <div style="font-size:10px; font-weight:700; color:#1d4ed8; background:#eff6ff; border-radius:6px; padding:4px 8px;">= BS548 Net ✓</div>
-                        </div>
+                    <div style="background:#f0fdf4; border-radius:8px; padding:6px 10px; margin-bottom:8px; border-left:3px solid #16a34a; font-size:10px; font-weight:700; color:#14532d;">
+                        ✅ Adegaon SS Total = Σ 4×11KV + SS Loss = ${fmt(adegaon11KVTotal)} + ${fmt(adegaonSSLineLoss)} = <strong>${fmt(adegaon11KVTotal + adegaonSSLineLoss)} kWh</strong> = AdSS Input ✓
                     </div>
+
+                    <!-- ROW 2: Chamari Line Input -->
                     ${lossRow(
-                        "Adegaon → Madhi Line Loss",
+                        "2. Chamari-Adegaon 33KV Line Input",
+                        `BS550 (Adegaon→Chamari outgoing) = ${fmt(BS12775550)}`,
+                        BS12775550,
+                        pct(BS12775550, BS12775548),
+                        pctInc(BS12775550)
+                    )}
+
+                    <!-- ROW 3: Adegaon→Madhi Line Loss -->
+                    ${lossRow(
+                        "3. Adegaon→Madhi 33KV Line Loss",
                         `BS133 − BS543 = ${fmt(BS12776133)} − ${fmt(BS12775543)}`,
                         adegaonMadhiLineLoss,
                         pct(adegaonMadhiLineLoss, BS12776133),
                         pctInc(adegaonMadhiLineLoss)
                     )}
+
+                    <!-- ROW 4: Madhi SS Input -->
                     ${lossRow(
-                        "Madhi SS T&D Loss",
-                        `BS543 − Σ 11KV Feeders = ${fmt(BS12775543)} − ${fmt(madhiFeederTotal)}`,
+                        "4. Madhi SS Input",
+                        `BS543 = ${fmt(BS12775543)}`,
+                        BS12775543,
+                        pct(BS12775543, BS12775548),
+                        pctInc(BS12775543)
+                    )}
+                    ${lossRow(
+                        "   ↳ Madhi SS T&D Loss",
+                        `BS543 − Σ 3×11KV = ${fmt(BS12775543)} − ${fmt(madhiFeederTotal)}`,
                         madhiSSLineLoss,
                         pct(madhiSSLineLoss, BS12775543),
                         pctInc(madhiSSLineLoss)
                     )}
-
-                    <!-- Madhi SS Total Input verification -->
-                    <div style="background:#f0fdf4; border-radius:8px; padding:8px 10px; margin-bottom:8px; border-left:4px solid #16a34a;">
-                        <div style="font-size:11px; font-weight:900; color:#1e293b; margin-bottom:2px;">Madhi SS Total Input</div>
-                        <div style="font-size:10px; font-weight:700; color:#64748b; margin-bottom:4px;">Σ 11KV Feeders + Madhi SS T&D Loss = ${fmt(madhiFeederTotal)} + ${fmt(madhiSSLineLoss)}</div>
-                        <div style="display:flex; gap:8px; flex-wrap:wrap;">
-                            <span style="background:#dcfce7; border-radius:6px; padding:3px 8px; font-size:11px; font-weight:900; color:#16a34a;">${fmt(madhiFeederTotal + madhiSSLineLoss)} kWh</span>
-                            <span style="background:#eff6ff; border-radius:6px; padding:3px 8px; font-size:11px; font-weight:700; color:#1d4ed8;">= BS543 (${fmt(BS12775543)} kWh) ✓</span>
-                        </div>
+                    <div style="background:#f0fdf4; border-radius:8px; padding:6px 10px; margin-bottom:8px; border-left:3px solid #16a34a; font-size:10px; font-weight:700; color:#14532d;">
+                        ✅ Madhi SS Total = Σ 3×11KV + SS Loss = ${fmt(madhiFeederTotal)} + ${fmt(madhiSSLineLoss)} = <strong>${fmt(madhiFeederTotal + madhiSSLineLoss)} kWh</strong> = BS543 ✓
                     </div>
 
-                    <div style="background:#fef2f2; border-radius:8px; padding:8px 10px; margin-top:4px; display:flex; justify-content:space-between; align-items:center;">
-                        <span style="font-size:11px; font-weight:900; color:#1e293b;">Total Losses</span>
+                    <!-- Grand Total Verification -->
+                    <div style="background:#eff6ff; border-radius:8px; padding:8px 10px; margin-bottom:8px; border:1.5px solid #2563eb;">
+                        <div style="font-size:11px; font-weight:900; color:#1d4ed8; margin-bottom:4px;">🔍 Grand Total Verification</div>
+                        <div style="font-size:10px; font-weight:700; color:#475569; margin-bottom:4px;">AdSS + Chamari Line + Madhi Line Loss + Madhi SS = BS548</div>
+                        <div style="font-size:12px; font-weight:900; color:#1d4ed8;">${fmt(adegaonSSInput)} + ${fmt(BS12775550)} + ${fmt(adegaonMadhiLineLoss)} + ${fmt(BS12775543)} = <strong>${fmt(adegaonSSInput + BS12775550 + adegaonMadhiLineLoss + BS12775543)} kWh</strong></div>
+                        <div style="font-size:10px; font-weight:700; color:#16a34a; margin-top:4px;">= BS548 (${fmt(BS12775548)} kWh) ✓</div>
+                    </div>
+
+                    <!-- Total T&D Losses -->
+                    <div style="background:#fef2f2; border-radius:8px; padding:8px 10px; display:flex; justify-content:space-between; align-items:center;">
+                        <span style="font-size:11px; font-weight:900; color:#1e293b;">Total T&D Losses</span>
                         <div style="text-align:right;">
                             <div style="font-size:13px; font-weight:900; color:#ef4444;">${fmt(adegaonSSLineLoss + adegaonMadhiLineLoss + madhiSSLineLoss)} kWh</div>
                             <div style="font-size:10px; font-weight:700; color:#b45309;">${pctInc(adegaonSSLineLoss + adegaonMadhiLineLoss + madhiSSLineLoss)} of Total Input</div>
