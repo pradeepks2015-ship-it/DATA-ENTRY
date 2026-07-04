@@ -5875,13 +5875,13 @@
             // Helper: get total consumption for a meter number from rows
             const getMeterConsumption = (meterNo) => {
                 const mRows = rows.filter((r) => (r["METER NO"] || "").trim() === meterNo);
-                return mRows.reduce((s, r) => {
+                return Math.abs(mRows.reduce((s, r) => {
                     const prev = Number(r["PREVIUS READING"]) || 0;
                     const curr = Number(r["CURRENT READING"]) || 0;
                     const mf   = Number(r["MF"]) || 1;
-                    const con  = Number(r["CONSUMPTION"]) || ((curr - prev) * mf);
-                    return s + con;
-                }, 0);
+                    const con  = Number(r["CONSUMPTION"]) || (Math.abs(curr - prev) * mf);
+                    return s + Math.abs(con);
+                }, 0));
             };
 
             // Group by substation → feeder, sum consumption
@@ -5892,7 +5892,7 @@
                 const prev = Number(r["PREVIUS READING"]) || 0;
                 const curr = Number(r["CURRENT READING"]) || 0;
                 const mf   = Number(r["MF"]) || 1;
-                const con  = Number(r["CONSUMPTION"]) || ((curr - prev) * mf);
+                const con  = Math.abs(Number(r["CONSUMPTION"]) || Math.abs(curr - prev) * mf);
                 if (!ssMap[ss]) ssMap[ss] = { total: 0, feeders: {} };
                 if (!ssMap[ss].feeders[fdr]) ssMap[ss].feeders[fdr] = 0;
                 ssMap[ss].feeders[fdr] += con;
@@ -5925,10 +5925,10 @@
             const totalIncoming    = BS12775548; // Grand total incoming
 
             // Calculations
-            const adegaonSSInput       = BS12775548 - (BS12775550 + BS12776133);
-            const adegaonSSLineLoss    = adegaonSSInput - adegaon11KVTotal;
-            const adegaonMadhiLineLoss = BS12776133 - BS12775543;
-            const madhiSSLineLoss      = BS12775543 - madhiFeederTotal;
+            const adegaonSSInput       = Math.abs(BS12775548 - (BS12775550 + BS12776133));
+            const adegaonSSLineLoss    = Math.abs(adegaonSSInput - adegaon11KVTotal);
+            const adegaonMadhiLineLoss = Math.abs(BS12776133 - BS12775543);
+            const madhiSSLineLoss      = Math.abs(BS12775543 - madhiFeederTotal);
 
             // % of respective base AND % of total incoming
             const pct = (n, base) => base > 0 ? (n / base * 100).toFixed(2) + "%" : "—";
@@ -6335,7 +6335,7 @@
                             const prev = Number(r["PREVIUS READING"]) || 0;
                             const curr = Number(r["CURRENT READING"]) || 0;
                             const mf   = Number(r["MF"]) || 1;
-                            const con  = Number(r["CONSUMPTION"]) || ((curr - prev) * mf);
+                            const con  = Math.abs(Number(r["CONSUMPTION"]) || Math.abs(curr - prev) * mf);
                             if (!ssMap[ss]) ssMap[ss] = { total: 0, feeders: {} };
                             if (!ssMap[ss].feeders[fdr]) ssMap[ss].feeders[fdr] = 0;
                             ssMap[ss].feeders[fdr] += con;
@@ -6371,10 +6371,10 @@
                         nextY = doc.lastAutoTable.finalY + 6;
 
                         // === Electrical Calculations in PDF ===
-                        const getMC = (mNo) => rows.filter((r) => (r["METER NO"]||"").trim()===mNo).reduce((s,r)=>{
+                        const getMC = (mNo) => Math.abs(rows.filter((r) => (r["METER NO"]||"").trim()===mNo).reduce((s,r)=>{
                             const p=Number(r["PREVIUS READING"])||0, c=Number(r["CURRENT READING"])||0, mf=Number(r["MF"])||1;
-                            return s+(Number(r["CONSUMPTION"])||((c-p)*mf));
-                        },0);
+                            return s+Math.abs(Number(r["CONSUMPTION"])||Math.abs(c-p)*mf);
+                        },0));
                         const M548=getMC("BS12775548"), M550=getMC("BS12775550"), M133=getMC("BS12776133");
                         const M543=getMC("BS12775543");
                         const M695=getMC("BS12774695"), M368=getMC("BS12776368"), M694=getMC("BS12774694");
@@ -6382,10 +6382,10 @@
                         const M542=getMC("BS12775542"), M541=getMC("BS12775541"), M540=getMC("BS12775540");
                         const adg11Total = M695+M368+M694+M693+M679;
                         const madhiTotal = M542+M541+M540;
-                        const adInput    = M548-(M550+M133);
-                        const adSSLoss   = adInput - adg11Total;
-                        const lineLoss   = M133-M543;
-                        const madhiLoss  = M543-madhiTotal;
+                        const adInput    = Math.abs(M548-(M550+M133));
+                        const adSSLoss   = Math.abs(adInput - adg11Total);
+                        const lineLoss   = Math.abs(M133-M543);
+                        const madhiLoss  = Math.abs(M543-madhiTotal);
                         const totalLoss  = adSSLoss+lineLoss+madhiLoss;
                         const fmt2=(n)=>Math.round(n).toLocaleString("en-IN");
                         const pct2=(n,base)=>base>0?(n/base*100).toFixed(2)+"%":"—";
