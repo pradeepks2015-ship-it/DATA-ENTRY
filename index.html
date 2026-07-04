@@ -5894,22 +5894,26 @@
                 }, 0));
             };
 
-            // Group by substation → feeder, sum consumption
+            // Group by substation — only 11KV feeders in ssMap (33KV incoming excluded)
+            // 33KV incoming meters: BS12775548, BS12775550, BS12776133, BS12775543, BS12775544
+            const INCOMING_33KV_METERS = ["BS12775548","BS12775550","BS12776133","BS12775543","BS12775544","MPP28230"];
             const ssMap = {};
             rows.forEach((r) => {
-                const ss  = r["33/11 KV SUBSTATION"] || "";
-                const fdr = r["33 AND 11 KV FEEDER"] || "";
+                const ss   = r["33/11 KV SUBSTATION"] || "";
+                const fdr  = r["33 AND 11 KV FEEDER"] || "";
+                const mNo  = (r["METER NO"] || "").trim();
+                // Skip 33KV incoming/outgoing meters — only include 11KV feeders
+                if (INCOMING_33KV_METERS.includes(mNo)) return;
                 const prev = Number(r["PREVIUS READING"]) || 0;
                 const curr = Number(r["CURRENT READING"]) || 0;
                 const mf   = Number(r["MF"]) || 1;
                 const con  = Math.abs(Number(r["CONSUMPTION"]) || Math.abs(curr - prev) * mf);
-                if (!ssMap[ss]) ssMap[ss] = { total: 0, feeders: {} };
+                if (!ssMap[ss]) ssMap[ss] = { feeders11kv: 0, feeders: {} };
                 if (!ssMap[ss].feeders[fdr]) ssMap[ss].feeders[fdr] = 0;
                 ssMap[ss].feeders[fdr] += con;
-                ssMap[ss].total += con;
+                ssMap[ss].feeders11kv  += con;
             });
 
-            const grandTotal = Object.values(ssMap).reduce((s, v) => s + v.total, 0);
             const fmtDate = (iso) => iso ? iso.split("-").reverse().join("/") : "";
             const period  = fromDate && toDate ? `${fmtDate(fromDate)} – ${fmtDate(toDate)}` : "सभी";
             const fmt = (n) => Math.round(n).toLocaleString("en-IN");
@@ -5919,48 +5923,60 @@
             const BS12775550 = getMeterConsumption("BS12775550"); // 33KV ADEGAON-CHAMARI outgoing
             const BS12776133 = getMeterConsumption("BS12776133"); // 33KV MADI OUTGOING to Madhi
             const BS12775543 = getMeterConsumption("BS12775543"); // 33KV MADHI INCOMING
-            // Adegaon 11KV feeders
             const BS12774695 = getMeterConsumption("BS12774695"); // 11KV ADEGAON MIX
             const BS12776368 = getMeterConsumption("BS12776368"); // 11KV BIBI DL
             const BS12774694 = getMeterConsumption("BS12774694"); // 11KV BIBI AG
             const BS12774693 = getMeterConsumption("BS12774693"); // 11KV MADI (ADEGAON) MIX
             const BS12770679 = getMeterConsumption("BS12770679"); // ADEGAON-CB
-            // Madhi 11KV feeders
             const BS12775542 = getMeterConsumption("BS12775542"); // 11KV PATAN
             const BS12775541 = getMeterConsumption("BS12775541"); // 11KV MADHI
             const BS12775540 = getMeterConsumption("BS12775540"); // 11KV PINDRAI
 
             const adegaon11KVTotal = BS12774695 + BS12776368 + BS12774694 + BS12774693 + BS12770679;
             const madhiFeederTotal = BS12775542 + BS12775541 + BS12775540;
-            const totalIncoming    = BS12775548; // Grand total incoming
+            const totalIncoming    = BS12775548;
 
-            // Calculations
-            const adegaonSSInput       = Math.abs(BS12775548 - BS12776133); // BS548 - BS133 (Madhi outgoing only)
+            // Correct formulas
+            const adegaonSSInput       = Math.abs(BS12775548 - (BS12775550 + BS12776133));
             const adegaonSSLineLoss    = Math.abs(adegaonSSInput - adegaon11KVTotal);
             const adegaonMadhiLineLoss = Math.abs(BS12776133 - BS12775543);
             const madhiSSLineLoss      = Math.abs(BS12775543 - madhiFeederTotal);
 
-            // % of respective base AND % of total incoming
             const pct = (n, base) => base > 0 ? (n / base * 100).toFixed(2) + "%" : "—";
             const pctInc = (n) => pct(n, totalIncoming);
 
-            // Substation summary HTML
+            // SS_INCOMING for each substation (33KV input to SS)
+            const SS_INCOMING = { "ADEGAON": adegaonSSInput, "MADHI": BS12775543, "CHAMARI": BS12775550 };
+
+            // Substation summary HTML — SS Total = Σ 11KV feeders + SS Loss
             let ssHtml = Object.entries(ssMap).map(([ss, data]) => {
+                const feeder11total = data.feeders11kv;
+                const incoming = SS_INCOMING[ss] || 0;
+                const ssLoss  = incoming > 0 ? Math.abs(incoming - feeder11total) : 0;
+                const ssTotal = feeder11total + ssLoss;
                 const feederRows = Object.entries(data.feeders).map(([fdr, con]) =>
                     `<div style="display:flex; justify-content:space-between; padding:4px 0; border-bottom:1px solid #fce7f3; font-size:11px;">
                         <span style="font-weight:700; color:#334155; flex:1;">${fdr}</span>
                         <span style="font-weight:900; color:#9d174d;">${fmt(con)} kWh</span>
                     </div>`
                 ).join("");
+                const incomingRow = incoming > 0 ? `
+                    <div style="display:flex; justify-content:space-between; padding:4px 0; border-bottom:1px dashed #fce7f3; font-size:11px;">
+                        <span style="font-weight:700; color:#ef4444;">SS Loss</span>
+                        <span style="font-weight:900; color:#ef4444;">${fmt(ssLoss)} kWh (${pct(ssLoss,incoming)})</span>
+                    </div>` : "";
                 return `<div style="background:#fff; border-radius:10px; padding:10px; margin-bottom:8px; border:1px solid #fbcfe8;">
                     <div style="font-size:12px; font-weight:900; color:#9d174d; margin-bottom:6px; text-transform:uppercase;">🔌 ${ss}</div>
                     ${feederRows}
+                    ${incomingRow}
                     <div style="display:flex; justify-content:space-between; margin-top:6px; padding-top:4px; border-top:2px solid #ec4899;">
                         <span style="font-size:11px; font-weight:900; color:#1e293b;">SS Total</span>
-                        <span style="font-size:12px; font-weight:900; color:#ec4899;">${fmt(data.total)} kWh</span>
+                        <span style="font-size:12px; font-weight:900; color:#ec4899;">${fmt(ssTotal)} kWh</span>
                     </div>
+                    <div style="font-size:9px; font-weight:700; color:#64748b; margin-top:2px; text-align:right;">Σ 11KV (${fmt(feeder11total)}) + Loss (${fmt(ssLoss)})</div>
                 </div>`;
             }).join("");
+            const grandTotal = Object.values(ssMap).reduce((s, v) => s + v.feeders11kv, 0);
 
             // Loss calculation HTML
             const lossRow = (label, formula, val, pctBase, pctTot) => `
