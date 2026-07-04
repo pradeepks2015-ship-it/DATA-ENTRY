@@ -1041,6 +1041,18 @@
             </div>
         </main>
 
+        <main id="stock-issue-history-view" class="view">
+            <div class="stock-wrap">
+                <div class="stock-section-card">
+                    <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:12px;">
+                        <h3 class="stock-section-title" style="margin:0;">📋 Issue इतिहास</h3>
+                        <div id="issue-history-count" style="font-size:11px; font-weight:700; color:#64748b;"></div>
+                    </div>
+                    <div id="issue-history-list"></div>
+                </div>
+            </div>
+        </main>
+
         <main id="stock-return-view" class="view">
             <div class="stock-wrap">
                 <div class="stock-section-card">
@@ -9567,59 +9579,13 @@
                     }
                 </div>
 
-                <!-- ===== SECTION 2: ISSUE HISTORY ===== -->
-                ${(() => {
-                    const log = getIssueLog_().slice().reverse();
-                    if (!log.length) return `
-                        <div style="margin-bottom:18px;">
-                            <div style="display:flex; align-items:center; gap:8px; margin-bottom:10px;">
-                                <div style="width:4px; height:20px; background:#0284c7; border-radius:2px;"></div>
-                                <div style="font-size:13px; font-weight:900; color:#0c4a6e; text-transform:uppercase; letter-spacing:0.5px;">📋 Issue इतिहास</div>
-                            </div>
-                            <div style="text-align:center; padding:16px; background:#f8fafc; border-radius:12px; font-size:12px; font-weight:700; color:#64748b; border:2px dashed #e2e8f0;">अभी तक कोई Issue नहीं किया गया।</div>
-                        </div>`;
-                    return `
-                        <div style="margin-bottom:18px;">
-                            <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:10px;">
-                                <div style="display:flex; align-items:center; gap:8px;">
-                                    <div style="width:4px; height:20px; background:#0284c7; border-radius:2px;"></div>
-                                    <div style="font-size:13px; font-weight:900; color:#0c4a6e; text-transform:uppercase; letter-spacing:0.5px;">📋 Issue इतिहास</div>
-                                </div>
-                                <div style="font-size:10px; font-weight:700; color:#64748b;">${log.length} entries</div>
-                            </div>
-                            <div style="display:flex; flex-direction:column; gap:8px;">
-                            ${log.map((e) => {
-                                const statusColor = e.returned ? "#14532d" : e.return_type === "non_returnable" ? "#475569" : "#b45309";
-                                const statusBg = e.returned ? "#dcfce7" : e.return_type === "non_returnable" ? "#f1f5f9" : "#fef9c3";
-                                const statusText = e.returned ? "✅ वापस" : e.return_type === "non_returnable" ? "🚫 Non-Ret." : "⏳ Pending";
-                                const cardBorder = e.returned ? "#86efac" : e.return_type === "non_returnable" ? "#cbd5e1" : "#fcd34d";
-                                const cardBg = e.returned ? "#f0fdf4" : e.return_type === "non_returnable" ? "#f8fafc" : "#fffbeb";
-                                return `
-                                <div style="background:${cardBg}; border:1.5px solid ${cardBorder}; border-radius:12px; padding:12px;">
-                                    <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:6px;">
-                                        <div>
-                                            <div style="font-size:13px; font-weight:900; color:#1e293b;">${escapeHtml(e.issued_to)}</div>
-                                            <div style="font-size:10px; font-weight:700; color:#64748b;">${escapeHtml(e.issue_date)} | ${escapeHtml(e.issue_time)}</div>
-                                        </div>
-                                        <span style="font-size:9px; font-weight:900; border-radius:999px; padding:3px 10px; background:${statusBg}; color:${statusColor}; text-transform:uppercase; flex-shrink:0;">${statusText}</span>
-                                    </div>
-                                    <div style="background:rgba(0,0,0,0.04); border-radius:8px; padding:8px; margin-bottom:8px;">
-                                        <div style="font-size:12px; font-weight:700; color:#334155;">${escapeHtml(e.material_name)}</div><div style="font-size:13px; font-weight:900; color:#1e293b;">मात्रा: <strong>${e.qty} ${escapeHtml(e.unit)}</strong></div>
-                                        ${e.remark ? `<div style="font-size:10px; font-weight:700; color:#94a3b8; margin-top:2px;">📝 ${escapeHtml(e.remark)}</div>` : ""}
-                                        ${e.returned ? `<div style="font-size:10px; font-weight:700; color:#16a34a; margin-top:2px;">वापसी: ${escapeHtml(e.return_date)} ${escapeHtml(e.return_time)}</div>` : ""}
-                                        ${!e.returned && e.expected_return_date ? `<div style="font-size:10px; font-weight:700; color:#b45309; margin-top:2px;">Expected: ${escapeHtml(e.expected_return_date)}</div>` : ""}
-                                    </div>
-                                    <div style="display:grid; grid-template-columns:${!e.returned && e.return_type === "returnable" ? "1fr 1fr" : "1fr"}; gap:8px;">
-                                        ${!e.returned && e.return_type === "returnable"
-                                            ? `<button onclick="markMaterialReturned('${e.id}')" style="height:36px; border:none; border-radius:8px; background:linear-gradient(135deg,#16a34a,#15803d); color:#fff; font-size:11px; font-weight:900; cursor:pointer;">↩️ Mark Return</button>`
-                                            : ""}
-                                        <button onclick="deleteIssueLogEntry('${e.id}')" style="height:36px; border:none; border-radius:8px; background:#fee2e2; color:#b91c1c; font-size:11px; font-weight:900; cursor:pointer;">🗑️ हटाएं</button>
-                                    </div>
-                                </div>`;
-                            }).join("")}
-                            </div>
-                        </div>`;
-                })()}
+                <!-- ===== SECTION 2: ISSUE HISTORY BUTTON ===== -->
+                <div style="margin-bottom:18px;">
+                    <button onclick="openStockSection('stock-issue-history'); renderIssueHistoryView();" style="width:100%; height:50px; border:none; border-radius:14px; background:linear-gradient(135deg,#0284c7,#0c4a6e); color:#fff; font-size:13px; font-weight:900; text-transform:uppercase; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:10px;">
+                        📋 Issue इतिहास देखें
+                        <span style="background:rgba(255,255,255,0.2); border-radius:999px; padding:2px 10px; font-size:11px;">${getIssueLog_().length} entries</span>
+                    </button>
+                </div>
 
                 <!-- ===== SECTION 3: TODAY'S ACTIVITY ===== -->
                 ${(() => {
@@ -9774,6 +9740,48 @@
                 refreshStockDropdowns_();
             };
         }
+        function renderIssueHistoryView() {
+            const log = getIssueLog_().slice().reverse();
+            const container = document.getElementById("issue-history-list");
+            const countEl = document.getElementById("issue-history-count");
+            if (!container) return;
+            if (countEl) countEl.textContent = `${log.length} entries`;
+            if (!log.length) {
+                container.innerHTML = `<div style="text-align:center; padding:20px; font-size:12px; font-weight:700; color:#64748b; border:2px dashed #e2e8f0; border-radius:12px;">कोई Issue entry नहीं है।</div>`;
+                return;
+            }
+            container.innerHTML = log.map((e) => {
+                const statusColor = e.returned ? "#14532d" : e.return_type === "non_returnable" ? "#475569" : "#b45309";
+                const statusBg    = e.returned ? "#dcfce7" : e.return_type === "non_returnable" ? "#f1f5f9" : "#fef9c3";
+                const statusText  = e.returned ? "✅ वापस" : e.return_type === "non_returnable" ? "🚫 Non-Ret." : "⏳ Pending";
+                const cardBorder  = e.returned ? "#86efac" : e.return_type === "non_returnable" ? "#cbd5e1" : "#fcd34d";
+                const cardBg      = e.returned ? "#f0fdf4" : e.return_type === "non_returnable" ? "#f8fafc" : "#fffbeb";
+                return `
+                <div style="background:${cardBg}; border:1.5px solid ${cardBorder}; border-radius:12px; padding:12px; margin-bottom:10px;">
+                    <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:6px;">
+                        <div>
+                            <div style="font-size:13px; font-weight:900; color:#1e293b;">${escapeHtml(e.issued_to)}</div>
+                            <div style="font-size:10px; font-weight:700; color:#64748b;">${escapeHtml(e.issue_date)} | ${escapeHtml(e.issue_time)}</div>
+                        </div>
+                        <span style="font-size:9px; font-weight:900; border-radius:999px; padding:3px 10px; background:${statusBg}; color:${statusColor}; text-transform:uppercase; flex-shrink:0;">${statusText}</span>
+                    </div>
+                    <div style="background:rgba(0,0,0,0.04); border-radius:8px; padding:8px; margin-bottom:8px;">
+                        <div style="font-size:12px; font-weight:700; color:#334155;">${escapeHtml(e.material_name)}</div>
+                        <div style="font-size:13px; font-weight:900; color:#1e293b;">मात्रा: <strong>${e.qty} ${escapeHtml(e.unit)}</strong></div>
+                        ${e.remark ? `<div style="font-size:10px; font-weight:700; color:#94a3b8; margin-top:2px;">📝 ${escapeHtml(e.remark)}</div>` : ""}
+                        ${e.returned ? `<div style="font-size:10px; font-weight:700; color:#16a34a; margin-top:2px;">वापसी: ${escapeHtml(e.return_date)} ${escapeHtml(e.return_time)}</div>` : ""}
+                        ${!e.returned && e.expected_return_date ? `<div style="font-size:10px; font-weight:700; color:#b45309; margin-top:2px;">Expected: ${escapeHtml(e.expected_return_date)}</div>` : ""}
+                    </div>
+                    <div style="display:grid; grid-template-columns:${!e.returned && e.return_type === "returnable" ? "1fr 1fr" : "1fr"}; gap:8px;">
+                        ${!e.returned && e.return_type === "returnable"
+                            ? `<button onclick="markMaterialReturned('${e.id}'); renderIssueHistoryView(); renderStockDashboard();" style="height:36px; border:none; border-radius:8px; background:linear-gradient(135deg,#16a34a,#15803d); color:#fff; font-size:11px; font-weight:900; cursor:pointer;">↩️ Mark Return</button>`
+                            : ""}
+                        <button onclick="deleteIssueLogEntry('${e.id}')" style="height:36px; border:none; border-radius:8px; background:#fee2e2; color:#b91c1c; font-size:11px; font-weight:900; cursor:pointer;">🗑️ हटाएं</button>
+                    </div>
+                </div>`;
+            }).join("");
+        }
+
         function deleteIssueLogEntry(logId) {
             const entry = getIssueLog_().find((e) => e.id === logId);
             const isNonReturnable = entry && entry.return_type === "non_returnable";
@@ -9807,6 +9815,7 @@
                 saveIssueLog_(log);
                 showToast("Entry हट गई — Stock balance unchanged", true);
                 renderStockDashboard();
+                renderIssueHistoryView();
             };
         }
 
@@ -10924,6 +10933,8 @@ ${remark ? "रिमार्क: " + remark : ""}
                 if (id === "material-receive") headerTitle = "MATERIAL RECEIVE";
                 if (id === "material-issue") headerTitle = "MATERIAL ISSUE";
                 if (id === "live-stock") headerTitle = "LIVE STOCK";
+                if (id === "stock-issue-history") headerTitle = "ISSUE इतिहास";
+                if (id === "stock-return") headerTitle = "RETURN PENDING";
                 if (id === "low-stock") headerTitle = "LOW STOCK";
                 if (id === "stock-report") headerTitle = "STOCK REPORT";
                 if (id === "mobile-update") headerTitle = "UPDATE MOBILE NO";
@@ -11001,7 +11012,7 @@ ${remark ? "रिमार्क: " + remark : ""}
                     resetPeakLoadSelection();
                 }
                 switchView("dc-dashboard");
-            } else if (act === "material-list-view" || act === "material-receive-view" || act === "material-issue-view" || act === "live-stock-view" || act === "low-stock-view" || act === "stock-report-view") {
+            } else if (act === "material-list-view" || act === "material-receive-view" || act === "material-issue-view" || act === "live-stock-view" || act === "low-stock-view" || act === "stock-report-view" || act === "stock-issue-history-view" || act === "stock-return-view") {
                 switchView("stock-material");
             } else if (act === "dc-dashboard-view") {
                 activeDC = "";
