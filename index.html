@@ -3474,15 +3474,24 @@
         }
 
         async function loadStockMaterialsData() {
-            // Show local materials immediately (no more stuck "Loading...")
+            // Show local materials immediately
             renderStockDashboard();
             refreshStockDropdowns_();
 
             try {
-                const rawData = await Promise.race([
-                    loadRemoteJson(`${stockSubmitScriptUrl}?module=stock&action=getMasterStock`),
-                    new Promise((_, reject) => setTimeout(() => reject(new Error("timeout")), 8000))
+                // Fetch materials AND transactions in parallel — much faster
+                const [rawData, txRaw] = await Promise.all([
+                    Promise.race([
+                        loadRemoteJson(`${stockSubmitScriptUrl}?module=stock&action=getMasterStock`),
+                        new Promise((_, reject) => setTimeout(() => reject(new Error("timeout")), 8000))
+                    ]).catch(() => null),
+                    Promise.race([
+                        loadRemoteJson(`${stockSubmitScriptUrl}?module=stock&action=getTransactions`),
+                        new Promise((_, reject) => setTimeout(() => reject(new Error("timeout")), 8000))
+                    ]).catch(() => null)
                 ]);
+
+                // Process materials
                 const rows = Array.isArray(rawData) ? rawData : Array.isArray(rawData?.data) ? rawData.data : [];
                 if (rows.length) {
                     const seen = {};
@@ -3503,21 +3512,16 @@
                         selectedStockReceiveItem = null; selectedStockIssueItem = null;
                     }
                 }
-            } catch(_) { /* cloud unavailable — show local default materials */ }
 
-            // Load transactions from cloud to sync Issue History across all users
-            try {
-                const txRaw = await Promise.race([
-                    loadRemoteJson(`${stockSubmitScriptUrl}?module=stock&action=getTransactions`),
-                    new Promise((_, reject) => setTimeout(() => reject(new Error("timeout")), 6000))
-                ]);
+                // Process transactions
                 const txRows = Array.isArray(txRaw) ? txRaw : Array.isArray(txRaw?.data) ? txRaw.data : [];
                 if (txRows.length) {
                     stockMovements = txRows.map((row) => {
                         const items = (() => { try { return JSON.parse(row.items_json||"[]"); } catch(_) { return []; } })();
                         const isRec = String(row.type||"").toUpperCase() === "RECEIVE";
                         const dateStr = String(row.timestamp||"").slice(0,10).split("-").reverse().join("/");
-                        return items.map((i) => ({ type: isRec?"RECEIVE":"ISSUE", material: i.material_name||"", qty: Number(i.qty)||0, date: dateStr, note: isRec?`${row.received_from||""}|${row.receive_person_name||""}`:`${row.issue_to_person_name||""}|${row.remark||""}` }));
+                        return items.map((i) => ({ type: isRec?"RECEIVE":"ISSUE", material: i.material_name||"", qty: Number(i.qty)||0, date: dateStr,
+                            note: isRec?`${row.received_from||""}|${row.receive_person_name||""}`:`${row.issue_to_person_name||""}|${row.remark||""}` }));
                     }).flat().reverse();
 
                     const cloudLog = txRows.filter((row) => String(row.type||"").toUpperCase()==="ISSUE").map((row) => {
@@ -3530,8 +3534,7 @@
                             return_type: row.return_type||"returnable", expected_return_date: row.expected_return_date||"",
                             remark: row.remark||"",
                             returned: String(row.returned||"").toLowerCase() === "true",
-                            return_date: row.return_date||"", return_time: row.return_time||"",
-                            _from_cloud:true
+                            return_date: row.return_date||"", return_time: row.return_time||"", _from_cloud:true
                         }));
                     }).flat();
 
@@ -3543,9 +3546,9 @@
                     });
                     saveIssueLog_(merged);
                 }
+
             } catch(_) {}
 
-            // Re-render with cloud data
             renderStockDashboard();
             refreshStockDropdowns_();
         }
@@ -9828,10 +9831,15 @@
                                 // Calculate total issued from issue log for this material
                                 const issLog = getIssueLog_().filter((e) => e.material_name === item.name && !e.returned);
                                 const totalIssued = issLog.reduce((s, e) => s + (Number(e.qty)||0), 0);
-                                const total = bal + totalIssued; // Total = in store + issued out
-                                const color  = bal <= 0 ? "#ef4444" : "#16a34a";
-                                const bg     = bal <= 0 ? "#fef2f2" : "#f0fdf4";
-                                const border = bal <= 0 ? "#fca5a5" : "#86efac";
+                                // Total = fixed (set by All Update or ✏️ edit)
+                                // Balance = Total - Issue (dynamically calculated)
+                                const total = item.originalBalance ?? (bal + totalIssued);
+                                const balance = Math.max(0, total - totalIssued);
+                                // Sync currentBalance with calculated balance
+                                if (item.currentBalance !== balance) item.currentBalance = balance;
+                                const color  = balance <= 0 ? "#ef4444" : "#16a34a";
+                                const bg     = balance <= 0 ? "#fef2f2" : "#f0fdf4";
+                                const border = balance <= 0 ? "#fca5a5" : "#86efac";
                                 return `<div style="background:${bg}; border:1.5px solid ${border}; border-radius:14px; padding:12px;">
                                     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
                                         <div style="font-size:13px; font-weight:900; color:#1e293b;">${escapeHtml(item.name)}</div>
@@ -9845,7 +9853,7 @@
                                         </div>
                                         <div style="background:rgba(37,99,235,0.08); border-radius:8px; padding:6px; text-align:center;">
                                             <div style="font-size:9px; font-weight:900; color:#1d4ed8; text-transform:uppercase; margin-bottom:2px;">बाकी</div>
-                                            <div style="font-size:18px; font-weight:900; color:#2563eb; line-height:1;">${bal}</div>
+                                            <div style="font-size:18px; font-weight:900; color:#2563eb; line-height:1;">${balance}</div>
                                             <div style="font-size:9px; font-weight:700; color:#94a3b8;">${escapeHtml(item.unit)}</div>
                                         </div>
                                         <div onclick="editMaterialBalance('${item.id}')" style="background:${bg}; border:1.5px solid ${border}; border-radius:8px; padding:6px; text-align:center; cursor:pointer;">
