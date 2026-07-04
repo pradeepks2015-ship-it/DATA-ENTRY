@@ -5997,14 +5997,14 @@
                 <div style="background:#fff; border-radius:10px; padding:10px; margin-bottom:8px; border:1.5px solid #fbbf24;">
                     <div style="font-size:12px; font-weight:900; color:#b45309; margin-bottom:4px; text-transform:uppercase;">⚡ Input & Loss Analysis</div>
                     <div style="font-size:10px; font-weight:700; color:#64748b; margin-bottom:8px;">
-                        Total Incoming BS12775548: <strong style="color:#1e293b;">${fmt(totalIncoming)} kWh</strong><br>
-                        <span style="font-size:9px; color:#94a3b8;">= Adegaon SS + Chamari Line + Madhi Line + Madhi SS (all losses included)</span>
+                        BS12775548 (Adegaon SS Incoming): <strong style="color:#1e293b;">${fmt(totalIncoming)} kWh</strong><br>
+                        <span style="font-size:9px; color:#94a3b8;">⚠️ Chamari (BS550) aur Madhi (BS133) ke alag meters hain — teen alag lines</span>
                     </div>
 
                     <!-- ROW 1: Adegaon SS Input -->
                     ${lossRow(
-                        "1. Adegaon SS Input (Total Incoming)",
-                        `BS12775548 = ${fmt(BS12775548)}`,
+                        "1. Adegaon SS Input",
+                        `BS12775548 = ${fmt(BS12775548)} kWh (केवल Adegaon SS का incoming)`,
                         adegaonSSInput,
                         pct(adegaonSSInput, BS12775548),
                         pctInc(adegaonSSInput)
@@ -6057,13 +6057,7 @@
                         ✅ Madhi SS Total = Σ 3×11KV + SS Loss = ${fmt(madhiFeederTotal)} + ${fmt(madhiSSLineLoss)} = <strong>${fmt(madhiFeederTotal + madhiSSLineLoss)} kWh</strong> = BS543 ✓
                     </div>
 
-                    <!-- Grand Total Verification -->
-                    <div style="background:#eff6ff; border-radius:8px; padding:8px 10px; margin-bottom:8px; border:1.5px solid #2563eb;">
-                        <div style="font-size:11px; font-weight:900; color:#1d4ed8; margin-bottom:4px;">🔍 Grand Total Verification</div>
-                        <div style="font-size:10px; font-weight:700; color:#475569; margin-bottom:4px;">AdSS + Chamari Line + Madhi Line Loss + Madhi SS = BS548</div>
-                        <div style="font-size:12px; font-weight:900; color:#1d4ed8;">Σ 11KV (${fmt(adegaon11KVTotal)}) + AdLoss (${fmt(adegaonSSLineLoss)}) + BS550 (${fmt(BS12775550)}) + BS133→SS Loss (${fmt(adegaonMadhiLineLoss)}) + BS543 (${fmt(BS12775543)}) = <strong>${fmt(adegaon11KVTotal + adegaonSSLineLoss + BS12775550 + adegaonMadhiLineLoss + BS12775543)} kWh</strong></div>
-                        <div style="font-size:10px; font-weight:700; color:#16a34a; margin-top:4px;">= BS548 (${fmt(BS12775548)} kWh) ✓</div>
-                    </div>
+
 
                     <!-- Total T&D Losses -->
                     <div style="background:#fef2f2; border-radius:8px; padding:8px 10px; display:flex; justify-content:space-between; align-items:center;">
