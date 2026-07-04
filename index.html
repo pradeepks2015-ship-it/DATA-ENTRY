@@ -610,14 +610,18 @@
                                     <input type="date" id="feeder-mis-to-date" style="width:100%; height:38px; border-radius:10px; border:1.5px solid #ec4899; padding:0 8px; font-size:0.8rem; font-weight:700; color:#831843; background:#fdf2f8; outline:none;">
                                 </div>
                             </div>
-                            <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
+                            <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:8px;">
                                 <button onclick="downloadModuleMisReport('feeder','EXCEL')" style="height:42px; border:none; border-radius:12px; background:linear-gradient(135deg,#16a34a,#15803d); color:#fff; font-size:12px; font-weight:900; text-transform:uppercase;">Excel</button>
                                 <button onclick="downloadModuleMisReport('feeder','PDF')" style="height:42px; border:none; border-radius:12px; background:linear-gradient(135deg,#ef4444,#b91c1c); color:#fff; font-size:12px; font-weight:900; text-transform:uppercase;">PDF</button>
                             </div>
-                            <button type="button" onclick="checkFeederBackendStatus()" style="width:100%; height:38px; margin-top:8px; border:none; border-radius:12px; background:rgba(255,255,255,0.18); color:#fce7f3; font-size:11px; font-weight:900; text-transform:uppercase;">🔌 Cloud Backend Status Check</button>
+                            <button onclick="showFeederSummaryCard()" style="width:100%; height:42px; border:none; border-radius:12px; background:rgba(255,255,255,0.2); color:#fff; font-size:12px; font-weight:900; text-transform:uppercase; margin-bottom:8px;">📊 Monthly Summary Card</button>
+                            <button type="button" onclick="checkFeederBackendStatus()" style="width:100%; height:38px; border:none; border-radius:12px; background:rgba(255,255,255,0.18); color:#fce7f3; font-size:11px; font-weight:900; text-transform:uppercase;">🔌 Cloud Backend Status Check</button>
                             <div id="feeder-backend-status" style="display:none; margin-top:8px; padding:8px 10px; border-radius:10px; font-size:11px; font-weight:700; line-height:1.5;"></div>
                         </div>
                     </div>
+
+                    <!-- Summary Card (shown below MIS widget) -->
+                    <div id="feeder-summary-card" style="display:none; width:100%; max-width:340px; margin:0 auto;"></div>
 
                     <div id="feeder-operator-login-block" style="display:none; width:100%; max-width:340px; margin:0 auto;">
                         <div style="background:#ffffff; border:1.5px solid #fbcfe8; border-radius:18px; padding:16px 14px; box-shadow:0 10px 30px rgba(190,24,93,0.08);">
@@ -5845,6 +5849,173 @@
             return rows.filter((r) => misDateInRange_(r.dateKey, fromDate, toDate));
         }
 
+        async function showFeederSummaryCard() {
+            const fromDate = document.getElementById("feeder-mis-from-date")?.value || "";
+            const toDate   = document.getElementById("feeder-mis-to-date")?.value || "";
+            const card = document.getElementById("feeder-summary-card");
+            if (!card) return;
+
+            card.innerHTML = `<div style="text-align:center; padding:12px; font-size:12px; font-weight:800; color:#9d174d;">Loading...</div>`;
+            card.style.display = "block";
+
+            let rows = [];
+            try { rows = await getFeederMisRows_(fromDate, toDate); } catch(_) {}
+
+            if (!rows.length) {
+                card.innerHTML = `<div style="background:#fdf2f8; border:1.5px solid #fbcfe8; border-radius:14px; padding:14px; text-align:center; font-size:12px; font-weight:700; color:#9d174d;">इस अवधि में कोई feeder reading नहीं मिली।</div>`;
+                return;
+            }
+
+            // Helper: get total consumption for a meter number from rows
+            const getMeterConsumption = (meterNo) => {
+                const mRows = rows.filter((r) => (r["METER NO"] || "").trim() === meterNo);
+                return mRows.reduce((s, r) => {
+                    const prev = Number(r["PREVIUS READING"]) || 0;
+                    const curr = Number(r["CURRENT READING"]) || 0;
+                    const mf   = Number(r["MF"]) || 1;
+                    const con  = Number(r["CONSUMPTION"]) || ((curr - prev) * mf);
+                    return s + con;
+                }, 0);
+            };
+
+            // Group by substation → feeder, sum consumption
+            const ssMap = {};
+            rows.forEach((r) => {
+                const ss  = r["33/11 KV SUBSTATION"] || "";
+                const fdr = r["33 AND 11 KV FEEDER"] || "";
+                const prev = Number(r["PREVIUS READING"]) || 0;
+                const curr = Number(r["CURRENT READING"]) || 0;
+                const mf   = Number(r["MF"]) || 1;
+                const con  = Number(r["CONSUMPTION"]) || ((curr - prev) * mf);
+                if (!ssMap[ss]) ssMap[ss] = { total: 0, feeders: {} };
+                if (!ssMap[ss].feeders[fdr]) ssMap[ss].feeders[fdr] = 0;
+                ssMap[ss].feeders[fdr] += con;
+                ssMap[ss].total += con;
+            });
+
+            const grandTotal = Object.values(ssMap).reduce((s, v) => s + v.total, 0);
+            const fmtDate = (iso) => iso ? iso.split("-").reverse().join("/") : "";
+            const period  = fromDate && toDate ? `${fmtDate(fromDate)} – ${fmtDate(toDate)}` : "सभी";
+            const fmt = (n) => Math.round(n).toLocaleString("en-IN");
+
+            // === ELECTRICAL CALCULATIONS ===
+            const BS12775548 = getMeterConsumption("BS12775548"); // 33KV ADEGAON INCOMING (Total Input)
+            const BS12775550 = getMeterConsumption("BS12775550"); // 33KV ADEGAON-CHAMARI outgoing
+            const BS12776133 = getMeterConsumption("BS12776133"); // 33KV MADI OUTGOING to Madhi
+            const BS12775543 = getMeterConsumption("BS12775543"); // 33KV MADHI INCOMING
+            // Adegaon 11KV feeders
+            const BS12774695 = getMeterConsumption("BS12774695"); // 11KV ADEGAON MIX
+            const BS12776368 = getMeterConsumption("BS12776368"); // 11KV BIBI DL
+            const BS12774694 = getMeterConsumption("BS12774694"); // 11KV BIBI AG
+            const BS12774693 = getMeterConsumption("BS12774693"); // 11KV MADI (ADEGAON) MIX
+            const BS12770679 = getMeterConsumption("BS12770679"); // ADEGAON-CB
+            // Madhi 11KV feeders
+            const BS12775542 = getMeterConsumption("BS12775542"); // 11KV PATAN
+            const BS12775541 = getMeterConsumption("BS12775541"); // 11KV MADHI
+            const BS12775540 = getMeterConsumption("BS12775540"); // 11KV PINDRAI
+
+            const adegaon11KVTotal = BS12774695 + BS12776368 + BS12774694 + BS12774693 + BS12770679;
+            const madhiFeederTotal = BS12775542 + BS12775541 + BS12775540;
+            const totalIncoming    = BS12775548; // Grand total incoming
+
+            // Calculations
+            const adegaonSSInput       = BS12775548 - (BS12775550 + BS12776133);
+            const adegaonSSLineLoss    = adegaonSSInput - adegaon11KVTotal;
+            const adegaonMadhiLineLoss = BS12776133 - BS12775543;
+            const madhiSSLineLoss      = BS12775543 - madhiFeederTotal;
+
+            // % of respective base AND % of total incoming
+            const pct = (n, base) => base > 0 ? (n / base * 100).toFixed(2) + "%" : "—";
+            const pctInc = (n) => pct(n, totalIncoming);
+
+            // Substation summary HTML
+            let ssHtml = Object.entries(ssMap).map(([ss, data]) => {
+                const feederRows = Object.entries(data.feeders).map(([fdr, con]) =>
+                    `<div style="display:flex; justify-content:space-between; padding:4px 0; border-bottom:1px solid #fce7f3; font-size:11px;">
+                        <span style="font-weight:700; color:#334155; flex:1;">${fdr}</span>
+                        <span style="font-weight:900; color:#9d174d;">${fmt(con)} kWh</span>
+                    </div>`
+                ).join("");
+                return `<div style="background:#fff; border-radius:10px; padding:10px; margin-bottom:8px; border:1px solid #fbcfe8;">
+                    <div style="font-size:12px; font-weight:900; color:#9d174d; margin-bottom:6px; text-transform:uppercase;">🔌 ${ss}</div>
+                    ${feederRows}
+                    <div style="display:flex; justify-content:space-between; margin-top:6px; padding-top:4px; border-top:2px solid #ec4899;">
+                        <span style="font-size:11px; font-weight:900; color:#1e293b;">SS Total</span>
+                        <span style="font-size:12px; font-weight:900; color:#ec4899;">${fmt(data.total)} kWh</span>
+                    </div>
+                </div>`;
+            }).join("");
+
+            // Loss calculation HTML
+            const lossRow = (label, formula, val, pctBase, pctTot) => `
+                <div style="background:#fff; border-radius:8px; padding:8px 10px; margin-bottom:8px; border-left:4px solid #ef4444;">
+                    <div style="font-size:11px; font-weight:900; color:#1e293b; margin-bottom:2px;">${label}</div>
+                    <div style="font-size:10px; font-weight:700; color:#64748b; margin-bottom:4px;">${formula}</div>
+                    <div style="display:flex; gap:8px; flex-wrap:wrap;">
+                        <span style="background:#fef2f2; border-radius:6px; padding:3px 8px; font-size:11px; font-weight:900; color:#ef4444;">${fmt(val)} kWh</span>
+                        <span style="background:#fef9c3; border-radius:6px; padding:3px 8px; font-size:11px; font-weight:900; color:#b45309;">% of base: ${pctBase}</span>
+                        <span style="background:#eff6ff; border-radius:6px; padding:3px 8px; font-size:11px; font-weight:900; color:#1d4ed8;">% of Total Input: ${pctTot}</span>
+                    </div>
+                </div>`;
+
+            const lossHtml = `
+                <div style="background:#fff; border-radius:10px; padding:10px; margin-bottom:8px; border:1.5px solid #fbbf24;">
+                    <div style="font-size:12px; font-weight:900; color:#b45309; margin-bottom:4px; text-transform:uppercase;">⚡ Loss Analysis</div>
+                    <div style="font-size:10px; font-weight:700; color:#64748b; margin-bottom:8px;">Total Incoming (BS12775548): <strong style="color:#1e293b;">${fmt(totalIncoming)} kWh</strong></div>
+
+                    ${lossRow(
+                        "Adegaon SS Input",
+                        `BS548 − (BS550 + BS133) = ${fmt(BS12775548)} − (${fmt(BS12775550)} + ${fmt(BS12776133)})`,
+                        adegaonSSInput,
+                        pct(adegaonSSInput, BS12775548),
+                        pctInc(adegaonSSInput)
+                    )}
+                    ${lossRow(
+                        "Adegaon SS Line Loss",
+                        `Adegaon SS Input − Σ 11KV Feeders = ${fmt(adegaonSSInput)} − ${fmt(adegaon11KVTotal)}`,
+                        adegaonSSLineLoss,
+                        pct(adegaonSSLineLoss, adegaonSSInput),
+                        pctInc(adegaonSSLineLoss)
+                    )}
+                    ${lossRow(
+                        "Adegaon → Madhi Line Loss",
+                        `BS133 − BS543 = ${fmt(BS12776133)} − ${fmt(BS12775543)}`,
+                        adegaonMadhiLineLoss,
+                        pct(adegaonMadhiLineLoss, BS12776133),
+                        pctInc(adegaonMadhiLineLoss)
+                    )}
+                    ${lossRow(
+                        "Madhi SS Line Loss",
+                        `BS543 − Σ 11KV Feeders = ${fmt(BS12775543)} − ${fmt(madhiFeederTotal)}`,
+                        madhiSSLineLoss,
+                        pct(madhiSSLineLoss, BS12775543),
+                        pctInc(madhiSSLineLoss)
+                    )}
+
+                    <div style="background:#fef2f2; border-radius:8px; padding:8px 10px; margin-top:4px; display:flex; justify-content:space-between; align-items:center;">
+                        <span style="font-size:11px; font-weight:900; color:#1e293b;">Total Losses</span>
+                        <div style="text-align:right;">
+                            <div style="font-size:13px; font-weight:900; color:#ef4444;">${fmt(adegaonSSLineLoss + adegaonMadhiLineLoss + madhiSSLineLoss)} kWh</div>
+                            <div style="font-size:10px; font-weight:700; color:#b45309;">${pctInc(adegaonSSLineLoss + adegaonMadhiLineLoss + madhiSSLineLoss)} of Total Input</div>
+                        </div>
+                    </div>
+                </div>`;
+
+            card.innerHTML = `
+                <div style="background:linear-gradient(135deg,#9d174d,#ec4899); border-radius:16px; padding:14px; color:#fff;">
+                    <div style="font-size:13px; font-weight:900; text-transform:uppercase; text-align:center; margin-bottom:4px;">📊 Feeder Monthly Summary</div>
+                    <div style="font-size:10px; font-weight:700; text-align:center; margin-bottom:12px; opacity:0.85;">अवधि: ${period}</div>
+                    ${ssHtml}
+                    ${lossHtml}
+                    <div style="background:rgba(255,255,255,0.15); border-radius:12px; padding:12px; text-align:center; margin-top:4px;">
+                        <div style="font-size:11px; font-weight:800; opacity:0.9; margin-bottom:4px;">GRAND TOTAL INPUT</div>
+                        <div style="font-size:24px; font-weight:900;">${fmt(grandTotal)}</div>
+                        <div style="font-size:11px; font-weight:700; opacity:0.8;">kWh</div>
+                    </div>
+                    <button onclick="document.getElementById('feeder-summary-card').style.display='none'" style="width:100%; height:36px; border:none; border-radius:10px; background:rgba(255,255,255,0.2); color:#fff; font-size:11px; font-weight:900; margin-top:10px;">✕ बंद करें</button>
+                </div>`;
+        }
+
         async function getFeederMisRows_(fromDate, toDate) {
             await loadFeederReportData(true);
             const rows = getAllFeederHistoryEntries_();
@@ -6147,8 +6318,115 @@
                     doc.setFontSize(7);
                     doc.text(`Generated: ${new Date().toLocaleString("en-IN")}  |  Total Records: ${rows.length}`, 287, 22, { align: "right" });
 
+                    let nextY = 26;
+
+                    // === FEEDER SUMMARY SECTION (only for feeder module) ===
+                    if (moduleType === "feeder" && rows.length) {
+                        const ssMap = {};
+                        rows.forEach((r) => {
+                            const ss  = r["33/11 KV SUBSTATION"] || "";
+                            const fdr = r["33 AND 11 KV FEEDER"] || "";
+                            const prev = Number(r["PREVIUS READING"]) || 0;
+                            const curr = Number(r["CURRENT READING"]) || 0;
+                            const mf   = Number(r["MF"]) || 1;
+                            const con  = Number(r["CONSUMPTION"]) || ((curr - prev) * mf);
+                            if (!ssMap[ss]) ssMap[ss] = { total: 0, feeders: {} };
+                            if (!ssMap[ss].feeders[fdr]) ssMap[ss].feeders[fdr] = 0;
+                            ssMap[ss].feeders[fdr] += con;
+                            ssMap[ss].total += con;
+                        });
+                        const grandTotal = Object.values(ssMap).reduce((s, v) => s + v.total, 0);
+
+                        // Summary heading
+                        doc.setFontSize(9); doc.setTextColor(157,23,77); doc.setFont(undefined, "bold");
+                        doc.text("📊 Substation / Feeder-wise Monthly Consumption Summary", 8, nextY + 4);
+
+                        // Build summary table body
+                        const summaryBody = [];
+                        Object.entries(ssMap).forEach(([ss, data]) => {
+                            // SS header row
+                            summaryBody.push([{ content: ss, colSpan: 2, styles: { fillColor: [253,242,248], fontStyle:"bold", textColor:[157,23,77] } }, { content: `SS Total: ${data.total.toLocaleString("en-IN")} kWh`, styles: { fontStyle:"bold", textColor:[157,23,77], fillColor:[253,242,248], halign:"right" } }]);
+                            Object.entries(data.feeders).forEach(([fdr, con]) => {
+                                summaryBody.push(["", fdr, `${con.toLocaleString("en-IN")} kWh`]);
+                            });
+                        });
+                        summaryBody.push([{ content: "GRAND TOTAL INPUT", colSpan: 2, styles: { fillColor:[157,23,77], textColor:255, fontStyle:"bold" } }, { content: `${grandTotal.toLocaleString("en-IN")} kWh`, styles: { fillColor:[157,23,77], textColor:255, fontStyle:"bold", halign:"right" } }]);
+
+                        doc.autoTable({
+                            startY: nextY + 7,
+                            margin: { left: 8, right: 8 },
+                            head: [["क्र.", "Feeder / Substation", "Consumption (kWh)"]],
+                            body: summaryBody,
+                            theme: "grid",
+                            headStyles: { fillColor: [157,23,77], textColor: 255, fontSize: 8, fontStyle: "bold", halign: "center" },
+                            bodyStyles: { fontSize: 8 },
+                            columnStyles: { 0: { cellWidth: 12, halign:"center" }, 2: { halign:"right", cellWidth:40 } }
+                        });
+                        nextY = doc.lastAutoTable.finalY + 6;
+
+                        // === Electrical Calculations in PDF ===
+                        const getMC = (mNo) => rows.filter((r) => (r["METER NO"]||"").trim()===mNo).reduce((s,r)=>{
+                            const p=Number(r["PREVIUS READING"])||0, c=Number(r["CURRENT READING"])||0, mf=Number(r["MF"])||1;
+                            return s+(Number(r["CONSUMPTION"])||((c-p)*mf));
+                        },0);
+                        const M548=getMC("BS12775548"), M550=getMC("BS12775550"), M133=getMC("BS12776133");
+                        const M543=getMC("BS12775543");
+                        const M695=getMC("BS12774695"), M368=getMC("BS12776368"), M694=getMC("BS12774694");
+                        const M693=getMC("BS12774693"), M679=getMC("BS12770679");
+                        const M542=getMC("BS12775542"), M541=getMC("BS12775541"), M540=getMC("BS12775540");
+                        const adg11Total = M695+M368+M694+M693+M679;
+                        const madhiTotal = M542+M541+M540;
+                        const adInput    = M548-(M550+M133);
+                        const adSSLoss   = adInput - adg11Total;
+                        const lineLoss   = M133-M543;
+                        const madhiLoss  = M543-madhiTotal;
+                        const totalLoss  = adSSLoss+lineLoss+madhiLoss;
+                        const fmt2=(n)=>Math.round(n).toLocaleString("en-IN");
+                        const pct2=(n,base)=>base>0?(n/base*100).toFixed(2)+"%":"—";
+                        const pctI=(n)=>pct2(n,M548);
+
+                        if (nextY > 160) { doc.addPage(); nextY = 14; }
+                        doc.setFontSize(9); doc.setTextColor(157,23,77); doc.setFont(undefined,"bold");
+                        doc.text("⚡ Loss Analysis  |  Total Incoming (BS12775548): "+fmt2(M548)+" kWh", 8, nextY+4);
+                        doc.autoTable({
+                            startY: nextY+7,
+                            margin: { left: 8, right: 8 },
+                            head: [["Loss Type", "Formula", "Value (kWh)", "% of Base", "% of Total Input"]],
+                            body: [
+                                ["Adegaon SS Input",
+                                 `BS548-(BS550+BS133)\n=${fmt2(M548)}-(${fmt2(M550)}+${fmt2(M133)})`,
+                                 fmt2(adInput), pct2(adInput,M548), pctI(adInput)],
+                                ["Adegaon SS Line Loss",
+                                 `AdSS Input - Σ 11KV\n=${fmt2(adInput)}-${fmt2(adg11Total)}`,
+                                 fmt2(adSSLoss), pct2(adSSLoss,adInput), pctI(adSSLoss)],
+                                ["Adegaon→Madhi Line Loss",
+                                 `BS133-BS543\n=${fmt2(M133)}-${fmt2(M543)}`,
+                                 fmt2(lineLoss), pct2(lineLoss,M133), pctI(lineLoss)],
+                                ["Madhi SS Line Loss",
+                                 `BS543-Σ 11KV\n=${fmt2(M543)}-${fmt2(madhiTotal)}`,
+                                 fmt2(madhiLoss), pct2(madhiLoss,M543), pctI(madhiLoss)],
+                                [{ content:"TOTAL LOSSES", colSpan:2, styles:{fontStyle:"bold",fillColor:[254,242,242]} },
+                                 { content:fmt2(totalLoss), styles:{fontStyle:"bold",fillColor:[254,242,242],halign:"right"} },
+                                 "",
+                                 { content:pctI(totalLoss), styles:{fontStyle:"bold",fillColor:[254,242,242],halign:"center"} }]
+                            ],
+                            theme: "grid",
+                            headStyles: { fillColor:[180,83,9], textColor:255, fontSize:7, fontStyle:"bold", halign:"center" },
+                            bodyStyles: { fontSize:7 },
+                            columnStyles: { 2:{halign:"right"}, 3:{halign:"center"}, 4:{halign:"center",fontStyle:"bold"} }
+                        });
+                        nextY = doc.lastAutoTable.finalY + 8;
+
+                        // Page break if needed
+                        if (nextY > 170) { doc.addPage(); nextY = 14; }
+
+                        doc.setFontSize(9); doc.setTextColor(157,23,77); doc.setFont(undefined, "bold");
+                        doc.text("विस्तृत Reading विवरण (Detail)", 8, nextY);
+                        nextY += 4;
+                    }
+
                     doc.autoTable({
-                        startY: 26,
+                        startY: nextY,
                         margin: { left: 5, right: 5 },
                         tableWidth: "auto",
                         head: [config.headers],
