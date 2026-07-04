@@ -5991,12 +5991,22 @@
                         pctInc(adegaonMadhiLineLoss)
                     )}
                     ${lossRow(
-                        "Madhi SS Line Loss",
+                        "Madhi SS T&D Loss",
                         `BS543 − Σ 11KV Feeders = ${fmt(BS12775543)} − ${fmt(madhiFeederTotal)}`,
                         madhiSSLineLoss,
                         pct(madhiSSLineLoss, BS12775543),
                         pctInc(madhiSSLineLoss)
                     )}
+
+                    <!-- Madhi SS Total Input verification -->
+                    <div style="background:#f0fdf4; border-radius:8px; padding:8px 10px; margin-bottom:8px; border-left:4px solid #16a34a;">
+                        <div style="font-size:11px; font-weight:900; color:#1e293b; margin-bottom:2px;">Madhi SS Total Input</div>
+                        <div style="font-size:10px; font-weight:700; color:#64748b; margin-bottom:4px;">Σ 11KV Feeders + Madhi SS T&D Loss = ${fmt(madhiFeederTotal)} + ${fmt(madhiSSLineLoss)}</div>
+                        <div style="display:flex; gap:8px; flex-wrap:wrap;">
+                            <span style="background:#dcfce7; border-radius:6px; padding:3px 8px; font-size:11px; font-weight:900; color:#16a34a;">${fmt(madhiFeederTotal + madhiSSLineLoss)} kWh</span>
+                            <span style="background:#eff6ff; border-radius:6px; padding:3px 8px; font-size:11px; font-weight:700; color:#1d4ed8;">= BS543 (${fmt(BS12775543)} kWh) ✓</span>
+                        </div>
+                    </div>
 
                     <div style="background:#fef2f2; border-radius:8px; padding:8px 10px; margin-top:4px; display:flex; justify-content:space-between; align-items:center;">
                         <span style="font-size:11px; font-weight:900; color:#1e293b;">Total Losses</span>
@@ -6408,9 +6418,12 @@
                                 ["Adegaon→Madhi Line Loss",
                                  `BS133-BS543\n=${fmt2(M133)}-${fmt2(M543)}`,
                                  fmt2(lineLoss), pct2(lineLoss,M133), pctI(lineLoss)],
-                                ["Madhi SS Line Loss",
+                                ["Madhi SS T&D Loss",
                                  `BS543-Σ 11KV\n=${fmt2(M543)}-${fmt2(madhiTotal)}`,
                                  fmt2(madhiLoss), pct2(madhiLoss,M543), pctI(madhiLoss)],
+                                [{ content:"Madhi SS Total Input", colSpan:2, styles:{fontStyle:"bold",fillColor:[240,253,244],textColor:[21,128,61]} },
+                                 { content:`${fmt2(madhiTotal+madhiLoss)} = BS543 ✓`, styles:{fontStyle:"bold",fillColor:[240,253,244],textColor:[21,128,61],halign:"right"} },
+                                 "",""],
                                 [{ content:"TOTAL LOSSES", colSpan:2, styles:{fontStyle:"bold",fillColor:[254,242,242]} },
                                  { content:fmt2(totalLoss), styles:{fontStyle:"bold",fillColor:[254,242,242],halign:"right"} },
                                  "",
