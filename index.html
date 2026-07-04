@@ -5935,7 +5935,7 @@
             const totalIncoming    = BS12775548; // Grand total incoming
 
             // Calculations
-            const adegaonSSInput       = Math.abs(BS12775548 - (BS12775550 + BS12776133));
+            const adegaonSSInput       = Math.abs(BS12775548 - BS12776133); // BS548 - BS133 (Madhi outgoing only)
             const adegaonSSLineLoss    = Math.abs(adegaonSSInput - adegaon11KVTotal);
             const adegaonMadhiLineLoss = Math.abs(BS12776133 - BS12775543);
             const madhiSSLineLoss      = Math.abs(BS12775543 - madhiFeederTotal);
@@ -5979,13 +5979,16 @@
                     <div style="font-size:12px; font-weight:900; color:#b45309; margin-bottom:4px; text-transform:uppercase;">⚡ Loss Analysis</div>
                     <div style="font-size:10px; font-weight:700; color:#64748b; margin-bottom:8px;">Total Incoming (BS12775548): <strong style="color:#1e293b;">${fmt(totalIncoming)} kWh</strong></div>
 
-                    ${lossRow(
-                        "Adegaon SS Input",
-                        `BS548 − (BS550 + BS133) = ${fmt(BS12775548)} − (${fmt(BS12775550)} + ${fmt(BS12776133)})`,
-                        adegaonSSInput,
-                        pct(adegaonSSInput, BS12775548),
-                        pctInc(adegaonSSInput)
-                    )}
+                    <!-- Adegaon SS Input — 33KV side calculation -->
+                    <div style="background:#fff; border-radius:8px; padding:8px 10px; margin-bottom:8px; border-left:4px solid #7c3aed;">
+                        <div style="font-size:11px; font-weight:900; color:#1e293b; margin-bottom:2px;">Adegaon SS Input (33KV side)</div>
+                        <div style="font-size:10px; font-weight:700; color:#64748b; margin-bottom:4px;">BS548 − (BS550 + BS133) = ${fmt(BS12775548)} − (${fmt(BS12775550)} + ${fmt(BS12776133)})</div>
+                        <div style="display:flex; gap:8px; flex-wrap:wrap;">
+                            <span style="background:#f5f3ff; border-radius:6px; padding:3px 8px; font-size:12px; font-weight:900; color:#7c3aed;">${fmt(adegaonSSInput)} kWh</span>
+                            <span style="background:#eff6ff; border-radius:6px; padding:3px 8px; font-size:11px; font-weight:700; color:#1d4ed8;">${pct(adegaonSSInput,BS12775548)} of Incoming</span>
+                        </div>
+                    </div>
+
                     ${lossRow(
                         "Adegaon SS Line Loss",
                         `Adegaon SS Input − Σ 11KV Feeders = ${fmt(adegaonSSInput)} − ${fmt(adegaon11KVTotal)}`,
@@ -6414,7 +6417,7 @@
                         const M542=getMC("BS12775542"), M541=getMC("BS12775541"), M540=getMC("BS12775540");
                         const adg11Total = M695+M368+M694+M693+M679;
                         const madhiTotal = M542+M541+M540;
-                        const adInput    = Math.abs(M548-(M550+M133));
+                        const adInput    = Math.abs(M548-M133); // BS548 - BS133 only
                         const adSSLoss   = Math.abs(adInput - adg11Total);
                         const lineLoss   = Math.abs(M133-M543);
                         const madhiLoss  = Math.abs(M543-madhiTotal);
@@ -6432,7 +6435,7 @@
                             head: [["Loss Type", "Formula", "Value (kWh)", "% of Base", "% of Total Input"]],
                             body: [
                                 ["Adegaon SS Input",
-                                 `BS548-(BS550+BS133)\n=${fmt2(M548)}-(${fmt2(M550)}+${fmt2(M133)})`,
+                                 `BS548-BS133\n=${fmt2(M548)}-${fmt2(M133)}`,
                                  fmt2(adInput), pct2(adInput,M548), pctI(adInput)],
                                 ["Adegaon SS Line Loss",
                                  `AdSS Input - Σ 11KV\n=${fmt2(adInput)}-${fmt2(adg11Total)}`,
