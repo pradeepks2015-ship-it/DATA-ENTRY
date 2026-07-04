@@ -5994,13 +5994,15 @@
                         pctInc(adegaonSSLineLoss)
                     )}
 
-                    <!-- Adegaon SS Total Input verification -->
-                    <div style="background:#f0fdf4; border-radius:8px; padding:8px 10px; margin-bottom:8px; border-left:4px solid #16a34a;">
-                        <div style="font-size:11px; font-weight:900; color:#1e293b; margin-bottom:2px;">Adegaon SS Total Input</div>
-                        <div style="font-size:10px; font-weight:700; color:#64748b; margin-bottom:4px;">Σ 11KV Feeders + Adegaon SS Line Loss = ${fmt(adegaon11KVTotal)} + ${fmt(adegaonSSLineLoss)}</div>
-                        <div style="display:flex; gap:8px; flex-wrap:wrap;">
-                            <span style="background:#dcfce7; border-radius:6px; padding:3px 8px; font-size:11px; font-weight:900; color:#16a34a;">${fmt(adegaon11KVTotal + adegaonSSLineLoss)} kWh</span>
-                            <span style="background:#eff6ff; border-radius:6px; padding:3px 8px; font-size:11px; font-weight:700; color:#1d4ed8;">= Adegaon SS Input (${fmt(adegaonSSInput)} kWh) ✓</span>
+                    <!-- Adegaon SS Total Input — prominent box -->
+                    <div style="background:linear-gradient(135deg,#f0fdf4,#dcfce7); border:2px solid #16a34a; border-radius:10px; padding:10px 12px; margin-bottom:8px;">
+                        <div style="font-size:10px; font-weight:900; color:#14532d; text-transform:uppercase; margin-bottom:4px;">✅ Adegaon SS Total Input</div>
+                        <div style="font-size:10px; font-weight:700; color:#64748b; margin-bottom:6px;">
+                            Σ 11KV Feeders (${fmt(adegaon11KVTotal)}) + SS Line Loss (${fmt(adegaonSSLineLoss)})
+                        </div>
+                        <div style="display:flex; justify-content:space-between; align-items:center;">
+                            <div style="font-size:20px; font-weight:900; color:#16a34a;">${fmt(adegaon11KVTotal + adegaonSSLineLoss)} <span style="font-size:11px; font-weight:700; color:#64748b;">kWh</span></div>
+                            <div style="font-size:10px; font-weight:700; color:#1d4ed8; background:#eff6ff; border-radius:6px; padding:4px 8px;">= BS548 Net ✓</div>
                         </div>
                     </div>
                     ${lossRow(
