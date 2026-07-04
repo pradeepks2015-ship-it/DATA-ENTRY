@@ -3507,6 +3507,16 @@
                         else { seen[key] = deduped.length; deduped.push(obj); }
                     });
                     if (deduped.length) {
+                        // Restore originalBalance from localStorage (persists across sessions)
+                        const savedOriginals = loadOriginalBalances_();
+                        deduped.forEach((m) => {
+                            if (savedOriginals[m.name] !== undefined) {
+                                m.originalBalance = savedOriginals[m.name];
+                            } else {
+                                // First time — set originalBalance = sheet balance
+                                m.originalBalance = m.currentBalance;
+                            }
+                        });
                         stockMaterials = deduped;
                         pendingReceiveItems = []; pendingIssueItems = [];
                         selectedStockReceiveItem = null; selectedStockIssueItem = null;
@@ -9819,6 +9829,18 @@
             });
         });
 
+        function saveOriginalBalances_() {
+            const map = {};
+            stockMaterials.forEach((m) => {
+                if (m.originalBalance !== undefined) map[m.name] = m.originalBalance;
+            });
+            try { localStorage.setItem("stock-original-balances", JSON.stringify(map)); } catch(_) {}
+        }
+
+        function loadOriginalBalances_() {
+            try { return JSON.parse(localStorage.getItem("stock-original-balances") || "{}"); } catch(_) { return {}; }
+        }
+
         function getStockBalance(item) {
             if (item && typeof item.currentBalance === "number" && !Number.isNaN(item.currentBalance)) {
                 return item.currentBalance;
@@ -9997,6 +10019,7 @@
                         updates.push({ name: item.name, bal: newBal });
                     }
                 });
+                saveOriginalBalances_(); // Persist to localStorage
                 overlay.remove();
                 if (!updates.length) { showToast("कोई मात्रा नहीं डाली गई", false); return; }
                 try {
@@ -10041,7 +10064,8 @@
                 if (isNaN(newBal) || newBal < 0) return showToast("सही मात्रा दर्ज करें", false);
                 overlay.remove();
                 item.currentBalance = newBal;
-                // Update in cloud sheet
+                item.originalBalance = newBal; // Fix Total
+                saveOriginalBalances_(); // Persist
                 try {
                     const payload = new URLSearchParams();
                     payload.append("module", "stock");
@@ -10050,7 +10074,7 @@
                     payload.append("balance_stock", String(newBal));
                     await fetch(stockSubmitScriptUrl, { method:"POST", headers:{"Content-Type":"application/x-www-form-urlencoded;charset=UTF-8"}, body: payload.toString() });
                 } catch(_) {}
-                showToast(`${item.name}: Balance ${newBal} ${item.unit} update ho gaya`, true);
+                showToast(`${item.name}: Total ${newBal} ${item.unit} set ho gaya`, true);
                 renderStockDashboard();
                 refreshStockDropdowns_();
             };
