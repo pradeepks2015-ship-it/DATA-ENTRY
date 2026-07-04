@@ -5982,15 +5982,11 @@
             const grandTotal = Object.values(ssMap).reduce((s, v) => s + v.feeders11kv, 0);
 
             // Loss calculation HTML
-            const lossRow = (label, formula, val, pctBase, pctTot) => `
+            const lossRow = (label, formula, val) => `
                 <div style="background:#fff; border-radius:8px; padding:8px 10px; margin-bottom:8px; border-left:4px solid #ef4444;">
                     <div style="font-size:11px; font-weight:900; color:#1e293b; margin-bottom:2px;">${label}</div>
                     <div style="font-size:10px; font-weight:700; color:#64748b; margin-bottom:4px;">${formula}</div>
-                    <div style="display:flex; gap:8px; flex-wrap:wrap;">
-                        <span style="background:#fef2f2; border-radius:6px; padding:3px 8px; font-size:11px; font-weight:900; color:#ef4444;">${fmt(val)} kWh</span>
-                        <span style="background:#fef9c3; border-radius:6px; padding:3px 8px; font-size:11px; font-weight:900; color:#b45309;">% of base: ${pctBase}</span>
-                        <span style="background:#eff6ff; border-radius:6px; padding:3px 8px; font-size:11px; font-weight:900; color:#1d4ed8;">% of Total Input: ${pctTot}</span>
-                    </div>
+                    <span style="background:#fef2f2; border-radius:6px; padding:3px 8px; font-size:12px; font-weight:900; color:#ef4444;">${fmt(val)} kWh</span>
                 </div>`;
 
             const lossHtml = `
@@ -6002,57 +5998,21 @@
                     </div>
 
                     <!-- ROW 1: Adegaon SS Input -->
-                    ${lossRow(
-                        "1. Adegaon SS Input",
-                        `BS12775548 = ${fmt(BS12775548)} kWh (केवल Adegaon SS का incoming)`,
-                        adegaonSSInput,
-                        pct(adegaonSSInput, BS12775548),
-                        pctInc(adegaonSSInput)
-                    )}
-                    ${lossRow(
-                        "   ↳ Adegaon SS Loss",
-                        `BS548 − Σ 4×11KV = ${fmt(BS12775548)} − ${fmt(adegaon11KVTotal)}`,
-                        adegaonSSLineLoss,
-                        pct(adegaonSSLineLoss, adegaonSSInput),
-                        pctInc(adegaonSSLineLoss)
-                    )}
+                    ${lossRow("1. Adegaon SS Input", `BS12775548 = ${fmt(BS12775548)} kWh (केवल Adegaon SS का incoming)`, adegaonSSInput)}
+                    ${lossRow("   ↳ Adegaon SS Loss", `BS548 − Σ 4×11KV = ${fmt(BS12775548)} − ${fmt(adegaon11KVTotal)}`, adegaonSSLineLoss)}
                     <div style="background:#f0fdf4; border-radius:8px; padding:6px 10px; margin-bottom:8px; border-left:3px solid #16a34a; font-size:10px; font-weight:700; color:#14532d;">
                         ✅ Adegaon SS Total = Σ 4×11KV + SS Loss = ${fmt(adegaon11KVTotal)} + ${fmt(adegaonSSLineLoss)} = <strong>${fmt(adegaon11KVTotal + adegaonSSLineLoss)} kWh</strong> (part of BS548)
                     </div>
 
                     <!-- ROW 2: Chamari Line Input -->
-                    ${lossRow(
-                        "2. Chamari-Adegaon 33KV Line Input",
-                        `BS550 (Adegaon→Chamari outgoing) = ${fmt(BS12775550)}`,
-                        BS12775550,
-                        pct(BS12775550, BS12775548),
-                        pctInc(BS12775550)
-                    )}
+                    ${lossRow("2. Chamari-Adegaon 33KV Line Input", `BS550 = ${fmt(BS12775550)} kWh`, BS12775550)}
 
                     <!-- ROW 3: Adegaon→Madhi Line Loss -->
-                    ${lossRow(
-                        "3. Adegaon→Madhi 33KV Line Loss",
-                        `BS133 − BS543 = ${fmt(BS12776133)} − ${fmt(BS12775543)}`,
-                        adegaonMadhiLineLoss,
-                        pct(adegaonMadhiLineLoss, BS12776133),
-                        pctInc(adegaonMadhiLineLoss)
-                    )}
+                    ${lossRow("3. Adegaon→Madhi 33KV Line Loss", `BS133 − BS543 = ${fmt(BS12776133)} − ${fmt(BS12775543)}`, adegaonMadhiLineLoss)}
 
                     <!-- ROW 4: Madhi SS Input -->
-                    ${lossRow(
-                        "4. Madhi SS Input",
-                        `BS543 = ${fmt(BS12775543)}`,
-                        BS12775543,
-                        pct(BS12775543, BS12775548),
-                        pctInc(BS12775543)
-                    )}
-                    ${lossRow(
-                        "   ↳ Madhi SS T&D Loss",
-                        `BS543 − Σ 3×11KV = ${fmt(BS12775543)} − ${fmt(madhiFeederTotal)}`,
-                        madhiSSLineLoss,
-                        pct(madhiSSLineLoss, BS12775543),
-                        pctInc(madhiSSLineLoss)
-                    )}
+                    ${lossRow("4. Madhi SS Input", `BS543 = ${fmt(BS12775543)} kWh`, BS12775543)}
+                    ${lossRow("   ↳ Madhi SS T&D Loss", `BS543 − Σ 3×11KV = ${fmt(BS12775543)} − ${fmt(madhiFeederTotal)}`, madhiSSLineLoss)}
                     <div style="background:#f0fdf4; border-radius:8px; padding:6px 10px; margin-bottom:8px; border-left:3px solid #16a34a; font-size:10px; font-weight:700; color:#14532d;">
                         ✅ Madhi SS Total = Σ 3×11KV + SS Loss = ${fmt(madhiFeederTotal)} + ${fmt(madhiSSLineLoss)} = <strong>${fmt(madhiFeederTotal + madhiSSLineLoss)} kWh</strong> = BS543 ✓
                     </div>
@@ -6468,7 +6428,7 @@
                                  `AdSS Input - Σ 11KV\n=${fmt2(adInput)}-${fmt2(adg11Total)}`,
                                  fmt2(adSSLoss), pct2(adSSLoss,adInput), pctI(adSSLoss)],
                                 [{ content:"Adegaon SS Total Input", colSpan:2, styles:{fontStyle:"bold",fillColor:[240,253,244],textColor:[21,128,61]} },
-                                 { content:`${fmt2(adg11Total+adSSLoss)} = AdSS Input ✓`, styles:{fontStyle:"bold",fillColor:[240,253,244],textColor:[21,128,61],halign:"right"} },
+                                 { content:`${fmt2(adg11Total+adSSLoss)} = BS548 ✓`, styles:{fontStyle:"bold",fillColor:[240,253,244],textColor:[21,128,61],halign:"right"} },
                                  "",""],
                                 ["Adegaon→Madhi Line Loss",
                                  `BS133-BS543\n=${fmt2(M133)}-${fmt2(M543)}`,
