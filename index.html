@@ -637,7 +637,7 @@
                             <button onclick="editFeederOperator()" style="width:auto; min-width:auto; height:auto; padding:0; border:none; background:transparent; color:#111827; font-size:13px; font-weight:900; text-transform:uppercase; white-space:nowrap;">Change Details</button>
                         </div>
                     </div>
-                    <div id="feeder-flow-block" style="display:none; width:100%; display:flex; flex-direction:column; gap:14px;">
+                    <div id="feeder-flow-block" style="display:none; flex-direction:column; gap:14px;">
                         <div class="dropdown-box" style="max-width:340px;">
                             <div id="feeder-substation-trigger" class="professional-trigger" style="height:52px; font-size:0.95rem; border-width:1.5px;" onclick="toggleFeederDropdown('substation')">
                                 <span id="feeder-substation-label">Select 33/11 KV Substation</span>
@@ -1598,8 +1598,8 @@
             ]
         };
         let feederRows = [];
-        let feederSubstations = ["BAMHANWADA", "BARRA", "BHIMGARH", "CHAMARI", "CHHAPARA", "GANESHGANJ", "KEOLARI", "ADEGAON", "MADHI"];
-        let allFeederSubstations = ["BAMHANWADA", "BARRA", "BHIMGARH", "CHAMARI", "CHHAPARA", "GANESHGANJ", "KEOLARI", "ADEGAON", "MADHI"];
+        let feederSubstations = ["ADEGAON", "MADHI", "CHAMARI", "DUDWARA", "132KV LAKHNADON"];
+        let allFeederSubstations = ["ADEGAON", "MADHI", "CHAMARI", "DUDWARA", "132KV LAKHNADON"];
         // Only these 33/11 KV substations are shown in the Feeder Reading tab.
         const FEEDER_VISIBLE_SUBSTATIONS = ["ADEGAON", "MADHI", "CHAMARI", "DUDWARA", "132KV LAKHNADON"];
         let feederDataLoaded = false;
@@ -1801,7 +1801,7 @@
             }
         }
 
-        const feederAlertStartDateKey = "2026-06-01";
+        const feederAlertStartDateKey = "2026-07-01";
 
         // ===== Shared Module Sync helpers (Broken Pole / PDC / STM / Bijli Chori) =====
         // In-memory cache of remote (shared) entries per module, refreshed on view open.
