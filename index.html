@@ -5983,6 +5983,16 @@
                         pct(adegaonSSLineLoss, adegaonSSInput),
                         pctInc(adegaonSSLineLoss)
                     )}
+
+                    <!-- Adegaon SS Total Input verification -->
+                    <div style="background:#f0fdf4; border-radius:8px; padding:8px 10px; margin-bottom:8px; border-left:4px solid #16a34a;">
+                        <div style="font-size:11px; font-weight:900; color:#1e293b; margin-bottom:2px;">Adegaon SS Total Input</div>
+                        <div style="font-size:10px; font-weight:700; color:#64748b; margin-bottom:4px;">Σ 11KV Feeders + Adegaon SS Line Loss = ${fmt(adegaon11KVTotal)} + ${fmt(adegaonSSLineLoss)}</div>
+                        <div style="display:flex; gap:8px; flex-wrap:wrap;">
+                            <span style="background:#dcfce7; border-radius:6px; padding:3px 8px; font-size:11px; font-weight:900; color:#16a34a;">${fmt(adegaon11KVTotal + adegaonSSLineLoss)} kWh</span>
+                            <span style="background:#eff6ff; border-radius:6px; padding:3px 8px; font-size:11px; font-weight:700; color:#1d4ed8;">= Adegaon SS Input (${fmt(adegaonSSInput)} kWh) ✓</span>
+                        </div>
+                    </div>
                     ${lossRow(
                         "Adegaon → Madhi Line Loss",
                         `BS133 − BS543 = ${fmt(BS12776133)} − ${fmt(BS12775543)}`,
@@ -6415,6 +6425,9 @@
                                 ["Adegaon SS Line Loss",
                                  `AdSS Input - Σ 11KV\n=${fmt2(adInput)}-${fmt2(adg11Total)}`,
                                  fmt2(adSSLoss), pct2(adSSLoss,adInput), pctI(adSSLoss)],
+                                [{ content:"Adegaon SS Total Input", colSpan:2, styles:{fontStyle:"bold",fillColor:[240,253,244],textColor:[21,128,61]} },
+                                 { content:`${fmt2(adg11Total+adSSLoss)} = AdSS Input ✓`, styles:{fontStyle:"bold",fillColor:[240,253,244],textColor:[21,128,61],halign:"right"} },
+                                 "",""],
                                 ["Adegaon→Madhi Line Loss",
                                  `BS133-BS543\n=${fmt2(M133)}-${fmt2(M543)}`,
                                  fmt2(lineLoss), pct2(lineLoss,M133), pctI(lineLoss)],
