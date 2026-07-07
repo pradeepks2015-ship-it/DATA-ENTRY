@@ -5979,7 +5979,7 @@
                     <div style="font-size:9px; font-weight:700; color:#64748b; margin-top:2px; text-align:right;">Σ 11KV (${fmt(feeder11total)}) + Loss (${fmt(ssLoss)})</div>
                 </div>`;
             }).join("");
-            const grandTotal = Object.values(ssMap).reduce((s, v) => s + v.feeders11kv, 0);
+            const grandTotal = BS12775548 + BS12775543; // Adegaon SS + Madhi SS total input
 
             // Loss calculation HTML
             const lossRow = (label, formula, val) => `
@@ -6024,7 +6024,6 @@
                         <span style="font-size:11px; font-weight:900; color:#1e293b;">Total T&D Losses</span>
                         <div style="text-align:right;">
                             <div style="font-size:13px; font-weight:900; color:#ef4444;">${fmt(adegaonSSLineLoss + adegaonMadhiLineLoss + madhiSSLineLoss)} kWh</div>
-                            <div style="font-size:10px; font-weight:700; color:#b45309;">${pctInc(adegaonSSLineLoss + adegaonMadhiLineLoss + madhiSSLineLoss)} of Total Input</div>
                         </div>
                     </div>
                 </div>`;
@@ -9370,7 +9369,11 @@
             const submittedFeederKeys = new Set(
                 sameDateEntries.map((entry) => String(entry["33 AND 11 KV FEEDER"] || entry.feeder || "").trim().toUpperCase()).filter(Boolean)
             );
-            const allRowsSubmitted = rows.length > 0 && rows.every((row) => submittedFeederKeys.has(String(row.feeder || "").trim().toUpperCase()));
+            const allRowsSubmitted = rows.length > 0 && rows.every((row) => {
+                // Unfrozen feeder ko "pending" maano taaki submit button wapas dikhe
+                if (unfrozenFeederEntries.has(buildFeederUnfreezeKey_(row.substation, row.feeder, selectedDateKey))) return false;
+                return submittedFeederKeys.has(String(row.feeder || "").trim().toUpperCase());
+            });
             const blockingPendingKeys = getFeederBlockingPendingDateKeys_(selectedFeederSubstation, selectedDateKey);
 
             submitBtn.style.display = allRowsSubmitted ? "none" : "block";
@@ -9461,6 +9464,11 @@
 
             for (let index = 0; index < rows.length; index += 1) {
                 const row = rows[index];
+                // Jo feeder is date par pehle se submitted hai (aur unfreeze nahi kiya gaya),
+                // use skip karo — warna uski duplicate entry sheet me chali jayegi.
+                if (getFeederSubmittedRowForDate_(row, selectedDateKey)) {
+                    continue;
+                }
                 const previousInput = document.getElementById(`feeder-prev-${index}`);
                 const currentInput = document.getElementById(`feeder-current-${index}`);
                 const previousReading = previousInput?.value || "";
