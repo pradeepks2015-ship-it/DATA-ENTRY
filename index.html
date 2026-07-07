@@ -5363,6 +5363,77 @@
             showToast("Logout ho gaye", true);
         }
 
+        // ===== SCN Delete (JE only, password protected) =====
+        const KC_DELETE_PASSWORD = "JE@ADEGAON";
+
+        function kcDeleteScnConfirm_(recordId, dispatchNo) {
+            if (!kcJeLoggedIn) return showToast("पहले JE लॉगिन करें", false);
+            const existing = document.getElementById("kc-delete-overlay");
+            if (existing) existing.remove();
+
+            const overlay = document.createElement("div");
+            overlay.id = "kc-delete-overlay";
+            overlay.style.cssText = "position:fixed; inset:0; background:rgba(0,0,0,0.55); z-index:9999; display:flex; align-items:center; justify-content:center; padding:20px;";
+
+            const card = document.createElement("div");
+            card.style.cssText = "background:#ffffff; border-radius:18px; padding:18px; width:100%; max-width:320px; box-shadow:0 12px 30px rgba(0,0,0,0.25); text-align:center;";
+            card.innerHTML = `
+                <div style="font-size:14px; font-weight:900; color:#b91c1c; text-transform:uppercase; margin-bottom:10px;">SCN-${escapeHtml(dispatchNo)} Delete करें?</div>
+                <div style="font-size:12px; font-weight:700; color:#475569; margin-bottom:10px;">
+                    यह SCN स्थायी रूप से delete हो जाएगा (इस device और cloud दोनों से)। Delete करने के लिए JE delete password डालें।
+                </div>
+                <input id="kc-delete-pwd" type="password" placeholder="Delete Password" style="width:100%; height:44px; border-radius:10px; border:1.5px solid #dc2626; padding:0 12px; font-size:13px; font-weight:700; outline:none; margin-bottom:12px;">
+                <div style="display:flex; gap:10px;">
+                    <button onclick="document.getElementById('kc-delete-overlay').remove()" style="flex:1; height:44px; border:none; border-radius:12px; background:#e2e8f0; color:#1e293b; font-size:12px; font-weight:900; text-transform:uppercase;">Cancel</button>
+                    <button onclick="kcConfirmDeleteScn_('${escapeHtml(String(recordId))}')" style="flex:1; height:44px; border:none; border-radius:12px; background:linear-gradient(135deg,#dc2626,#7f1d1d); color:#fff; font-size:12px; font-weight:900; text-transform:uppercase;">Delete</button>
+                </div>
+            `;
+            overlay.appendChild(card);
+            overlay.addEventListener("click", (e) => { if (e.target === overlay) overlay.remove(); });
+            document.body.appendChild(overlay);
+            setTimeout(() => document.getElementById("kc-delete-pwd")?.focus(), 50);
+        }
+
+        async function kcConfirmDeleteScn_(recordId) {
+            const pwd = document.getElementById("kc-delete-pwd")?.value || "";
+            if (pwd !== KC_DELETE_PASSWORD) {
+                return showToast("गलत delete पासवर्ड", false);
+            }
+            const overlay = document.getElementById("kc-delete-overlay");
+            if (overlay) overlay.remove();
+
+            // Find matching local record (recordId may be local numeric id or cloud entry_id)
+            let localRecord = null;
+            try {
+                const all = await idbGetAll_("karya_charitra");
+                localRecord = all.find((r) => String(r.id) === String(recordId) || r.entry_id === recordId) || null;
+            } catch (_) {}
+
+            // Delete from cloud (if entry has a cloud entry_id)
+            const cloudEntryId = (typeof recordId === "string" && recordId.startsWith("E"))
+                ? recordId
+                : (localRecord?.entry_id || null);
+            let cloudOk = true;
+            if (cloudEntryId) {
+                cloudOk = await deleteSharedEntry_("karya_charitra", cloudEntryId);
+                sharedModuleLastFetch["karya_charitra"] = 0;
+            }
+
+            // Delete from local IDB
+            if (localRecord) {
+                try { await idbDelete_("karya_charitra", localRecord.id); } catch (_) {}
+            }
+
+            if (cloudEntryId && !cloudOk) {
+                showToast("Local se delete हुआ, लेकिन cloud sync में error आया", false);
+            } else {
+                showToast("SCN delete हो गया", true);
+            }
+
+            await kcRefreshJeDropdowns_();
+            await kcLoadScnForRemark();
+        }
+
         function kcJeSetMode(mode) {
             const nf = document.getElementById("kc-new-scn-form");
             const rf = document.getElementById("kc-remark-form");
@@ -5748,7 +5819,10 @@
                     <div style="font-size:11px; font-weight:700; color:#334155; margin:4px 0 8px 0;">${escapeHtml((r.violation_desc || "").slice(0, 80))}...</div>
                     ${r.reply_text ? `<div style="font-size:11px; font-weight:700; color:#1d4ed8; background:#eff6ff; border-radius:6px; padding:6px; margin-bottom:8px;">कर्मचारी उत्तर: ${escapeHtml(r.reply_text.slice(0, 60))}...</div>` : ""}
                     <textarea id="kc-je-remark-${r.entry_id || r.id}" placeholder="JE रिमार्क / अंतिम टिप्पणी (वैकल्पिक)..." style="width:100%; min-height:60px; border-radius:8px; border:1.5px solid #cbd5e1; padding:8px; font-size:12px; font-weight:700; resize:vertical; outline:none; margin-bottom:6px;">${escapeHtml(r.remark_text || "")}</textarea>
-                    <button onclick="kcSaveJeRemark('${r.entry_id || r.id}')" style="width:100%; height:36px; border:none; border-radius:8px; background:linear-gradient(135deg,#1e3a5f,#0f172a); color:#fff; font-size:11px; font-weight:900; text-transform:uppercase;">💾 JE रिमार्क Save करें</button>
+                    <div style="display:grid; grid-template-columns:1fr auto; gap:8px;">
+                        <button onclick="kcSaveJeRemark('${r.entry_id || r.id}')" style="height:36px; border:none; border-radius:8px; background:linear-gradient(135deg,#1e3a5f,#0f172a); color:#fff; font-size:11px; font-weight:900; text-transform:uppercase;">💾 JE रिमार्क Save करें</button>
+                        <button onclick="kcDeleteScnConfirm_('${r.entry_id || r.id}', '${String(r.dispatch_no || "").padStart(4,"0")}')" style="height:36px; border:none; border-radius:8px; background:linear-gradient(135deg,#dc2626,#7f1d1d); color:#fff; font-size:11px; font-weight:900; text-transform:uppercase; padding:0 14px;">🗑 Delete</button>
+                    </div>
                 </div>
             `).join("");
         }
