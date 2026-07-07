@@ -1282,7 +1282,7 @@
                     <input type="text" id="bc-name" class="teal-boundary-input" placeholder="Naam / Sthan ka Vivaran" style="margin-bottom:12px;">
 
                     <!-- 3 Photo Upload Slots with GPS -->
-                    <div class="title-box-container" style="padding-top: 15px;"><div class="title-box" style="background-color:#fee2e2;"><span class="title-text-bold" style="color:#991b1b;">Photos with GPS Location (3 Photos)</span></div></div>
+                    <div class="title-box-container" style="padding-top: 15px;"><div class="title-box" style="background-color:#fee2e2;"><span class="title-text-bold" style="color:#991b1b;">Photos with GPS Location (2 Photos)</span></div></div>
                     <div id="bc-photo-slots"></div>
 
                     <!-- Remark -->
@@ -4377,8 +4377,8 @@
 
 
         // ===== Bijli Chori Ki Jankari feature =====
-        let bcPhotoSlots = [null]; // each: { name, photoData, geo } or null
-        const bcDefaultPhotoNames = ["Photo - Site / Evidence"];
+        let bcPhotoSlots = [null, null]; // each: { name, photoData, geo } or null
+        const bcDefaultPhotoNames = ["Photo 1 - Site / Evidence", "Photo 2 - Site / Evidence"];
 
         function renderBcPhotoSlots() {
             const container = document.getElementById("bc-photo-slots");
@@ -4549,7 +4549,7 @@
                 document.getElementById("bc-ivrs").value = "";
                 document.getElementById("bc-name").value = "";
                 document.getElementById("bc-remark").value = "";
-                bcPhotoSlots = [null];
+                bcPhotoSlots = [null, null];
                 renderBcPhotoSlots();
                 await refreshBijliChoriMisTotal();
                 await refreshStorageCounter_("bijli_chori");
