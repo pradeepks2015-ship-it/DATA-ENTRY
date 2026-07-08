@@ -4377,6 +4377,39 @@
 
 
         // ===== Bijli Chori Ki Jankari feature =====
+
+        // jsPDF ke fonts Devanagari support nahi karte — isliye Hindi text ko
+        // canvas par draw karke image ke roop me PDF me embed karte hain.
+        const DEVANAGARI_RE = /[\u0900-\u097F]/;
+        function hindiTextImage_(text, widthMm, fontPx = 16, opts = {}) {
+            const scale = 6; // px per mm (crisp rendering)
+            const widthPx = Math.max(30, Math.floor(widthMm * scale));
+            const fontStr = `${opts.bold ? "700 " : ""}${fontPx}px "Noto Sans Devanagari","Mangal","Nirmala UI","Kokila",Arial,sans-serif`;
+            const measure = document.createElement("canvas").getContext("2d");
+            measure.font = fontStr;
+            // Word wrap
+            const words = String(text || "").split(/\s+/).filter(Boolean);
+            const lines = [];
+            let line = "";
+            words.forEach((w) => {
+                const t = line ? line + " " + w : w;
+                if (measure.measureText(t).width > widthPx - 6 && line) { lines.push(line); line = w; }
+                else line = t;
+            });
+            if (line) lines.push(line);
+            if (!lines.length) lines.push("");
+            const lineH = Math.ceil(fontPx * 1.4);
+            const canvas = document.createElement("canvas");
+            canvas.width = widthPx;
+            canvas.height = lines.length * lineH + 8;
+            const ctx = canvas.getContext("2d");
+            ctx.font = fontStr;
+            ctx.fillStyle = opts.color || "#1e293b";
+            ctx.textBaseline = "top";
+            lines.forEach((l, i) => ctx.fillText(l, 3, 4 + i * lineH));
+            return { dataUrl: canvas.toDataURL("image/png"), wMm: canvas.width / scale, hMm: canvas.height / scale };
+        }
+
         let bcPhotoSlots = [null, null]; // each: { name, photoData, geo } or null
         const bcDefaultPhotoNames = ["Photo 1 - Site / Evidence", "Photo 2 - Site / Evidence"];
 
@@ -4631,15 +4664,29 @@
                 doc.setFont(undefined, "bold");
                 doc.text(`TOTAL ENTRIES: ${filtered.length}`, 14, 32);
 
-                const detailBody = filtered.map((e, i) => [
-                    i + 1,
-                    e.date || "",
-                    e.dc_name || "",
-                    e.ivrs || "",
-                    e.name || "",
-                    e.remark || "",
-                    String((e.photos || []).length)
-                ]);
+                // Hindi text wale cells ko image se render karenge (jsPDF Hindi support nahi karta)
+                const bcNameImgs = {};
+                const bcRemarkImgs = {};
+                const detailBody = filtered.map((e, i) => {
+                    const row = [
+                        i + 1,
+                        e.date || "",
+                        e.dc_name || "",
+                        e.ivrs || "",
+                        e.name || "",
+                        e.remark || "",
+                        String((e.photos || []).length)
+                    ];
+                    if (DEVANAGARI_RE.test(row[4])) {
+                        bcNameImgs[i] = hindiTextImage_(row[4], 34, 16);
+                        row[4] = { content: "", styles: { minCellHeight: bcNameImgs[i].hMm + 2 } };
+                    }
+                    if (DEVANAGARI_RE.test(row[5])) {
+                        bcRemarkImgs[i] = hindiTextImage_(row[5], 48, 16);
+                        row[5] = { content: "", styles: { minCellHeight: bcRemarkImgs[i].hMm + 2 } };
+                    }
+                    return row;
+                });
 
                 doc.autoTable({
                     startY: 38,
@@ -4656,6 +4703,15 @@
                         4: { halign: "left", cellWidth: 36 },
                         5: { halign: "left", cellWidth: 50 },
                         6: { halign: "center", cellWidth: 12 }
+                    },
+                    didDrawCell: (data) => {
+                        if (data.section !== "body") return;
+                        let img = null;
+                        if (data.column.index === 4) img = bcNameImgs[data.row.index];
+                        if (data.column.index === 5) img = bcRemarkImgs[data.row.index];
+                        if (img) {
+                            try { doc.addImage(img.dataUrl, "PNG", data.cell.x + 1, data.cell.y + 1, img.wMm, img.hMm); } catch (_) {}
+                        }
                     }
                 });
 
@@ -4672,7 +4728,12 @@
                         doc.setTextColor(30, 41, 59);
                         doc.setFont(undefined, "bold");
                         const label = `Entry ${i + 1} - ${e.date || ""} - ${e.name || e.ivrs || ""} - ${p.name || ("Photo " + (pIdx + 1))}`;
-                        doc.text(label, 14, photoY);
+                        if (DEVANAGARI_RE.test(label)) {
+                            const labelImg = hindiTextImage_(label, 182, 17, { bold: true });
+                            try { doc.addImage(labelImg.dataUrl, "PNG", 14, photoY - 3, labelImg.wMm, labelImg.hMm); } catch (_) {}
+                        } else {
+                            doc.text(label, 14, photoY);
+                        }
                         try {
                             doc.addImage(p.photo_data, "JPEG", 14, photoY + 2, 80, 60);
                         } catch (_) {}
@@ -4681,13 +4742,22 @@
                         doc.setTextColor(80);
                         const gpsLine = (p.gps_latitude && p.gps_longitude) ? `GPS: ${p.gps_latitude}, ${p.gps_longitude}` : "GPS: N/A";
                         doc.text(gpsLine, 98, photoY + 8);
-                        const locLines = doc.splitTextToSize(`Location: ${p.gps_location || "N/A"}`, 95);
-                        doc.text(locLines, 98, photoY + 14);
+                        const locText = `Location: ${p.gps_location || "N/A"}`;
+                        let locBottom;
+                        if (DEVANAGARI_RE.test(locText)) {
+                            const locImg = hindiTextImage_(locText, 95, 15, { color: "#505050" });
+                            try { doc.addImage(locImg.dataUrl, "PNG", 98, photoY + 10.5, locImg.wMm, locImg.hMm); } catch (_) {}
+                            locBottom = photoY + 10.5 + locImg.hMm;
+                        } else {
+                            const locLines = doc.splitTextToSize(locText, 95);
+                            doc.text(locLines, 98, photoY + 14);
+                            locBottom = photoY + 14 + (locLines.length * 3.5);
+                        }
                         if (isValidLatLon_(p.gps_latitude, p.gps_longitude)) {
                             const mapsUrl = `https://www.google.com/maps/dir/?api=1&destination=${p.gps_latitude},${p.gps_longitude}`;
                             doc.setTextColor(21, 128, 61);
                             doc.setFont(undefined, "bold");
-                            const linkY = photoY + 14 + (locLines.length * 3.5) + 4;
+                            const linkY = locBottom + 4;
                             doc.text("Open Map (Directions)", 98, linkY);
                             doc.link(98, linkY - 3, 50, 5, { url: mapsUrl });
                         }
