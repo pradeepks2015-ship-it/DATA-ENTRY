@@ -55,6 +55,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Righteous&family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <style>
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; outline: none; }
@@ -4378,38 +4379,6 @@
 
         // ===== Bijli Chori Ki Jankari feature =====
 
-        // jsPDF ke fonts Devanagari support nahi karte — isliye Hindi text ko
-        // canvas par draw karke image ke roop me PDF me embed karte hain.
-        const DEVANAGARI_RE = /[\u0900-\u097F]/;
-        function hindiTextImage_(text, widthMm, fontPx = 16, opts = {}) {
-            const scale = 6; // px per mm (crisp rendering)
-            const widthPx = Math.max(30, Math.floor(widthMm * scale));
-            const fontStr = `${opts.bold ? "700 " : ""}${fontPx}px "Noto Sans Devanagari","Mangal","Nirmala UI","Kokila",Arial,sans-serif`;
-            const measure = document.createElement("canvas").getContext("2d");
-            measure.font = fontStr;
-            // Word wrap
-            const words = String(text || "").split(/\s+/).filter(Boolean);
-            const lines = [];
-            let line = "";
-            words.forEach((w) => {
-                const t = line ? line + " " + w : w;
-                if (measure.measureText(t).width > widthPx - 6 && line) { lines.push(line); line = w; }
-                else line = t;
-            });
-            if (line) lines.push(line);
-            if (!lines.length) lines.push("");
-            const lineH = Math.ceil(fontPx * 1.4);
-            const canvas = document.createElement("canvas");
-            canvas.width = widthPx;
-            canvas.height = lines.length * lineH + 8;
-            const ctx = canvas.getContext("2d");
-            ctx.font = fontStr;
-            ctx.fillStyle = opts.color || "#1e293b";
-            ctx.textBaseline = "top";
-            lines.forEach((l, i) => ctx.fillText(l, 3, 4 + i * lineH));
-            return { dataUrl: canvas.toDataURL("image/png"), wMm: canvas.width / scale, hMm: canvas.height / scale };
-        }
-
         let bcPhotoSlots = [null, null]; // each: { name, photoData, geo } or null
         const bcDefaultPhotoNames = ["Photo 1 - Site / Evidence", "Photo 2 - Site / Evidence"];
 
@@ -4630,7 +4599,12 @@
             btn.innerText = "Generating...";
             btn.disabled = true;
 
+            let holder = null;
             try {
+                if (typeof html2canvas === "undefined") {
+                    showToast("PDF library load nahi hui — internet check karke dobara try karein", false);
+                    return;
+                }
                 const filtered = await filterBijliChoriEntries_(fromDate, toDate);
                 await refreshBijliChoriMisTotal();
                 await hydratePhotoDataForPdf_(filtered);
@@ -4644,126 +4618,109 @@
                 const { jsPDF } = window.jspdf;
                 const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
 
-                // Header
-                doc.setFillColor(220, 38, 38);
-                doc.rect(0, 0, 210, 22, "F");
-                doc.setFontSize(13);
-                doc.setTextColor(255, 255, 255);
-                doc.setFont(undefined, "bold");
-                doc.text("BIJLI CHORI KI JANKARI MIS REPORT", 105, 10, { align: "center" });
-                doc.setFontSize(8);
-                doc.setFont(undefined, "normal");
-                doc.text(`DC: ${activeDC || "-"}  |  Period: ${fmtDate(fromDate)} to ${fmtDate(toDate)}`, 105, 17, { align: "center" });
+                // Report ko HTML me banakar image ke roop me PDF me lagate hain —
+                // isse Hindi/English dono bilkul screen jaisa saaf render hota hai.
+                holder = document.createElement("div");
+                holder.style.cssText = "position:fixed; left:-12000px; top:0; width:760px; background:#ffffff; font-family:'Noto Sans Devanagari','Mangal','Nirmala UI',Arial,sans-serif; color:#1e293b;";
+                document.body.appendChild(holder);
 
-                doc.setTextColor(100);
-                doc.setFontSize(7);
-                doc.text(`Generated: ${new Date().toLocaleString("en-IN")}`, 200, 26, { align: "right" });
+                const renderBlock = async (innerHtml) => {
+                    const el = document.createElement("div");
+                    el.style.cssText = "width:760px; background:#ffffff; padding:4px 2px; box-sizing:border-box;";
+                    el.innerHTML = innerHtml;
+                    holder.appendChild(el);
+                    const canvas = await html2canvas(el, { scale: 2, backgroundColor: "#ffffff", logging: false });
+                    holder.removeChild(el);
+                    return { dataUrl: canvas.toDataURL("image/jpeg", 0.92), wPx: canvas.width, hPx: canvas.height };
+                };
 
-                doc.setFontSize(10);
-                doc.setTextColor(220, 38, 38);
-                doc.setFont(undefined, "bold");
-                doc.text(`TOTAL ENTRIES: ${filtered.length}`, 14, 32);
+                let y = 10;
+                const addBlock = (img, gapMm = 3) => {
+                    const hMm = img.hPx * (182 / img.wPx);
+                    if (y + hMm > 278 && y > 10) { doc.addPage(); y = 10; }
+                    doc.addImage(img.dataUrl, "JPEG", 14, y, 182, hMm);
+                    y += hMm + gapMm;
+                };
 
-                // Hindi text wale cells ko image se render karenge (jsPDF Hindi support nahi karta)
-                const bcNameImgs = {};
-                const bcRemarkImgs = {};
-                const detailBody = filtered.map((e, i) => {
-                    const row = [
-                        i + 1,
-                        e.date || "",
-                        e.dc_name || "",
-                        e.ivrs || "",
-                        e.name || "",
-                        e.remark || "",
-                        String((e.photos || []).length)
-                    ];
-                    if (DEVANAGARI_RE.test(row[4])) {
-                        bcNameImgs[i] = hindiTextImage_(row[4], 34, 16);
-                        row[4] = { content: "", styles: { minCellHeight: bcNameImgs[i].hMm + 2 } };
+                // ----- Header block -----
+                const headerHtml = `
+                    <div style="background:#dc2626; color:#ffffff; border-radius:8px; padding:16px 12px; text-align:center;">
+                        <div style="font-size:24px; font-weight:900; letter-spacing:0.5px;">बिजली चोरी की जानकारी — MIS REPORT</div>
+                        <div style="font-size:14px; font-weight:700; margin-top:6px;">DC: ${escapeHtml(activeDC || "-")} &nbsp;|&nbsp; Period: ${fmtDate(fromDate)} to ${fmtDate(toDate)}</div>
+                    </div>
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-top:10px; padding:0 2px;">
+                        <div style="color:#dc2626; font-weight:900; font-size:16px;">TOTAL ENTRIES: ${filtered.length}</div>
+                        <div style="font-size:12px; font-weight:700; color:#64748b;">Generated: ${new Date().toLocaleString("en-IN")}</div>
+                    </div>`;
+                addBlock(await renderBlock(headerHtml), 4);
+
+                // ----- Table blocks (chunks me, taaki page-break saaf rahe) -----
+                const cellTh = "border:1px solid #b91c1c; background:#dc2626; color:#ffffff; padding:7px 5px; font-size:12px; font-weight:900; text-align:center;";
+                const cellTd = "border:1px solid #e2e8f0; padding:7px 5px; font-size:12.5px; font-weight:600; text-align:center; vertical-align:top;";
+                const theadHtml = `<tr>
+                    <th style="${cellTh} width:44px;">S.No.</th>
+                    <th style="${cellTh} width:82px;">Date</th>
+                    <th style="${cellTh} width:90px;">DC</th>
+                    <th style="${cellTh} width:106px;">IVRS/Acc No</th>
+                    <th style="${cellTh}">Name/Location</th>
+                    <th style="${cellTh}">Remark</th>
+                    <th style="${cellTh} width:52px;">Photos</th>
+                </tr>`;
+                const rowHtml = (e, i) => `<tr style="background:${i % 2 ? "#fef2f2" : "#ffffff"};">
+                    <td style="${cellTd}">${i + 1}</td>
+                    <td style="${cellTd}">${escapeHtml(e.date || "")}</td>
+                    <td style="${cellTd}">${escapeHtml(e.dc_name || "")}</td>
+                    <td style="${cellTd}">${escapeHtml(e.ivrs || "")}</td>
+                    <td style="${cellTd} text-align:left;">${escapeHtml(e.name || "")}</td>
+                    <td style="${cellTd} text-align:left;">${escapeHtml(e.remark || "")}</td>
+                    <td style="${cellTd}">${(e.photos || []).length}</td>
+                </tr>`;
+
+                if (!filtered.length) {
+                    addBlock(await renderBlock(`<table style="width:100%; border-collapse:collapse;"><thead>${theadHtml}</thead><tbody><tr><td colspan="7" style="${cellTd} padding:14px;">No entries found</td></tr></tbody></table>`));
+                } else {
+                    const CHUNK = 12;
+                    for (let s = 0; s < filtered.length; s += CHUNK) {
+                        const rows = filtered.slice(s, s + CHUNK).map((e, k) => rowHtml(e, s + k)).join("");
+                        addBlock(await renderBlock(`<table style="width:100%; border-collapse:collapse;"><thead>${theadHtml}</thead><tbody>${rows}</tbody></table>`), 2);
                     }
-                    if (DEVANAGARI_RE.test(row[5])) {
-                        bcRemarkImgs[i] = hindiTextImage_(row[5], 48, 16);
-                        row[5] = { content: "", styles: { minCellHeight: bcRemarkImgs[i].hMm + 2 } };
-                    }
-                    return row;
-                });
+                }
 
-                doc.autoTable({
-                    startY: 38,
-                    head: [["S.No.", "Date", "DC", "IVRS/Acc No", "Name/Location", "Remark", "Photos"]],
-                    body: detailBody.length ? detailBody : [["-", "-", "-", "-", "No entries found", "-", "-"]],
-                    theme: "striped",
-                    headStyles: { fillColor: [220, 38, 38], textColor: 255, halign: "center", fontSize: 7, fontStyle: "bold" },
-                    bodyStyles: { fontSize: 7 },
-                    columnStyles: {
-                        0: { halign: "center", cellWidth: 10 },
-                        1: { halign: "center", cellWidth: 20 },
-                        2: { halign: "center", cellWidth: 22 },
-                        3: { halign: "center", cellWidth: 26 },
-                        4: { halign: "left", cellWidth: 36 },
-                        5: { halign: "left", cellWidth: 50 },
-                        6: { halign: "center", cellWidth: 12 }
-                    },
-                    didDrawCell: (data) => {
-                        if (data.section !== "body") return;
-                        let img = null;
-                        if (data.column.index === 4) img = bcNameImgs[data.row.index];
-                        if (data.column.index === 5) img = bcRemarkImgs[data.row.index];
-                        if (img) {
-                            try { doc.addImage(img.dataUrl, "PNG", data.cell.x + 1, data.cell.y + 1, img.wMm, img.hMm); } catch (_) {}
-                        }
-                    }
-                });
-
-                // Add photos with names, GPS and location on subsequent pages
-                let photoY = doc.lastAutoTable.finalY + 8;
-                filtered.forEach((e, i) => {
-                    (e.photos || []).forEach((p, pIdx) => {
-                        if (!p.photo_data) return;
-                        if (photoY > 200) {
-                            doc.addPage();
-                            photoY = 14;
-                        }
-                        doc.setFontSize(8);
-                        doc.setTextColor(30, 41, 59);
-                        doc.setFont(undefined, "bold");
-                        const label = `Entry ${i + 1} - ${e.date || ""} - ${e.name || e.ivrs || ""} - ${p.name || ("Photo " + (pIdx + 1))}`;
-                        if (DEVANAGARI_RE.test(label)) {
-                            const labelImg = hindiTextImage_(label, 182, 17, { bold: true });
-                            try { doc.addImage(labelImg.dataUrl, "PNG", 14, photoY - 3, labelImg.wMm, labelImg.hMm); } catch (_) {}
-                        } else {
-                            doc.text(label, 14, photoY);
-                        }
-                        try {
-                            doc.addImage(p.photo_data, "JPEG", 14, photoY + 2, 80, 60);
-                        } catch (_) {}
-                        doc.setFontSize(7);
-                        doc.setFont(undefined, "normal");
-                        doc.setTextColor(80);
-                        const gpsLine = (p.gps_latitude && p.gps_longitude) ? `GPS: ${p.gps_latitude}, ${p.gps_longitude}` : "GPS: N/A";
-                        doc.text(gpsLine, 98, photoY + 8);
-                        const locText = `Location: ${p.gps_location || "N/A"}`;
-                        let locBottom;
-                        if (DEVANAGARI_RE.test(locText)) {
-                            const locImg = hindiTextImage_(locText, 95, 15, { color: "#505050" });
-                            try { doc.addImage(locImg.dataUrl, "PNG", 98, photoY + 10.5, locImg.wMm, locImg.hMm); } catch (_) {}
-                            locBottom = photoY + 10.5 + locImg.hMm;
-                        } else {
-                            const locLines = doc.splitTextToSize(locText, 95);
-                            doc.text(locLines, 98, photoY + 14);
-                            locBottom = photoY + 14 + (locLines.length * 3.5);
-                        }
+                // ----- Photo blocks -----
+                for (let i = 0; i < filtered.length; i++) {
+                    const e = filtered[i];
+                    const photos = e.photos || [];
+                    for (let pIdx = 0; pIdx < photos.length; pIdx++) {
+                        const p = photos[pIdx];
+                        if (!p.photo_data) continue;
+                        const gpsLine = (p.gps_latitude && p.gps_longitude) ? `${escapeHtml(String(p.gps_latitude))}, ${escapeHtml(String(p.gps_longitude))}` : "N/A";
+                        const photoHtml = `
+                            <div style="border:1.5px solid #fecaca; border-radius:10px; padding:10px; background:#fffbfb;">
+                                <div style="font-size:14px; font-weight:900; color:#1e293b; margin-bottom:8px;">Entry ${i + 1} — ${escapeHtml(e.date || "")} — ${escapeHtml(e.name || e.ivrs || "")} — ${escapeHtml(p.name || ("Photo " + (pIdx + 1)))}</div>
+                                <div style="display:flex; gap:12px; align-items:flex-start;">
+                                    <img src="${p.photo_data}" style="width:330px; height:248px; object-fit:cover; border-radius:8px; border:1px solid #e2e8f0; flex-shrink:0;">
+                                    <div style="font-size:13px; font-weight:700; color:#475569; line-height:1.7;">
+                                        <div><span style="color:#1e293b; font-weight:900;">GPS:</span> ${gpsLine}</div>
+                                        <div style="margin-top:4px;"><span style="color:#1e293b; font-weight:900;">Location:</span> ${escapeHtml(p.gps_location || "N/A")}</div>
+                                    </div>
+                                </div>
+                            </div>`;
+                        addBlock(await renderBlock(photoHtml), 1);
                         if (isValidLatLon_(p.gps_latitude, p.gps_longitude)) {
+                            if (y > 274) { doc.addPage(); y = 10; }
                             const mapsUrl = `https://www.google.com/maps/dir/?api=1&destination=${p.gps_latitude},${p.gps_longitude}`;
+                            doc.setFontSize(9);
                             doc.setTextColor(21, 128, 61);
                             doc.setFont(undefined, "bold");
-                            const linkY = locBottom + 4;
-                            doc.text("Open Map (Directions)", 98, linkY);
-                            doc.link(98, linkY - 3, 50, 5, { url: mapsUrl });
+                            doc.text("Open Map (Directions)", 15, y + 2);
+                            doc.link(15, y - 1.5, 48, 5.5, { url: mapsUrl });
+                            y += 8;
                         }
-                        photoY += 68;
-                    });
-                });
+                    }
+                }
+
+                holder.remove();
+                holder = null;
 
                 const totalPages = doc.internal.getNumberOfPages();
                 for (let i = 1; i <= totalPages; i++) {
@@ -4779,6 +4736,7 @@
             } catch (_) {
                 showToast("Report generate karne mein error aaya", false);
             } finally {
+                if (holder) { try { holder.remove(); } catch (_) {} }
                 btn.innerHTML = '<svg width="16" height="16" fill="white" viewBox="0 0 24 24"><path d="M20 2H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-8.5 7.5c0 .83-.67 1.5-1.5 1.5H9v2H7.5V7H10c.83 0 1.5.67 1.5 1.5v1zm5 2c0 .83-.67 1.5-1.5 1.5h-2.5V7H15c.83 0 1.5.67 1.5 1.5v3zm4-3H19v1h1.5V11H19v2h-1.5V7h3v1.5zM9 9.5h1v-1H9v1zM4 6H2v14c0 1.1.9 2 2 2h14v-2H4V6zm10 5.5h1v-3h-1v3z"/></svg> Download PDF MIS Report';
                 btn.disabled = false;
             }
