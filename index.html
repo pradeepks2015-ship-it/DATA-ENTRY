@@ -1630,7 +1630,7 @@
             // 132KV LAKHNADON Substation
             { "33/11 KV SUBSTATION": "132KV LAKHNADON", "33 AND 11 KV FEEDER": "33KV ADEGAON FEEDER", substation: "132KV LAKHNADON", feeder: "33KV ADEGAON FEEDER", meterNo: "MPP28230", mf: "120", feederType: "33 KV" },
             // 33 KV Feeders (MF readings)
-            { "33/11 KV SUBSTATION": "ADEGAON", "33 AND 11 KV FEEDER": "33KV ADEGAON", substation: "ADEGAON", feeder: "33KV ADEGAON", meterNo: "BS12775548", mf: "12000", feederType: "33 KV" },
+            { "33/11 KV SUBSTATION": "ADEGAON", "33 AND 11 KV FEEDER": "33KV ADEGAON", substation: "ADEGAON", feeder: "33KV ADEGAON", meterNo: "BS12775548", mf: "24000", feederType: "33 KV" },
             { "33/11 KV SUBSTATION": "ADEGAON", "33 AND 11 KV FEEDER": "33KV ADEGAON-CHAMARI", substation: "ADEGAON", feeder: "33KV ADEGAON-CHAMARI", meterNo: "BS12775550", mf: "12000", feederType: "33 KV" },
             { "33/11 KV SUBSTATION": "ADEGAON", "33 AND 11 KV FEEDER": "33KV MADI OUTGOING", substation: "ADEGAON", feeder: "33KV MADI OUTGOING", meterNo: "BS12776133", mf: "12000", feederType: "33 KV" },
             { "33/11 KV SUBSTATION": "CHAMARI", "33 AND 11 KV FEEDER": "33KV ADEGAON (CHAMARI)", substation: "CHAMARI", feeder: "33KV ADEGAON (CHAMARI)", meterNo: "BS12775544", mf: "12000", feederType: "33 KV" },
@@ -5996,7 +5996,13 @@
                 return Math.abs(mRows.reduce((s, r) => {
                     const prev = Number(r["PREVIUS READING"]) || 0;
                     const curr = Number(r["CURRENT READING"]) || 0;
-                    const mf   = Number(r["MF"]) || 1;
+                    let mf   = Number(r["MF"]) || 1;
+                    // BS12775548 ka sahi MF 24000 hai — purani entries me galat MF stored ho
+                    // sakta hai, isliye readings se dobara calculate karte hain.
+                    if (meterNo === "BS12775548") {
+                        mf = 24000;
+                        if (curr || prev) return s + Math.abs(curr - prev) * mf;
+                    }
                     const con  = Number(r["CONSUMPTION"]) || (Math.abs(curr - prev) * mf);
                     return s + Math.abs(con);
                 }, 0));
@@ -6044,12 +6050,13 @@
             const madhiFeederTotal = BS12775542 + BS12775541 + BS12775540;
             const totalIncoming    = BS12775548;
 
-            // Correct formulas per network diagram
-            // Adegaon SS Input = BS12775548 (total incoming at Adegaon SS)
-            // Chamari Line Input = BS12775550 (outgoing to Chamari)
-            // Madhi Outgoing = BS12776133 (outgoing to Madhi)
-            const adegaonSSInput       = BS12775548;  // Total incoming at Adegaon SS
-            const adegaonSSLineLoss    = Math.abs(BS12775548 - adegaon11KVTotal);
+            // Network diagram ke hisaab se formulas:
+            // BS12775548 = Adegaon SS ka TOTAL incoming (isi se BS550 Chamari aur BS133 Madhi lines nikalti hain)
+            // Adegaon SS Net Input = BS548 − (BS550 + BS133)
+            // Adegaon SS Loss = Net Input − Σ 11KV feeders of Adegaon
+            const adegaonNetInput      = BS12775548 - (BS12775550 + BS12776133);
+            const adegaonSSInput       = adegaonNetInput;  // Adegaon SS ka net input
+            const adegaonSSLineLoss    = adegaonNetInput - adegaon11KVTotal;
             const adegaonMadhiLineLoss = Math.abs(BS12776133 - BS12775543);
             const madhiSSLineLoss      = Math.abs(BS12775543 - madhiFeederTotal);
 
@@ -6101,15 +6108,15 @@
                 <div style="background:#fff; border-radius:10px; padding:10px; margin-bottom:8px; border:1.5px solid #fbbf24;">
                     <div style="font-size:12px; font-weight:900; color:#b45309; margin-bottom:4px; text-transform:uppercase;">⚡ Input & Loss Analysis</div>
                     <div style="font-size:10px; font-weight:700; color:#64748b; margin-bottom:8px;">
-                        BS12775548 (Adegaon SS Incoming): <strong style="color:#1e293b;">${fmt(totalIncoming)} kWh</strong><br>
-                        <span style="font-size:9px; color:#94a3b8;">⚠️ Chamari (BS550) aur Madhi (BS133) ke alag meters hain — teen alag lines</span>
+                        BS12775548 (Total Incoming, MF 24000): <strong style="color:#1e293b;">${fmt(BS12775548)} kWh</strong><br>
+                        <span style="font-size:9px; color:#94a3b8;">BS548 se hi BS550 (Chamari line) aur BS133 (Madhi line) nikalti hain — isliye BS548 ≈ BS550 + BS133 + Adegaon SS consumption</span>
                     </div>
 
-                    <!-- ROW 1: Adegaon SS Input -->
-                    ${lossRow("1. Adegaon SS Input", `BS12775548 = ${fmt(BS12775548)} kWh (केवल Adegaon SS का incoming)`, adegaonSSInput)}
-                    ${lossRow("   ↳ Adegaon SS Loss", `BS548 − Σ 4×11KV = ${fmt(BS12775548)} − ${fmt(adegaon11KVTotal)}`, adegaonSSLineLoss)}
+                    <!-- ROW 1: Adegaon SS Net Input -->
+                    ${lossRow("1. Adegaon SS Net Input", `BS548 − (BS550 + BS133) = ${fmt(BS12775548)} − (${fmt(BS12775550)} + ${fmt(BS12776133)})`, adegaonNetInput)}
+                    ${lossRow("   ↳ Adegaon SS Loss", `Net Input − Σ 11KV Feeders = ${fmt(adegaonNetInput)} − ${fmt(adegaon11KVTotal)}`, adegaonSSLineLoss)}
                     <div style="background:#f0fdf4; border-radius:8px; padding:6px 10px; margin-bottom:8px; border-left:3px solid #16a34a; font-size:10px; font-weight:700; color:#14532d;">
-                        ✅ Adegaon SS Total = Σ 4×11KV + SS Loss = ${fmt(adegaon11KVTotal)} + ${fmt(adegaonSSLineLoss)} = <strong>${fmt(adegaon11KVTotal + adegaonSSLineLoss)} kWh</strong> (part of BS548)
+                        ✅ Adegaon SS Loss = {BS548 − (BS550 + BS133)} − Σ 11KV = {${fmt(BS12775548)} − ${fmt(BS12775550 + BS12776133)}} − ${fmt(adegaon11KVTotal)} = <strong>${fmt(adegaonSSLineLoss)} kWh</strong>
                     </div>
 
                     <!-- ROW 2: Chamari Line Input -->
@@ -6670,6 +6677,15 @@
                 const key = `${normalizeFeederSubstationKey_(fb.substation)}|${fb.feeder.toUpperCase()}`;
                 if (!existingKeys.has(key)) {
                     merged.push({ ...fb, "METER NO": fb.meterNo || "", feederType: fb.feederType || "11 KV" });
+                }
+            });
+            // MF overrides — chahe row Google Sheet se aaye ya fallback se, ye MF hamesha lagega
+            const FEEDER_MF_OVERRIDES = { "BS12775548": "24000" };
+            merged.forEach((row) => {
+                const mNo = String(row.meterNo || row["METER NO"] || "").trim();
+                if (FEEDER_MF_OVERRIDES[mNo]) {
+                    row.mf = FEEDER_MF_OVERRIDES[mNo];
+                    if ("MF" in row) row["MF"] = FEEDER_MF_OVERRIDES[mNo];
                 }
             });
             return merged;
