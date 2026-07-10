@@ -1,5 +1,5 @@
 // Seoni Circle App — network-first service worker (v2.2)
-const CACHE = "seoni-circle-v2.2";
+const CACHE = "seoni-circle-v2.3";
 const CORE = ["./", "./index.html", "./manifest.json"];
 
 self.addEventListener("install", (e) => {
