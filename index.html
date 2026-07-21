@@ -54,7 +54,7 @@
     </style>
     <link href="https://fonts.googleapis.com/css2?family=Righteous&family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
     <link rel="manifest" href="./manifest.json">
-    <meta name="theme-color" content="#0d9488">
+    <meta name="theme-color" content="#6cb1e1">
     <link rel="apple-touch-icon" href="./icon-192.png">
     <script defer src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script defer src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
@@ -63,8 +63,8 @@
     <style>
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; outline: none; }
         :root {
-            --theme-color: #0d9488;
-            --theme-grad: linear-gradient(135deg, #0d9488 0%, #0f766e 100%);
+            --theme-color: #6cb1e1;
+            --theme-grad: linear-gradient(135deg, #6cb1e1 0%, #2f74ad 100%);
             --fixed-green: #0d9488;
         }
         body {
@@ -260,6 +260,8 @@
         #pwd-input { width: 100%; height: 54px; background: #f1f5f9; border: 2px solid #e2e8f0; border-radius: 15px; text-align: center; font-size: 1.25rem; font-weight: 900; margin-bottom: 20px; outline: none; }
         #toast-notif { position: fixed; top: 25px; left: 50%; transform: translateX(-50%); min-width: 250px; padding: 14px 24px; border-radius: 15px; font-weight: 900; color: white; text-align: center; z-index: 9999; display: none; text-transform: uppercase; }
         .bg-teal-grad { background: linear-gradient(135deg, #0d9488 0%, #0f766e 100%); }
+        .bg-argentina-grad { background: linear-gradient(135deg, #6cb1e1 0%, #2f74ad 100%); border-bottom: 3px solid #f5b400; }
+        #home-view { background: linear-gradient(180deg, rgba(108,177,225,0.12) 0%, rgba(108,177,225,0) 220px); }
         .bg-blue-grad { background: linear-gradient(135deg, #2563eb 0%, #1e40af 100%); }
         .bg-orange-grad { background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); }
         .stock-wrap { display: flex; flex-direction: column; gap: 14px; }
@@ -416,7 +418,7 @@
     </div>
 
     <div class="app-shell">
-        <header id="app-header" class="app-header bg-teal-grad">
+        <header id="app-header" class="app-header bg-argentina-grad">
             <div style="grid-column: 1;">
                 <div id="back-btn" class="cursor-pointer flex items-center justify-center h-full w-full" style="display: none;" onclick="goBack()">
                     <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 19l-7-7 7-7"></path></svg>
@@ -432,7 +434,7 @@
         <main id="home-view" class="view active">
             <div class="welcome-box"><h2 id="welcomeText" class="welcome-text">Welcome</h2></div>
             <div class="dots-container">
-                <div class="color-dot" style="background-color: #0d9488;" onclick="changeTheme('#0d9488')"></div>
+                <div class="color-dot" style="background-color: #6cb1e1;" onclick="changeTheme('#6cb1e1')"></div>
                 <div class="color-dot" style="background-color: #3b82f6;" onclick="changeTheme('#3b82f6')"></div>
                 <div class="color-dot" style="background-color: #ef4444;" onclick="changeTheme('#ef4444')"></div>
             </div>
@@ -11584,9 +11586,9 @@ ${remark ? "रिमार्क: " + remark : ""}
                 const header = document.getElementById("app-header");
                 const searchBtn = document.getElementById("search-btn");
                 if (id === "home") {
-                    document.documentElement.style.setProperty("--theme-color", "#0d9488");
-                    document.documentElement.style.setProperty("--theme-grad", "linear-gradient(135deg, #0d9488 0%, #0f766e 100%)");
-                    header.className = "app-header bg-teal-grad";
+                    document.documentElement.style.setProperty("--theme-color", "#6cb1e1");
+                    document.documentElement.style.setProperty("--theme-grad", "linear-gradient(135deg, #6cb1e1 0%, #2f74ad 100%)");
+                    header.className = "app-header bg-argentina-grad";
                 } else if (id === "mobile-update") {
                     header.className = "app-header bg-red-grad";
                     if (searchBtn) searchBtn.style.background = "linear-gradient(135deg, #ef4444 0%, #b91c1c 100%)";
