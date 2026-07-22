@@ -495,6 +495,20 @@
                                 body: item.body
                             });
                             if (!response.ok) break;
+                        } else if (item.kind === "kc_update") {
+                            const payload = new URLSearchParams();
+                            payload.append("module", "karya_charitra");
+                            payload.append("action", "updateEntry");
+                            payload.append("entry_id", item.entryId);
+                            payload.append("updates_json", JSON.stringify(item.updates));
+                            payload.append("auth_token", APPS_SCRIPT_AUTH_TOKEN);
+                            const response = await fetch(sharedModuleSyncScriptUrl, {
+                                method: "POST",
+                                headers: { "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8" },
+                                body: payload.toString()
+                            });
+                            if (!response.ok) break;
+                            sharedModuleLastFetch["karya_charitra"] = 0;
                         }
                         await idbDelete_("sync_queue", item.id);
                         done++;

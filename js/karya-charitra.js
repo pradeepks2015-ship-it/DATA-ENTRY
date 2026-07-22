@@ -42,26 +42,22 @@
                 // Find local records that are NOT yet in cloud (old pre-sync entries)
                 const unsynced = localAll.filter((r) => !r.entry_id || !cloudIds.has(r.entry_id));
 
-                // Auto-migrate unsynced local records to cloud (fire and forget)
+                // Auto-migrate unsynced local records to cloud (fire and forget).
+                // Routed through syncEntryToCloud_ so a failed attempt here also gets
+                // queued in sync_queue for automatic retry, instead of only trying
+                // again the next time this list happens to be opened.
                 if (unsynced.length && sharedModuleSyncEnabled) {
                     unsynced.forEach(async (record) => {
-                        try {
-                            const payload = new URLSearchParams();
-                            payload.append("module", "karya_charitra");
-                            payload.append("entry_json", JSON.stringify(record));
-                            payload.append("auth_token", APPS_SCRIPT_AUTH_TOKEN);
-                            const response = await fetch(sharedModuleSyncScriptUrl, {
-                                method: "POST",
-                                headers: { "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8" },
-                                body: payload.toString()
-                            });
-                            const parsed = JSON.parse((await response.text()) || "{}");
-                            if (parsed?.status === "success" && parsed.entry_id) {
-                                // Mark locally as synced
-                                await kcUpdateLocalEntryId_(record.id, parsed.entry_id);
-                                sharedModuleLastFetch["karya_charitra"] = 0;
-                            }
-                        } catch (_) {}
+                        // If this retry has to be queued for later (offline), the queue
+                        // replay finds its way back to this local record by client_id —
+                        // so that id has to already be saved on the record, not just
+                        // held in memory on the copy we're about to sync.
+                        if (!record.client_id) {
+                            record.client_id = genClientId_();
+                            try { await idbPut_("karya_charitra", record); } catch (_) {}
+                        }
+                        const entryId = await syncEntryToCloud_("karya_charitra", record);
+                        if (entryId) await kcUpdateLocalEntryId_(record.id, entryId);
                     });
                 }
 
@@ -99,22 +95,12 @@
         async function kcSaveRecord_(record) {
             try {
                 if (sharedModuleSyncEnabled) {
-                    try {
-                        const payload = new URLSearchParams();
-                        payload.append("module", "karya_charitra");
-                        payload.append("entry_json", JSON.stringify(record));
-                        payload.append("auth_token", APPS_SCRIPT_AUTH_TOKEN);
-                        const response = await fetch(sharedModuleSyncScriptUrl, {
-                            method: "POST",
-                            headers: { "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8" },
-                            body: payload.toString()
-                        });
-                        const parsed = JSON.parse((await response.text()) || "{}");
-                        if (parsed?.status === "success" && parsed.entry_id) {
-                            record.entry_id = parsed.entry_id;
-                            sharedModuleLastFetch["karya_charitra"] = 0;
-                        }
-                    } catch (_) {}
+                    // syncEntryToCloud_ queues this in sync_queue on network failure and
+                    // auto-retries it (same protection broken_pole/bijli_chori already get) —
+                    // the earlier bespoke fetch here just failed silently with nothing to
+                    // retry it later.
+                    const entryId = await syncEntryToCloud_("karya_charitra", record);
+                    if (entryId) record.entry_id = entryId;
                 }
                 await idbAdd_("karya_charitra", record);
                 return true;
@@ -144,7 +130,22 @@
                         });
                         sharedModuleLastFetch["karya_charitra"] = 0;
                     }
-                } catch (_) {}
+                } catch (err) {
+                    // Network error (offline)? Queue it — processSyncQueue_ will replay
+                    // this updateEntry call once internet is back, same as new SCNs do.
+                    if (navigator.onLine === false || err instanceof TypeError) {
+                        try {
+                            let cloudEntryId = (typeof id === "string" && id.startsWith("E")) ? id : null;
+                            if (!cloudEntryId) {
+                                const all = await idbGetAll_("karya_charitra");
+                                cloudEntryId = all.find((r) => r.id === id)?.entry_id || null;
+                            }
+                            if (cloudEntryId) {
+                                await queueOfflineSync_({ kind: "kc_update", entryId: cloudEntryId, updates });
+                            }
+                        } catch (_) {}
+                    }
+                }
             }
             // Update local IDB
             try {
