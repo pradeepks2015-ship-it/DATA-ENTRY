@@ -160,6 +160,7 @@ test.describe('Error log (Polish)', () => {
     const logs = await page.evaluate(() => getErrorLogs_());
     expect(logs.some((l) => l.ctx === 'js-error' && l.msg.includes('smoke-test-uncaught'))).toBe(true);
 
+    await page.click('#header-menu-btn');
     await page.click('[aria-label="एरर लॉग देखें"]');
     await expect(page.locator('#error-log-overlay')).toBeVisible();
     await expect(page.locator('#error-log-list')).toContainText('smoke-test-uncaught');
@@ -168,6 +169,7 @@ test.describe('Error log (Polish)', () => {
   test('लॉग साफ़ करें बटन काम करता है', async ({ page }) => {
     await openApp(page);
     await page.evaluate(() => logErr_('manual-test', new Error('to be cleared')));
+    await page.click('#header-menu-btn');
     await page.click('[aria-label="एरर लॉग देखें"]');
     await expect(page.locator('#error-log-list')).toContainText('to be cleared');
     await page.click('#error-log-clear-btn');
