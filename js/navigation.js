@@ -67,6 +67,7 @@
                     document.documentElement.style.setProperty("--theme-color", "#6cb1e1");
                     document.documentElement.style.setProperty("--theme-grad", "linear-gradient(135deg, #6cb1e1 0%, #2f74ad 100%)");
                     header.className = "app-header bg-argentina-grad";
+                    renderScnReminderBanner_();
                 } else if (id === "admin-dashboard") {
                     document.documentElement.style.setProperty("--theme-color", "#6cb1e1");
                     document.documentElement.style.setProperty("--theme-grad", "linear-gradient(135deg, #6cb1e1 0%, #2f74ad 100%)");

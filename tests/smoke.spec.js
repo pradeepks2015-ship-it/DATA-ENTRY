@@ -216,6 +216,9 @@ test.describe('Backend auth token', () => {
         route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ status: 'success', entry_id: 'TEST' }) });
       }),
     });
+    // Home reminder banner ka apna background fetch (karya_charitra) is test ke
+    // request count me na aaye, isliye use aaj ke liye dismiss maan lete hain.
+    await page.evaluate(() => localStorage.setItem('scn-reminder-dismissed', localTodayIso_()));
 
     await page.evaluate(async () => {
       const payload = new URLSearchParams();
@@ -230,9 +233,12 @@ test.describe('Backend auth token', () => {
       await fetch(`${feederSubmitScriptUrl}?action=getFeederReadings&auth_token=${encodeURIComponent(APPS_SCRIPT_AUTH_TOKEN)}`);
     });
 
-    expect(requests.length).toBe(2);
-    const post = requests.find((r) => r.method === 'POST');
-    const get = requests.find((r) => r.method === 'GET');
+    // Home reminder banner (unrelated background check) apna ek getEntries call
+    // bhej sakta hai isse pehle ki dismiss flag asar kare — usse yahan chhod dete hain.
+    const relevant = requests.filter((r) => !r.url.includes('action=getEntries'));
+    expect(relevant.length).toBe(2);
+    const post = relevant.find((r) => r.method === 'POST');
+    const get = relevant.find((r) => r.method === 'GET');
     expect(post?.postData).toContain('auth_token=');
     expect(get?.url).toContain('auth_token=');
   });
@@ -429,5 +435,71 @@ test.describe('Admin Dashboard (Phase-1)', () => {
     await expect(page.locator('#header-menu-dropdown')).toBeVisible();
     await page.click('body', { position: { x: 5, y: 5 } });
     await expect(page.locator('#header-menu-dropdown')).toBeHidden();
+  });
+});
+
+test.describe('Home reminders (Push Notification lite)', () => {
+  /** @param {import('@playwright/test').Page} page */
+  /** @param {{scn_date_iso: string, reply_text?: string}[]} entries */
+  async function mockKcEntries(page, entries) {
+    await page.route('**/macros/**', (route) => {
+      const url = new URL(route.request().url());
+      if (url.searchParams.get('action') === 'getEntries' && url.searchParams.get('module') === 'karya_charitra') {
+        return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ status: 'success', entries }) });
+      }
+      return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ status: 'success', entries: [] }) });
+    });
+  }
+
+  test('सभी SCN का समय पर जवाब आ चुका हो तो कोई reminder नहीं दिखता', async ({ page }) => {
+    await openApp(page, {
+      beforeGoto: (p) => mockKcEntries(p, [{ scn_date_iso: '2026-07-10', emp_name: 'Ram Kumar', dispatch_no: 3, entry_id: 'kc1', reply_text: 'माफ़ी', reply_date_iso: '2026-07-11' }]),
+    });
+    await page.evaluate(() => renderScnReminderBanner_());
+    await expect(page.locator('#scn-reminder-banner')).toHaveCount(0);
+  });
+
+  test('SCN का जवाब बाकी हो और 7 दिन की समय सीमा पार हो चुकी हो तो overdue banner दिखता है', async ({ page }) => {
+    await openApp(page, {
+      beforeGoto: (p) => mockKcEntries(p, [{ scn_date_iso: '2026-07-10', emp_name: 'Ram Kumar', dispatch_no: 3, entry_id: 'kc1' }]),
+    });
+    await page.evaluate(() => renderScnReminderBanner_());
+    await expect(page.locator('#scn-reminder-banner')).toBeVisible();
+    await expect(page.locator('#scn-reminder-banner')).toContainText('समय सीमा');
+  });
+
+  test('SCN का जवाब बाकी हो पर अभी 7 दिन की समय सीमा के अंदर हो तो neutral (non-overdue) banner दिखता है', async ({ page }) => {
+    await openApp(page, {
+      beforeGoto: (p) => mockKcEntries(p, [{ scn_date_iso: '2026-07-20', emp_name: 'Shyam Lal', dispatch_no: 5, entry_id: 'kc2' }]),
+    });
+    await page.evaluate(() => renderScnReminderBanner_());
+    const banner = page.locator('#scn-reminder-banner');
+    await expect(banner).toBeVisible();
+    await expect(banner).toContainText('उत्तर बाकी है');
+    await expect(banner).not.toContainText('समय सीमा');
+  });
+
+  test('✕ दबाने पर banner हट जाता है और आज दोबारा नहीं दिखता', async ({ page }) => {
+    await openApp(page, {
+      beforeGoto: (p) => mockKcEntries(p, [{ scn_date_iso: '2026-07-10', emp_name: 'Ram Kumar', dispatch_no: 3, entry_id: 'kc1' }]),
+    });
+    await page.evaluate(() => renderScnReminderBanner_());
+    await expect(page.locator('#scn-reminder-banner')).toBeVisible();
+    await page.click('[aria-label="रिमाइंडर बंद करें"]');
+    await expect(page.locator('#scn-reminder-banner')).toHaveCount(0);
+    await page.evaluate(() => renderScnReminderBanner_());
+    await expect(page.locator('#scn-reminder-banner')).toHaveCount(0);
+  });
+
+  test('"देखें" बटन कर्मचारी कार्य चरित्रावली view बिना error के खोलता है', async ({ page }) => {
+    const errors = [];
+    await openApp(page, {
+      beforeGoto: (p) => mockKcEntries(p, [{ scn_date_iso: '2026-07-10', emp_name: 'Ram Kumar', dispatch_no: 3, entry_id: 'kc1' }]),
+    });
+    page.on('pageerror', (e) => errors.push(e.message));
+    await page.evaluate(() => renderScnReminderBanner_());
+    await page.click('text=देखें');
+    await page.waitForFunction(() => document.getElementById('karya-charitra-view').classList.contains('active'));
+    expect(errors).toEqual([]);
   });
 });
