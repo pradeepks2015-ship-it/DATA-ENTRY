@@ -40,8 +40,14 @@
                 <span id="sync-queue-badge" style="display:none; align-items:center; background:#fff7ed; color:#9a3412; font-size:9px; font-weight:900; padding:2px 7px; border-radius:10px; margin-left:4px; white-space:nowrap;"></span>
                 <h1 id="main-header-title">SEONI CIRCLE</h1>
             </div>
-            <div style="grid-column: 3; display:flex; align-items:center; justify-content:center;">
-                <button type="button" onclick="openErrorLogModal_()" aria-label="एरर लॉग देखें" style="background:none; border:none; color:#ffffff; opacity:0.85; font-size:18px; cursor:pointer; width:36px; height:36px; display:flex; align-items:center; justify-content:center;">🐞</button>
+            <div style="grid-column: 3; display:flex; align-items:center; justify-content:center; gap:2px;">
+                <button type="button" onclick="openErrorLogModal_()" aria-label="एरर लॉग देखें" style="background:none; border:none; color:#ffffff; opacity:0.85; font-size:18px; cursor:pointer; width:32px; height:36px; display:flex; align-items:center; justify-content:center;">🐞</button>
+                <div style="position:relative;">
+                    <button type="button" id="header-menu-btn" onclick="toggleHeaderMenu_()" aria-label="मेनू" style="background:none; border:none; color:#ffffff; opacity:0.85; font-size:20px; font-weight:900; cursor:pointer; width:32px; height:36px; display:flex; align-items:center; justify-content:center;">⋮</button>
+                    <div id="header-menu-dropdown" style="display:none; position:absolute; top:40px; right:0; background:#ffffff; border-radius:12px; box-shadow:0 8px 24px rgba(0,0,0,0.25); min-width:170px; overflow:hidden; z-index:1000;">
+                        <button type="button" onclick="closeHeaderMenu_(); openAdminDashboardGate_();" style="display:block; width:100%; text-align:left; background:none; border:none; padding:12px 14px; font-size:12px; font-weight:800; color:#1e293b; cursor:pointer;">📊 Admin Dashboard</button>
+                    </div>
+                </div>
             </div>
         </header>
 
