@@ -103,9 +103,10 @@
             const fromDefault = admDefaultFromDate_();
             const toDefault = localTodayIso_();
             container.innerHTML = `
-                <div style="display:flex; gap:10px; margin-bottom:12px;">
-                    <button type="button" onclick="lockAdminDashboard_()" style="flex:1; height:40px; border:none; border-radius:10px; background:rgba(0,0,0,0.15); color:#ffffff; font-size:11px; font-weight:900; text-transform:uppercase;">🔒 लॉक करें</button>
-                    <button type="button" onclick="refreshAdminDashboardData_()" style="flex:1; height:40px; border:none; border-radius:10px; background:rgba(0,0,0,0.15); color:#ffffff; font-size:11px; font-weight:900; text-transform:uppercase;">🔄 Refresh</button>
+                <div style="display:flex; gap:8px; margin-bottom:12px;">
+                    <button type="button" onclick="lockAdminDashboard_()" style="flex:1; height:40px; border:none; border-radius:10px; background:rgba(0,0,0,0.15); color:#ffffff; font-size:10px; font-weight:900; text-transform:uppercase;">🔒 लॉक</button>
+                    <button type="button" onclick="refreshAdminDashboardData_()" style="flex:1; height:40px; border:none; border-radius:10px; background:rgba(0,0,0,0.15); color:#ffffff; font-size:10px; font-weight:900; text-transform:uppercase;">🔄 Refresh</button>
+                    <button type="button" onclick="admExportExcel_()" style="flex:1; height:40px; border:none; border-radius:10px; background:rgba(0,0,0,0.15); color:#ffffff; font-size:10px; font-weight:900; text-transform:uppercase;">📥 Excel</button>
                 </div>
                 <div style="background:rgba(255,255,255,0.95); border-radius:14px; padding:12px; margin-bottom:12px;">
                     <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
@@ -131,12 +132,43 @@
             } catch (_) { return []; }
         }
 
-        async function admFetchMobileUpdateCount_() {
+        async function admFetchMobileUpdateRows_() {
             try {
                 const res = await fetch(`${scriptURL}?action=getSummary&auth_token=${encodeURIComponent(APPS_SCRIPT_AUTH_TOKEN)}&t=${Date.now()}`);
                 const data = await res.json();
-                return Array.isArray(data) ? data.length : 0;
+                return Array.isArray(data) ? data : null;
             } catch (_) { return null; }
+        }
+
+        let admLastData_ = null;
+
+        function admExportExcel_() {
+            if (!window.XLSX) return showToast("Excel library load नहीं हुई, फिर कोशिश करें", false);
+            if (!admLastData_) return showToast("पहले data load होने दें", false);
+            try {
+                const { feederRows, bpInRange, bcInRange, kcInRange, mobileRows, fromKey, toKey } = admLastData_;
+                const wb = XLSX.utils.book_new();
+
+                const addSheet = (name, headers, rows) => {
+                    const ws = XLSX.utils.aoa_to_sheet([headers, ...rows]);
+                    XLSX.utils.book_append_sheet(wb, ws, name);
+                };
+
+                addSheet("Feeder Reading", ["Date", "Substation", "Feeder", "Meter No", "Previous", "Current", "Consumption", "DC Name"], feederRows.map((r) => [
+                    r["DATE(DD/MM/YYY)"] || "", r["33/11 KV SUBSTATION"] || "", r["33 AND 11 KV FEEDER"] || "", r["METER NO"] || "",
+                    r["PREVIUS READING"] || "", r["CURRENT READING"] || "", r["CONSUMPTION"] || "", r["DC NAME"] || ""
+                ]));
+                addSheet("Broken Pole", ["Date", "Remark 1", "Remark 2", "Location"], bpInRange.map((e) => [e.date || "", e.remark1 || "", e.remark2 || "", e.gps_location || ""]));
+                addSheet("Bijli Chori", ["Date", "Name/IVRS", "Remark"], bcInRange.map((e) => [e.date || "", e.name || e.ivrs || "", e.remark || ""]));
+                addSheet("Karya Charitra", ["Date", "Employee", "SCN No"], kcInRange.map((r) => [kcFormatDate_ ? kcFormatDate_(r.scn_date_iso) : (r.scn_date_iso || ""), r.emp_name || "", `SCN-${String(r.dispatch_no || "").padStart(4, "0")}`]));
+                addSheet("Mobile Update", ["DC", "IVRS", "Mobile"], (mobileRows || []).map((r) => [r.dc || "", r.ivrs || "", r.mobile || ""]));
+
+                const filename = `Admin_Dashboard_${(fromKey || "all").replace(/-/g, "")}_${(toKey || "all").replace(/-/g, "")}.xlsx`;
+                XLSX.writeFile(wb, filename);
+                showToast("Excel Downloaded!", true);
+            } catch (_) {
+                showToast("Excel generate karne mein error aaya", false);
+            }
         }
 
         function admSummaryCard_(icon, label, count, note) {
@@ -191,17 +223,20 @@
             const fromKey = fromInput?.value || "";
             const toKey = toInput?.value || "";
 
-            const [brokenPole, bijliChori, karyaCharitra, feederRows, mobileCount] = await Promise.all([
+            const [brokenPole, bijliChori, karyaCharitra, feederRows, mobileRows] = await Promise.all([
                 fetchSharedEntries_("broken_pole", true),
                 fetchSharedEntries_("bijli_chori", true),
                 fetchSharedEntries_("karya_charitra", true),
                 admFetchFeederRows_(fromKey, toKey),
-                admFetchMobileUpdateCount_()
+                admFetchMobileUpdateRows_()
             ]);
 
             const bpInRange = brokenPole.filter((e) => admInRange_(admDateKey_(e.date), fromKey, toKey));
             const bcInRange = bijliChori.filter((e) => admInRange_(admDateKey_(e.date), fromKey, toKey));
             const kcInRange = karyaCharitra.filter((e) => admInRange_(admDateKey_(e.scn_date_iso), fromKey, toKey));
+            const mobileCount = mobileRows ? mobileRows.length : null;
+
+            admLastData_ = { feederRows, bpInRange, bcInRange, kcInRange, mobileRows: mobileRows || [], fromKey, toKey };
 
             const cards = [
                 admSummaryCard_("🔌", "Feeder Reading", feederRows.length),
