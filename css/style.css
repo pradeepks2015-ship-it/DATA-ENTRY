@@ -46,6 +46,9 @@
         .animate-pulse{animation:pulse 2s cubic-bezier(.4,0,.6,1) infinite}
 
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; outline: none; }
+        /* Touch/mouse click par outline nahi chahiye (upar wala rule) — lekin keyboard se
+           navigate karne walon ke liye focus ring wapas dikhna zaroori hai. */
+        :focus-visible { outline: 2px solid #2f74ad; outline-offset: 2px; }
         :root {
             --theme-color: #6cb1e1;
             --theme-grad: linear-gradient(135deg, #6cb1e1 0%, #2f74ad 100%);
