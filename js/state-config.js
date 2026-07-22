@@ -47,7 +47,6 @@
         // Ek hi Apps Script deployment — sab modules isi ko use karte hain.
         const APPS_SCRIPT_EXEC_URL = "https://script.google.com/macros/s/AKfycbwH7cske7TMbQHw65eBt-fkKVFYWNLGqPr5UgZ3AblevWTKgdTuOk2NDNquo-1iTL0-XQ/exec";
         const scriptURL = APPS_SCRIPT_EXEC_URL;
-        const shmsSubmitScriptUrl = APPS_SCRIPT_EXEC_URL;
 
         // ===== Shared Module Sync (Broken Pole / Bijli Chori) =====
         // Single Apps Script Web App endpoint shared across all 4 modules (module name sent as a parameter).
@@ -57,11 +56,9 @@
         const SHARED_SYNC_MODULES = ["broken_pole", "bijli_chori"];
         const sharedModuleSyncEnabled = !!sharedModuleSyncScriptUrl;
 
-        const shmsCsvUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTbq-yne90yg9Vn8eylxM3zKMfZjPLlVhca3JhsjAzMlcm6MAVl8vAA-xXVgZI_XjWQBHyjB36YO1Cz/pub?output=csv";
         localStorage.removeItem("stock-movements-cache");
 
         let activeDiv = "", activeDC = "", activeGrad = "bg-teal-grad", summaryMode = "DAILY", summaryModule = "MOBILE", activeViewLevel = "", currentData = null, pendingLevel = "", dcCacheRaw = {}, dcCacheRows = {}, uiListSummary = [], grandTC = 0, grandTU = 0;
-        let shmsRows = [], shmsSubstations = [], selectedShmsRow = null, shmsDataLoaded = false, selectedShmsSubstation = "", selectedShmsEventType = "", shmsPendingEntries = [];
         const feederCsvUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vT8bBAXJZhlwS_giGXBlS6rDXJ_auZfWZzNVPQaBnD09jB_m7jnrqeGGX5WP8V2jOD_WL90_KQ2pJa4/pub?output=csv";
         const feederSubmitScriptUrl = APPS_SCRIPT_EXEC_URL;
         const feederReportSheetCsvUrl = "https://docs.google.com/spreadsheets/d/1XnsLz_5643XqGgrcMzhIzI_cF4E4S6Zc1esNEQe554A/export?format=csv&gid=0";
@@ -170,20 +167,11 @@
         let feederReportLoadMessage = "";
         let selectedFeederSubstation = "";
         let activeFeederOperator = null;
-        let activeShmsOperator = null;
-        let shmsProgressRows = [];
-        let shmsProgressLoaded = false;
-        let shmsProgressMode = "DAILY";
-        let progressReportSource = "SHMS";
-        let shmsPendingTrackerRows = [];
-        let shmsRecentSubmittedEntries = [];
         let summaryRefreshToken = 0;
         let chhaparaFeederEntries = [];
         const mobileUpdateStorageKey = "seoni-circle-mobile-updated";
         const dcCsvCacheStoragePrefix = "seoni-circle-dc-csv-";
         const chhaparaFeederStorageKey = "seoni-circle-chhapara-feeder-output";
-        const shmsRecentSubmittedStorageKey = "seoni-circle-shms-recent-submitted";
-        const shmsRecentSubmittedTtlMs = 2 * 60 * 1000;
         const feederRecentSubmittedStorageKey = "seoni-circle-feeder-recent-submitted";
         const feederOperatorStorageKey = "feederOperatorProfile";
         const brokenPoleStorageKey = "seoni-circle-broken-pole-entries";

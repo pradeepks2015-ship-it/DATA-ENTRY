@@ -1,14 +1,8 @@
-        // ===== Generic Module MIS Reports (SHMS / Feeder) =====
+        // ===== Generic Module MIS Reports (Feeder) =====
         function misDateInRange_(dateKey, fromDate, toDate) {
             if (!dateKey) return false;
             if (!fromDate || !toDate) return true;
             return dateKey >= fromDate && dateKey <= toDate;
-        }
-
-        async function getShmsMisRows_(fromDate, toDate) {
-            await loadShmsProgressData(true);
-            const rows = mergeShmsProgressRows_(shmsProgressRows, getRecentShmsSubmittedRows_());
-            return rows.filter((r) => misDateInRange_(r.dateKey, fromDate, toDate));
         }
 
         async function showFeederSummaryCard() {
@@ -234,20 +228,6 @@
 
         function getMisModuleConfig_(moduleType) {
             const configs = {
-                shms: {
-                    title: "SHMS ENTRY MIS REPORT",
-                    color: [67, 56, 202],
-                    fromId: "shms-mis-from-date",
-                    toId: "shms-mis-to-date",
-                    headers: ["Substation", "Feeder", "Event Type", "Date", "Time From", "Time To", "Duration", "Reason", "Meter No", "Operator", "Mobile"],
-                    rowMapper: (r) => [
-                        r.substation || "", r.feeder || "", r.eventType || "", r.date || "",
-                        r.timeFrom || "", r.timeTo || "", r.totalDuration || "", r.reason || "",
-                        r.meterNo || "", r.operatorName || "", r.operatorMobile || ""
-                    ],
-                    fetcher: getShmsMisRows_,
-                    filename: "SHMS_Entry_MIS"
-                },
                 feeder: {
                     title: "FEEDER READING MIS REPORT",
                     color: [157, 23, 77],

@@ -1,32 +1,3 @@
-        async function loadShmsData(forceRefresh = false) {
-            if (!forceRefresh && shmsDataLoaded && shmsRows.length) return true;
-            try {
-                const csvText = await loadRemoteText(shmsCsvUrl);
-                shmsRows = mergeFallbackFeederRows_(parseShmsCsv(csvText));
-                shmsSubstations = Array.from(new Set(shmsRows.map((row) => row.substation).filter(Boolean)));
-                shmsDataLoaded = shmsRows.length > 0;
-                return shmsDataLoaded;
-            } catch (_) {
-                shmsRows = mergeFallbackFeederRows_([]);
-                shmsSubstations = Array.from(new Set(shmsRows.map((row) => row.substation).filter(Boolean)));
-                shmsDataLoaded = shmsRows.length > 0;
-                return shmsDataLoaded;
-            }
-        }
-
-        function parseShmsCsv(csvText) {
-            const lines = (csvText || "").split(/\r?\n/).filter((line) => line.trim());
-            if (lines.length < 2) return [];
-            return lines.slice(1).map((line) => {
-                const cols = splitCsvLine(line);
-                const substation = String(cols[0] || "").replace(/\s+/g, " ").trim();
-                const feeder = String(cols[1] || "").replace(/\s+/g, " ").trim();
-                const meterNo = String(cols[2] || "").trim();
-                if (!substation || !feeder) return null;
-                return { substation, feeder, meterNo };
-            }).filter(Boolean);
-        }
-
         async function loadFeederData(forceRefresh = false) {
             if (!forceRefresh && feederDataLoaded && feederRows.length) return true;
             try {

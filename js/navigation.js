@@ -45,28 +45,15 @@
                 if (id === "mobile-update" && activeDC) {
                     ensureDcDataLoaded(activeDC);
                 }
-                if (id === "shms-entry") {
-                    initShmsEntry();
-                    setDefaultMisDates_("shms-mis-from-date", "shms-mis-to-date");
-                }
                 if (id === "feeder-reading") {
                     initFeederReading();
                     setDefaultMisDates_("feeder-mis-from-date", "feeder-mis-to-date");
-                }
-                if (id === "shms-progress") {
-                    initShmsProgressDashboard();
-                }
-                if (id === "shms-pending") {
-                    initShmsPendingDashboard();
                 }
                 document.getElementById("back-btn").style.display = id === "home" ? "none" : "flex";
                 let headerTitle = "SEONI CIRCLE";
                 if (id === "dc-selection") headerTitle = activeDiv;
                 if (id === "dc-dashboard") headerTitle = `DC: ${activeDC}`;
                 if (id === "feeder-reading") headerTitle = "FEEDER / SS WISE INPUT";
-                if (id === "shms-entry") headerTitle = "SHMS ENTRY";
-                if (id === "shms-progress") headerTitle = "DAILY PROGRESS";
-                if (id === "shms-pending") headerTitle = "PENDING ENTRY";
                 if (id === "mobile-update") headerTitle = "UPDATE MOBILE NO";
                 if (id === "broken-pole") headerTitle = "BROKEN POLE / DAMAGE LINE";
                 if (id === "bijli-chori") headerTitle = "बिजली चोरी की जानकारी";
@@ -82,21 +69,6 @@
                 } else if (id === "mobile-update") {
                     header.className = "app-header bg-red-grad";
                     if (searchBtn) searchBtn.style.background = "linear-gradient(135deg, #ef4444 0%, #b91c1c 100%)";
-                } else if (id === "shms-entry") {
-                    document.documentElement.style.setProperty("--theme-color", "#4338ca");
-                    document.documentElement.style.setProperty("--theme-grad", "linear-gradient(135deg, #6366f1 0%, #312e81 100%)");
-                    header.className = "app-header bg-indigo-grad";
-                    if (searchBtn) searchBtn.style.background = "linear-gradient(135deg, #6366f1 0%, #312e81 100%)";
-                } else if (id === "shms-progress") {
-                    document.documentElement.style.setProperty("--theme-color", "#0d9488");
-                    document.documentElement.style.setProperty("--theme-grad", "linear-gradient(135deg, #0d9488 0%, #0f766e 100%)");
-                    header.className = "app-header bg-teal-grad";
-                    if (searchBtn) searchBtn.style.background = "linear-gradient(135deg, #0d9488 0%, #0f766e 100%)";
-                } else if (id === "shms-pending") {
-                    document.documentElement.style.setProperty("--theme-color", "#0d9488");
-                    document.documentElement.style.setProperty("--theme-grad", "linear-gradient(135deg, #0d9488 0%, #0f766e 100%)");
-                    header.className = "app-header bg-teal-grad";
-                    if (searchBtn) searchBtn.style.background = "linear-gradient(135deg, #0d9488 0%, #0f766e 100%)";
                 } else if (id === "feeder-reading") {
                     document.documentElement.style.setProperty("--theme-color", "#ec4899");
                     document.documentElement.style.setProperty("--theme-grad", "linear-gradient(135deg, #fbcfe8 0%, #f9a8d4 100%)");
@@ -119,13 +91,8 @@
                 const label = document.getElementById("selected-dc-label");
                 if (label) label.innerText = "Choose DC Name...";
                 switchView("home");
-            } else if (act === "shms-entry-view" || act === "shms-progress-view" || act === "shms-pending-view" || act === "feeder-reading-view") {
-                if (act === "shms-entry-view") {
-                    resetShmsForm();
-                }
-                if (act === "feeder-reading-view") {
-                    resetFeederReading();
-                }
+            } else if (act === "feeder-reading-view") {
+                resetFeederReading();
                 switchView("dc-dashboard");
             } else if (act === "dc-dashboard-view") {
                 activeDC = "";

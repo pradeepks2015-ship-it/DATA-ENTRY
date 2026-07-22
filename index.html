@@ -82,7 +82,6 @@
                 <button class="dashboard-btn btn-green-fix" onclick="window.open('https://pradeepks2015-ship-it.github.io/ADEGAON/', '_blank')">1. VASOOLI TRACKER</button>
                 <button class="dashboard-btn btn-update-red" onclick="switchView('mobile-update')">2. Mobile No Update</button>
                 <button class="dashboard-btn" style="background: linear-gradient(135deg, #f59e0b 0%, #b45309 100%);" onclick="switchView('broken-pole')">3. ⚡ Broken Pole / Damage Line</button>
-                <button class="dashboard-btn bg-indigo-grad" onclick="switchView('shms-entry')" style="display:none;">6. SHMS ENTRY</button>
                 <button class="dashboard-btn btn-feeder-light-pink" onclick="switchView('feeder-reading')">4. FEEDER / SS WISE INPUT</button>
                 <button class="dashboard-btn" style="background: linear-gradient(135deg, #dc2626 0%, #7f1d1d 100%);" onclick="switchView('bijli-chori')">5. ⚠️ बिजली चोरी की जानकारी</button>
                 <button class="dashboard-btn" style="background: linear-gradient(135deg, #1e3a5f 0%, #0f172a 100%);" onclick="switchView('karya-charitra')">6. 📋 कर्मचारी कार्य चरित्रावली</button>
@@ -167,172 +166,6 @@
                 </div>
             </div>
         </main>
-
-        <main id="shms-entry-view" class="view">
-            <div class="search-panel">
-                <div style="display:flex; flex-direction:column; gap:14px; width:100%;">
-                    <!-- MIS Report Widget -->
-                    <div style="width:100%; max-width:340px; margin:0 auto;">
-                        <div style="background: linear-gradient(135deg, #4338ca 0%, #1e1b4b 100%); border-radius: 18px; padding: 16px 18px; box-shadow: 0 8px 20px rgba(67,56,202,0.18);">
-                            <div style="font-size:12px; font-weight:900; color:#c7d2fe; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:10px; text-align:center;">📊 SHMS Entry MIS Report</div>
-                            <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:10px;">
-                                <div>
-                                    <div style="font-size:10px; font-weight:800; color:#c7d2fe; text-transform:uppercase; margin-bottom:4px;">From Date</div>
-                                    <input type="date" id="shms-mis-from-date" style="width:100%; height:38px; border-radius:10px; border:1.5px solid #6366f1; padding:0 8px; font-size:0.8rem; font-weight:700; color:#1e1b4b; background:#eef2ff; outline:none;">
-                                </div>
-                                <div>
-                                    <div style="font-size:10px; font-weight:800; color:#c7d2fe; text-transform:uppercase; margin-bottom:4px;">To Date</div>
-                                    <input type="date" id="shms-mis-to-date" style="width:100%; height:38px; border-radius:10px; border:1.5px solid #6366f1; padding:0 8px; font-size:0.8rem; font-weight:700; color:#1e1b4b; background:#eef2ff; outline:none;">
-                                </div>
-                            </div>
-                            <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
-                                <button onclick="downloadModuleMisReport('shms','EXCEL')" style="height:42px; border:none; border-radius:12px; background:linear-gradient(135deg,#16a34a,#15803d); color:#fff; font-size:12px; font-weight:900; text-transform:uppercase;">Excel</button>
-                                <button onclick="downloadModuleMisReport('shms','PDF')" style="height:42px; border:none; border-radius:12px; background:linear-gradient(135deg,#ef4444,#b91c1c); color:#fff; font-size:12px; font-weight:900; text-transform:uppercase;">PDF</button>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div id="shms-operator-login-block" style="display:none; width:100%; max-width:340px; margin:0 auto;">
-                        <div style="background:#ffffff; border:1.5px solid #c7d2fe; border-radius:18px; padding:16px 14px; box-shadow:0 10px 30px rgba(67,56,202,0.08);">
-                            <div style="font-size:14px; font-weight:900; text-transform:uppercase; color:#312e81; text-align:center; margin-bottom:10px;">Operator Signup</div>
-                            <input id="shms-operator-name" class="ivrs-input" type="text" placeholder="Full Name of Operator" style="height:46px; font-size:0.9rem; border-width:1.5px; margin-bottom:10px;">
-                            <input id="shms-operator-mobile" class="ivrs-input" type="tel" inputmode="numeric" maxlength="10" placeholder="Mobile No" style="height:46px; font-size:0.9rem; border-width:1.5px; margin-bottom:10px;">
-                            <label style="display:flex; align-items:center; justify-content:center; gap:8px; font-size:13px; font-weight:800; color:#4338ca; margin-bottom:12px;">
-                                <input id="shms-remember-operator" type="checkbox" style="width:16px; height:16px;">
-                                <span>Remember Me</span>
-                            </label>
-                            <button onclick="saveShmsOperator()" style="width:100%; height:46px; border:none; border-radius:12px; background:#4338ca; color:#ffffff; font-size:14px; font-weight:900; text-transform:uppercase;">Save & Continue</button>
-                        </div>
-                    </div>
-                    <div id="shms-operator-summary-block" style="display:none; width:100%; max-width:340px; margin:0 auto;">
-                        <div style="background:#eef2ff; color:#312e81; border:1.5px solid #c7d2fe; border-radius:16px; padding:10px 12px;">
-                            <div style="display:flex; align-items:center; justify-content:space-between; gap:10px;">
-                                <div id="shms-operator-summary" style="font-size:13px; font-weight:900; line-height:1.2; flex:1; text-align:left; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;"></div>
-                                <button onclick="editShmsOperator()" style="width:auto; min-width:auto; height:auto; padding:0; border:none; background:transparent; color:#111827; font-size:13px; font-weight:900; text-transform:uppercase; white-space:nowrap;">Change Details</button>
-                            </div>
-                            <button onclick="switchView('shms-pending')" style="margin-top:10px; width:auto; min-width:132px; height:34px; padding:0 14px; border:none; border-radius:999px; background:#111827; color:#ffffff; font-size:11px; font-weight:900; text-transform:uppercase;">Pending Entry</button>
-                        </div>
-                    </div>
-                    <div id="shms-flow-block" style="display:none; width:100%;">
-                    <div class="dropdown-box" style="max-width:340px;">
-                        <div id="shms-substation-trigger" class="professional-trigger" style="height:52px; font-size:0.95rem; border-width:1.5px;" onclick="toggleShmsDropdown('substation')">
-                            <span id="shms-substation-label">Select 33/11 KV Substation</span>
-                            <svg class="chevron-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M19 9l-7 7-7-7" stroke-linecap="round" stroke-linejoin="round" stroke-width="3"></path></svg>
-                        </div>
-                        <div id="shms-substation-menu" class="dropdown-menu"></div>
-                    </div>
-                    <div id="shms-feeder-block" style="display:none;">
-                      <div class="dropdown-box" style="max-width:340px;">
-                          <div id="shms-feeder-trigger" class="professional-trigger" style="height:52px; font-size:0.95rem; border-width:1.5px;" onclick="toggleShmsDropdown('feeder')">
-                              <span id="shms-feeder-label">Select 33KV or 11KV Feeder</span>
-                              <svg class="chevron-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M19 9l-7 7-7-7" stroke-linecap="round" stroke-linejoin="round" stroke-width="3"></path></svg>
-                          </div>
-                          <div id="shms-feeder-menu" class="dropdown-menu"></div>
-                      </div>
-                      </div>
-                    <div id="shms-event-block" style="display:none;">
-                      <div class="dropdown-box" style="max-width:340px;">
-                          <div id="shms-event-trigger" class="professional-trigger" style="height:52px; font-size:0.95rem; border-width:1.5px;" onclick="toggleShmsDropdown('event')">
-                              <span id="shms-event-label">Select Event Type</span>
-                              <svg class="chevron-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M19 9l-7 7-7-7" stroke-linecap="round" stroke-linejoin="round" stroke-width="3"></path></svg>
-                        </div>
-                        <div id="shms-event-menu" class="dropdown-menu">
-                            <div class="option-item" onclick="selectShmsEventType('Breakdown')">Breakdown</div>
-                            <div class="option-item" onclick="selectShmsEventType('Shutdown')">Shutdown</div>
-                          </div>
-                      </div>
-                      </div>
-                    <div id="shms-date-block" style="display:none; width:100%;">
-                        <div class="dropdown-box" style="max-width:260px;">
-                            <div style="font-size:11px; font-weight:900; color:#0f766e; text-align:center; margin-bottom:6px; text-transform:uppercase;">Date (DD/MM/YYYY)</div>
-                            <input id="shms-event-date" class="ivrs-input" type="date" style="height:44px; font-size:0.82rem; background:#ffffff; color:#111827; border-width:1.5px;" onchange="handleShmsDateChange()">
-                        </div>
-                    </div>
-                    <div id="shms-fullrun-block" style="display:none; width:100%;">
-                        <div style="display:flex; justify-content:center;">
-                            <label style="display:inline-flex; align-items:center; gap:8px; background:#ecfeff; border:1.5px solid #99f6e4; border-radius:999px; padding:7px 12px; font-size:11px; font-weight:900; color:#0f766e; text-transform:uppercase;">
-                                <input id="shms-fullrun-check" type="checkbox" onchange="handleShmsFullRunToggle()" style="width:15px; height:15px;">
-                                24 Hr Chalu
-                            </label>
-                        </div>
-                    </div>
-                    <div id="shms-time-block" style="display:none; width:100%;">
-                        <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; max-width:260px; margin:0 auto;">
-                            <div>
-                                <div style="font-size:11px; font-weight:900; color:#0f766e; text-align:center; margin-bottom:6px; text-transform:uppercase;">From Time</div>
-                                <input id="shms-from-time" class="ivrs-input" type="text" inputmode="numeric" maxlength="5" placeholder="HH:MM" style="height:44px; font-size:0.82rem; background:#ffffff; color:#111827; border-width:1.5px;" oninput="handleShmsTimeTyping(this)" onchange="handleShmsTimeChange()">
-                            </div>
-                            <div>
-                                <div style="font-size:11px; font-weight:900; color:#0f766e; text-align:center; margin-bottom:6px; text-transform:uppercase;">To Time</div>
-                                <input id="shms-to-time" class="ivrs-input" type="text" inputmode="numeric" maxlength="5" placeholder="HH:MM" style="height:44px; font-size:0.82rem; background:#ffffff; color:#111827; border-width:1.5px;" oninput="handleShmsTimeTyping(this)" onchange="handleShmsTimeChange()">
-                            </div>
-                        </div>
-                    </div>
-                    <div id="shms-duration-block" style="display:none; width:100%;">
-                        <div class="dropdown-box" style="max-width:220px;">
-                            <input id="shms-duration" class="ivrs-input" type="text" style="height:42px; font-size:0.8rem; background:#eef2ff; color:#312e81; border-width:1.5px;" placeholder="Duration Auto Calculate" readonly>
-                        </div>
-                    </div>
-                    <div id="shms-note-block" style="display:none; width:100%;">
-                        <div class="dropdown-box" style="max-width:340px;">
-                            <textarea id="shms-note-input" class="ivrs-input" rows="3" style="height:92px; padding:12px 14px; text-align:left; resize:none; background:#fff7ed; border-color:#f59e0b; border-width:1.5px; color:#9a3412; line-height:1.35;" placeholder="Yahan details likhiye..." oninput="handleShmsNoteInput()"></textarea>
-                        </div>
-                    </div>
-                    <div id="shms-add-block" style="display:none; width:100%;">
-                        <button onclick="addShmsEntryToList()" style="width:auto; min-width:160px; height:42px; padding:0 22px; border:none; border-radius:12px; background:#16a34a; color:#ffffff; font-size:13px; font-weight:900; text-transform:uppercase;">Add To List</button>
-                    </div>
-                    <div id="shms-list-block" style="display:none; width:100%; max-width:340px; margin:0 auto;">
-                        <div id="shms-list-content" style="display:flex; flex-direction:column; gap:8px;"></div>
-                    </div>
-                    <div id="shms-submit-block" style="display:none; width:100%; max-width:340px; margin:0 auto;">
-                        <button onclick="submitShmsEntries()" style="width:100%; height:52px; border:none; border-radius:14px; background:#000000; color:#ffffff; font-size:15px; font-weight:900; text-transform:uppercase;">Submit</button>
-                    </div>
-                    <div id="shms-load-status" style="display:none; text-align:center; font-weight:800; color:#4338ca; background:#e0e7ff; border-radius:16px; padding:12px 14px; max-width:340px; margin:0 auto; width:100%;"></div>
-                    </div>
-                </div>
-            </div>
-        </main>
-
-          <main id="shms-progress-view" class="view">
-              <div class="title-box-container"><div class="title-box flex flex-col items-center"><span class="title-text-bold">SHMS DAILY PROGRESS</span></div></div>
-              <div class="px-2">
-                  <div class="progress-module-box">
-                      <div id="progress-shms-btn" class="progress-module-btn active" onclick="setReportSource('SHMS')">SHMS</div>
-                      <div id="progress-feeder-btn" class="progress-module-btn" onclick="setReportSource('FEEDER')">Feeder/SS Input</div>
-                  </div>
-                  <div class="report-type-box">
-                      <div id="shms-progress-daily-btn" class="report-opt active" onclick="setShmsProgressMode('DAILY')">Daily</div>
-                      <div id="shms-progress-monthly-btn" class="report-opt" onclick="setShmsProgressMode('MONTHLY')">Monthly</div>
-                  </div>
-                <input id="shms-progress-date" type="date" class="w-full h-12 border-2 border-teal-600 rounded-xl px-4 font-black text-teal-900 mb-4" style="border-color: #0d9488;" onchange="renderShmsProgressSummary()">
-                <div class="btn-export-row">
-                    <button class="btn-unique btn-excel-unique" onclick="downloadShmsProgress('XLS')">
-                        <svg width="18" height="18" fill="white" viewBox="0 0 24 24"><path d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm2 16h-8v-2h8v2zm0-4h-8v-2h8v2zm-3-5V3.5L18.5 9H13z"/></svg>
-                        Excel Report
-                    </button>
-                    <button class="btn-unique btn-pdf-unique" onclick="downloadShmsProgress('PDF')">
-                        <svg width="18" height="18" fill="white" viewBox="0 0 24 24"><path d="M20 2H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-8.5 7.5c0 .83-.67 1.5-1.5 1.5H9v2H7.5V7H10c.83 0 1.5.67 1.5 1.5v1zm5 2c0 .83-.67 1.5-1.5 1.5h-2.5V7H15c.83 0 1.5.67 1.5 1.5v3zm4-3H19v1h1.5V11H19v2h-1.5V7h3v1.5zM9 9.5h1v-1H9v1zM4 6H2v14c0 1.1.9 2 2 2h14v-2H4V6zm10 5.5h1v-3h-1v3z"/></svg>
-                        PDF Report
-                    </button>
-                </div>
-                <div id="shms-progress-status" style="display:none; text-align:center; font-weight:800; color:#0d9488; background:#dcfce7; border-radius:16px; padding:12px 14px; width:100%; margin-top:14px;"></div>
-                  <div id="shms-progress-summary" style="display:none;"></div>
-              </div>
-          </main>
-
-        <main id="shms-pending-view" class="view">
-            <div class="title-box-container"><div class="title-box flex flex-col items-center"><span class="title-text-bold">SHMS PENDING STATUS</span></div></div>
-            <div class="px-2">
-                <div style="background:#ecfeff; border:1.5px solid #99f6e4; color:#115e59; border-radius:18px; padding:14px 16px; text-align:center; font-weight:900; margin-bottom:14px;">
-                    <div id="shms-pending-target-label" style="font-size:16px;"></div>
-                    <div id="shms-pending-deadline-label" style="font-size:12px; margin-top:4px; opacity:0.9;"></div>
-                </div>
-                <div id="shms-pending-summary-cards" style="display:grid; grid-template-columns:repeat(3, 1fr); gap:8px; margin-bottom:14px;"></div>
-                <div id="shms-pending-status" style="display:none; text-align:center; font-weight:800; color:#0d9488; background:#dcfce7; border-radius:16px; padding:12px 14px; width:100%; margin-bottom:14px;"></div>
-                <div id="shms-pending-list" style="display:flex; flex-direction:column; gap:10px;"></div>
-            </div>
-        </main>
-
         <main id="mobile-update-view" class="view">
             <div class="title-box-container"><div class="title-box"><span class="title-text-bold">UPDATE MOBILE NO</span></div></div>
             <div class="search-panel">
@@ -651,9 +484,8 @@
     <script src="js/karya-charitra.js"></script>
     <script src="js/mis-reports.js"></script>
     <script src="js/data-loaders.js"></script>
-    <script src="js/operator-profiles.js"></script>
-    <script src="js/shms-progress.js"></script>
-    <script src="js/shms-feeder-entry.js"></script>
+    <script src="js/feeder-operator.js"></script>
+    <script src="js/feeder-entry.js"></script>
     <script src="js/chhapara.js"></script>
     <script src="js/navigation.js"></script>
     <script src="js/init.js"></script>
