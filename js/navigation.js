@@ -59,10 +59,15 @@
                 if (id === "bijli-chori") headerTitle = "बिजली चोरी की जानकारी";
                 if (id === "karya-charitra") headerTitle = "कर्मचारी कार्य चरित्रावली";
                 if (id === "summary") headerTitle = "PROGRESS REPORT";
+                if (id === "admin-dashboard") headerTitle = "ADMIN DASHBOARD";
                 document.getElementById("main-header-title").innerText = headerTitle;
                 const header = document.getElementById("app-header");
                 const searchBtn = document.getElementById("search-btn");
                 if (id === "home") {
+                    document.documentElement.style.setProperty("--theme-color", "#6cb1e1");
+                    document.documentElement.style.setProperty("--theme-grad", "linear-gradient(135deg, #6cb1e1 0%, #2f74ad 100%)");
+                    header.className = "app-header bg-argentina-grad";
+                } else if (id === "admin-dashboard") {
                     document.documentElement.style.setProperty("--theme-color", "#6cb1e1");
                     document.documentElement.style.setProperty("--theme-grad", "linear-gradient(135deg, #6cb1e1 0%, #2f74ad 100%)");
                     header.className = "app-header bg-argentina-grad";

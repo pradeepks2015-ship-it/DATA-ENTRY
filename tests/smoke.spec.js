@@ -295,3 +295,82 @@ test.describe('Offline sync queue (Karya Charitra)', () => {
     expect(after.entryId).toBe('E_REPLAYED');
   });
 });
+
+test.describe('Admin Dashboard (Phase-1)', () => {
+  /** @param {import('@playwright/test').Page} page */
+  async function mockAdminBackend(page) {
+    await page.route('**/macros/**', (route) => {
+      const url = new URL(route.request().url());
+      const action = url.searchParams.get('action');
+      const module = url.searchParams.get('module');
+      if (action === 'getEntries' && module === 'broken_pole') {
+        return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ status: 'success', entries: [{ date: '01-07-2026', remark1: 'Pole A', entry_id: 'bp1' }] }) });
+      }
+      if (action === 'getEntries' && module === 'bijli_chori') {
+        return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ status: 'success', entries: [{ date: '05-07-2026', name: 'Consumer X', photos: [], entry_id: 'bc1' }] }) });
+      }
+      if (action === 'getEntries' && module === 'karya_charitra') {
+        return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ status: 'success', entries: [{ scn_date_iso: '2026-07-10', emp_name: 'Ram Kumar', dispatch_no: 3, entry_id: 'kc1' }] }) });
+      }
+      if (action === 'getFeederReadings') {
+        return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify([{ '33/11 KV SUBSTATION': 'SS1', '33 AND 11 KV FEEDER': 'F1', 'DATE(DD/MM/YYY)': '12/07/2026' }]) });
+      }
+      if (action === 'getSummary') {
+        return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify([{ dc: 'DC1', ivrs: '111' }, { dc: 'DC1', ivrs: '222' }]) });
+      }
+      return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ status: 'success' }) });
+    });
+  }
+
+  test('गलत PIN से dashboard नहीं खुलता', async ({ page }) => {
+    await openApp(page, { beforeGoto: mockAdminBackend });
+    await page.evaluate(() => openAdminDashboardGate_());
+    await expect(page.locator('#admin-pin-overlay')).toBeVisible();
+    await page.fill('#admin-pin-input', 'galat-pin');
+    await page.click('#admin-pin-submit-btn');
+    await expect(page.locator('#admin-pin-overlay')).toBeVisible();
+    expect(await page.evaluate(() => document.getElementById('admin-dashboard-view').classList.contains('active'))).toBe(false);
+  });
+
+  test('सही PIN से dashboard खुलता है और module counts सही दिखते हैं', async ({ page }) => {
+    await openApp(page, { beforeGoto: mockAdminBackend });
+    await page.evaluate(() => openAdminDashboardGate_());
+    await page.fill('#admin-pin-input', 'SC@2026');
+    await page.click('#admin-pin-submit-btn');
+
+    await page.waitForFunction(() => document.getElementById('admin-dashboard-view').classList.contains('active'));
+    await expect(page.locator('#admin-pin-overlay')).toHaveCount(0);
+    await page.waitForFunction(() => !document.getElementById('admin-dashboard-body').innerText.includes('लोड हो रहा है'));
+
+    const body = page.locator('#admin-dashboard-body');
+    await expect(body).toContainText('Ram Kumar');
+    await expect(body).toContainText('Pole A');
+    await expect(body).toContainText('Consumer X');
+    await expect(body).toContainText('SS1');
+  });
+
+  test('लॉक करें home पर वापस भेजता है और दोबारा PIN मांगता है', async ({ page }) => {
+    await openApp(page, { beforeGoto: mockAdminBackend });
+    await page.evaluate(async () => {
+      openAdminDashboardGate_();
+      document.getElementById('admin-pin-input').value = 'SC@2026';
+      await document.getElementById('admin-pin-submit-btn').onclick();
+    });
+    await page.waitForFunction(() => document.getElementById('admin-dashboard-view').classList.contains('active'));
+
+    await page.click('text=🔒 लॉक करें');
+    await expect(page.locator('#home-view')).toHaveClass(/active/);
+
+    await page.evaluate(() => openAdminDashboardGate_());
+    await expect(page.locator('#admin-pin-overlay')).toBeVisible();
+  });
+
+  test('header title पर long-press (700ms) से PIN prompt खुलता है', async ({ page }) => {
+    await openApp(page, { beforeGoto: mockAdminBackend });
+    const title = page.locator('#main-header-title');
+    await title.dispatchEvent('pointerdown');
+    await page.waitForTimeout(800);
+    await title.dispatchEvent('pointerup');
+    await expect(page.locator('#admin-pin-overlay')).toBeVisible();
+  });
+});
