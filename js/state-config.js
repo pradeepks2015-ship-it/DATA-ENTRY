@@ -33,9 +33,92 @@
             }
         };
 
-        // Global error logging — silent failures ab console me dikhengi (debugging ke liye)
-        window.addEventListener("error", (e) => console.error("App error:", e.message, e.error || ""));
-        window.addEventListener("unhandledrejection", (e) => console.error("Unhandled promise rejection:", e.reason));
+        // ===== Error log — device par persist hota hai, taaki field me kuch toote to
+        // koi bhi (JE khud ya officer) "एरर लॉग" khol kar wajah dekh sake, bina DevTools ke =====
+        const ERROR_LOG_KEY = "seoni-circle-error-log";
+        const ERROR_LOG_MAX = 100;
+
+        function getErrorLogs_() {
+            try { return JSON.parse(localStorage.getItem(ERROR_LOG_KEY)) || []; } catch (_) { return []; }
+        }
+
+        function logErr_(ctx, err, extra) {
+            try {
+                const message = err ? (err.message || String(err)) : "";
+                const entry = {
+                    t: new Date().toISOString(),
+                    view: document.querySelector(".view.active")?.id || "?",
+                    dc: (typeof activeDC !== "undefined" && activeDC) || "",
+                    ctx: ctx || "",
+                    msg: String(message).slice(0, 300),
+                    extra: extra ? String(extra).slice(0, 200) : "",
+                };
+                const logs = getErrorLogs_();
+                logs.push(entry);
+                if (logs.length > ERROR_LOG_MAX) logs.splice(0, logs.length - ERROR_LOG_MAX);
+                localStorage.setItem(ERROR_LOG_KEY, JSON.stringify(logs));
+            } catch (_) {}
+        }
+
+        function clearErrorLogs_() {
+            try { localStorage.removeItem(ERROR_LOG_KEY); } catch (_) {}
+        }
+
+        function renderErrorLogRows_(logs) {
+            if (!logs.length) return `<div style="text-align:center; padding:18px; font-size:12px; font-weight:800; color:#64748b;">कोई error नहीं — सब ठीक है ✅</div>`;
+            return logs.slice().reverse().map((e) => `
+                <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:12px; padding:10px 12px; margin-bottom:8px;">
+                    <div style="display:flex; justify-content:space-between; gap:8px; margin-bottom:3px;">
+                        <span style="font-size:10px; font-weight:900; color:#b91c1c; background:#fee2e2; border-radius:6px; padding:1px 7px;">${escapeHtml(e.ctx || "?")}</span>
+                        <span style="font-size:10px; font-weight:700; color:#64748b;">${escapeHtml(String(e.t || "").replace("T", " ").slice(0, 19))}</span>
+                    </div>
+                    <div style="font-size:11px; font-weight:700; color:#1e293b; word-break:break-word;">${escapeHtml(e.msg || "")}${e.extra ? ` <span style="color:#94a3b8;">[${escapeHtml(e.extra)}]</span>` : ""}</div>
+                    <div style="font-size:9px; font-weight:700; color:#94a3b8; margin-top:3px;">view: ${escapeHtml(e.view || "?")}${e.dc ? ` • DC: ${escapeHtml(e.dc)}` : ""}</div>
+                </div>
+            `).join("");
+        }
+
+        function openErrorLogModal_() {
+            const existing = document.getElementById("error-log-overlay");
+            if (existing) existing.remove();
+
+            const overlay = document.createElement("div");
+            overlay.id = "error-log-overlay";
+            overlay.style.cssText = "position:fixed; inset:0; background:rgba(0,0,0,0.55); z-index:9999; display:flex; align-items:flex-end; justify-content:center;";
+            overlay.addEventListener("click", (e) => { if (e.target === overlay) overlay.remove(); });
+
+            const sheet = document.createElement("div");
+            sheet.style.cssText = "background:#ffffff; border-radius:20px 20px 0 0; padding:18px; width:100%; max-width:480px; max-height:80vh; overflow-y:auto; box-shadow:0 -12px 30px rgba(0,0,0,0.25);";
+            sheet.innerHTML = `
+                <div style="font-size:14px; font-weight:900; color:#1e293b; text-transform:uppercase; margin-bottom:4px;">🐞 एरर लॉग (सिर्फ़ इस डिवाइस पर)</div>
+                <div style="font-size:11px; font-weight:700; color:#64748b; margin-bottom:12px;">अगर ऐप में कुछ गड़बड़ लगे, तो यहाँ वजह दिखेगी — इसे screenshot करके भेजा जा सकता है।</div>
+                <div id="error-log-list"></div>
+                <div style="display:flex; gap:10px; margin-top:12px;">
+                    <button id="error-log-clear-btn" style="flex:1; height:44px; border:none; border-radius:12px; background:#fee2e2; color:#b91c1c; font-size:12px; font-weight:900; text-transform:uppercase;">🗑 लॉग साफ़ करें</button>
+                    <button id="error-log-close-btn" style="flex:1; height:44px; border:none; border-radius:12px; background:#e2e8f0; color:#1e293b; font-size:12px; font-weight:900; text-transform:uppercase;">बंद करें</button>
+                </div>
+            `;
+            overlay.appendChild(sheet);
+            document.body.appendChild(overlay);
+
+            document.getElementById("error-log-list").innerHTML = renderErrorLogRows_(getErrorLogs_());
+            document.getElementById("error-log-close-btn").onclick = () => overlay.remove();
+            document.getElementById("error-log-clear-btn").onclick = () => {
+                clearErrorLogs_();
+                document.getElementById("error-log-list").innerHTML = renderErrorLogRows_([]);
+                showToast("लॉग साफ़ हो गए", true);
+            };
+        }
+
+        // Global error logging — ab silent failures device par bhi save hote hain, sirf console me nahi
+        window.addEventListener("error", (e) => {
+            console.error("App error:", e.message, e.error || "");
+            logErr_("js-error", e.error || e.message, (e.filename || "").split("/").pop() + ":" + (e.lineno || ""));
+        });
+        window.addEventListener("unhandledrejection", (e) => {
+            console.error("Unhandled promise rejection:", e.reason);
+            logErr_("promise", e.reason);
+        });
 
         // Local (IST) date helpers — toISOString() UTC deta hai jisse subah 5:30 se
         // pehle "aaj" ki jagah "kal" ki date aa jaati thi.

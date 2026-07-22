@@ -148,6 +148,43 @@ test.describe('Broken Pole / बिजली चोरी / कर्मचा�
   });
 });
 
+test.describe('Error log (Polish)', () => {
+  test('uncaught JS error अपने आप log हो जाती है और modal में दिखती है', async ({ page }) => {
+    await openApp(page);
+    await page.evaluate(() => {
+      localStorage.removeItem('seoni-circle-error-log');
+      setTimeout(() => { throw new Error('smoke-test-uncaught'); }, 0);
+    });
+    await page.waitForTimeout(300);
+
+    const logs = await page.evaluate(() => getErrorLogs_());
+    expect(logs.some((l) => l.ctx === 'js-error' && l.msg.includes('smoke-test-uncaught'))).toBe(true);
+
+    await page.click('[aria-label="एरर लॉग देखें"]');
+    await expect(page.locator('#error-log-overlay')).toBeVisible();
+    await expect(page.locator('#error-log-list')).toContainText('smoke-test-uncaught');
+  });
+
+  test('लॉग साफ़ करें बटन काम करता है', async ({ page }) => {
+    await openApp(page);
+    await page.evaluate(() => logErr_('manual-test', new Error('to be cleared')));
+    await page.click('[aria-label="एरर लॉग देखें"]');
+    await expect(page.locator('#error-log-list')).toContainText('to be cleared');
+    await page.click('#error-log-clear-btn');
+    await expect(page.locator('#error-log-list')).toContainText('कोई error नहीं');
+    expect(await page.evaluate(() => getErrorLogs_())).toEqual([]);
+  });
+
+  test('back button और theme dots अब aria-label रखते हैं (keyboard/screen-reader के लिए)', async ({ page }) => {
+    await openApp(page);
+    await expect(page.locator('#back-btn')).toHaveAttribute('aria-label', 'वापस जाएं');
+    expect(await page.locator('.color-dot').count()).toBe(3);
+    for (const dot of await page.locator('.color-dot').all()) {
+      await expect(dot).toHaveAttribute('aria-label', /.+/);
+    }
+  });
+});
+
 test.describe('XSS सुरक्षा', () => {
   test('escapeHtml असली payload को safe entities में बदल देता है', async ({ page }) => {
     await openApp(page);
