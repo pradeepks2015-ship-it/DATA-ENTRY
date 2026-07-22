@@ -196,12 +196,3 @@
             return num % 1 === 0 ? String(num) : num.toFixed(2);
         }
 
-        function escapeHtml(value) {
-            return String(value || "")
-                .replace(/&/g, "&amp;")
-                .replace(/</g, "&lt;")
-                .replace(/>/g, "&gt;")
-                .replace(/"/g, "&quot;")
-                .replace(/'/g, "&#39;");
-        }
-

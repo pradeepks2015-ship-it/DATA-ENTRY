@@ -106,7 +106,7 @@
                 const ssTotal = feeder11total + ssLoss;
                 const feederRows = Object.entries(data.feeders).map(([fdr, con]) =>
                     `<div style="display:flex; justify-content:space-between; padding:4px 0; border-bottom:1px solid #fce7f3; font-size:11px;">
-                        <span style="font-weight:700; color:#334155; flex:1;">${fdr}</span>
+                        <span style="font-weight:700; color:#334155; flex:1;">${escapeHtml(fdr)}</span>
                         <span style="font-weight:900; color:#9d174d;">${fmt(con)} kWh</span>
                     </div>`
                 ).join("");
@@ -116,7 +116,7 @@
                         <span style="font-weight:900; color:#ef4444;">${fmt(ssLoss)} kWh (${pct(ssLoss,incoming)})</span>
                     </div>` : "";
                 return `<div style="background:#fff; border-radius:10px; padding:10px; margin-bottom:8px; border:1px solid #fbcfe8;">
-                    <div style="font-size:12px; font-weight:900; color:#9d174d; margin-bottom:6px; text-transform:uppercase;">🔌 ${ss}</div>
+                    <div style="font-size:12px; font-weight:900; color:#9d174d; margin-bottom:6px; text-transform:uppercase;">🔌 ${escapeHtml(ss)}</div>
                     ${feederRows}
                     ${incomingRow}
                     <div style="display:flex; justify-content:space-between; margin-top:6px; padding-top:4px; border-top:2px solid #ec4899;">

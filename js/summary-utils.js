@@ -862,6 +862,15 @@
             }, 3000);
         }
 
+        function escapeHtml(value) {
+            return String(value || "")
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#39;");
+        }
+
         function normalizeLookupValue(value) {
             return (value || "").toString().trim().toUpperCase().replace(/[^A-Z0-9]/g, "");
         }

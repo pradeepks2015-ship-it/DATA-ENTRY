@@ -14,7 +14,7 @@
             }
             metaBox.style.display = "block";
             latLongNode.innerHTML = `<strong>Lat-Long:</strong> ${bpGeoData.latitude}, ${bpGeoData.longitude}`;
-            locationNode.innerHTML = `<strong>Location:</strong> ${bpGeoData.locationText || "GPS location captured"}`;
+            locationNode.innerHTML = `<strong>Location:</strong> ${escapeHtml(bpGeoData.locationText || "GPS location captured")}`;
             if (directionsNode) {
                 const lat = bpGeoData.latitude;
                 const lon = bpGeoData.longitude;
@@ -359,7 +359,7 @@
                             <input type="text" value="${escapeHtml(slot.name || "")}" placeholder="Photo Name (e.g. Site Photo, Evidence)" oninput="updateBcPhotoName(${idx}, this.value)" style="width:100%; margin-top:8px; height:40px; border-radius:10px; border:1.5px solid #fecaca; padding:0 10px; font-size:0.8rem; font-weight:700; color:#7f1d1d; background:#ffffff; outline:none;">
                             <div class="photo-meta-box" style="display:block; margin-top:8px;">
                                 <div class="photo-meta-row"><strong>Lat-Long:</strong> ${slot.geo ? `${slot.geo.latitude}, ${slot.geo.longitude}` : "Not captured"}</div>
-                                <div class="photo-meta-row"><strong>Location:</strong> ${slot.geo ? (slot.geo.locationText || "GPS location captured") : "Not captured"}</div>
+                                <div class="photo-meta-row"><strong>Location:</strong> ${slot.geo ? escapeHtml(slot.geo.locationText || "GPS location captured") : "Not captured"}</div>
                                 ${slot.geo && isValidLatLon_(slot.geo.latitude, slot.geo.longitude) ? `
                                     <div style="margin-top:8px;">
                                         <a href="https://www.google.com/maps/dir/?api=1&destination=${slot.geo.latitude},${slot.geo.longitude}" target="_blank" rel="noopener" style="display:inline-flex; align-items:center; gap:6px; background:linear-gradient(135deg,#16a34a,#15803d); color:#fff; font-size:11px; font-weight:900; text-transform:uppercase; padding:8px 14px; border-radius:10px; text-decoration:none; box-shadow:0 4px 10px rgba(21,128,61,0.25);">
