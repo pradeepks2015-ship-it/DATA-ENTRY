@@ -349,6 +349,43 @@ test.describe('Admin Dashboard (Phase-1)', () => {
     await expect(body).toContainText('Pole A');
     await expect(body).toContainText('Consumer X');
     await expect(body).toContainText('SS1');
+
+    const cached = await page.evaluate(() => ({
+      feeder: admLastData_.feederRows.length,
+      bp: admLastData_.bpInRange.length,
+      bc: admLastData_.bcInRange.length,
+      kc: admLastData_.kcInRange.length,
+      mobile: admLastData_.mobileRows.length,
+    }));
+    expect(cached).toEqual({ feeder: 1, bp: 1, bc: 1, kc: 1, mobile: 2 });
+  });
+
+  test('Excel export XLSX library या data missing होने पर crash नहीं करता, friendly toast देता है', async ({ page }) => {
+    // Test sandbox सभी external requests block करता है (blockExternal), इसलिए असली
+    // CDN-loaded XLSX library यहाँ कभी नहीं मिलती — यही missing-library guard जांचता है।
+    await openApp(page, { beforeGoto: mockAdminBackend });
+    const noLibToast = await page.evaluate(() => {
+      let msg = null;
+      const original = window.showToast;
+      window.showToast = (m) => { msg = m; };
+      admExportExcel_();
+      window.showToast = original;
+      return msg;
+    });
+    expect(noLibToast).toBeTruthy();
+
+    const noDataToast = await page.evaluate(() => {
+      admLastData_ = null;
+      let msg = null;
+      const original = window.showToast;
+      window.showToast = (m) => { msg = m; };
+      window.XLSX = { utils: {}, writeFile: () => {} }; // stub, sirf guard-order test karne ke liye
+      admExportExcel_();
+      window.showToast = original;
+      delete window.XLSX;
+      return msg;
+    });
+    expect(noDataToast).toContain('पहले data load होने दें');
   });
 
   test('लॉक करें home पर वापस भेजता है और दोबारा PIN मांगता है', async ({ page }) => {
@@ -360,7 +397,7 @@ test.describe('Admin Dashboard (Phase-1)', () => {
     });
     await page.waitForFunction(() => document.getElementById('admin-dashboard-view').classList.contains('active'));
 
-    await page.click('text=🔒 लॉक करें');
+    await page.click('text=🔒 लॉक');
     await expect(page.locator('#home-view')).toHaveClass(/active/);
 
     await page.evaluate(() => openAdminDashboardGate_());
