@@ -365,6 +365,7 @@
                 const payload = new URLSearchParams();
                 payload.append("module", "feeder");
                 payload.append("entries_json", JSON.stringify(entries));
+                payload.append("auth_token", APPS_SCRIPT_AUTH_TOKEN);
 
                 let submitOk = false;
                 let feederQueuedOffline = false;
@@ -478,7 +479,7 @@
             box.innerText = "Checking...";
 
             try {
-                const url = `${feederSubmitScriptUrl}?action=getFeederReadings&t=${Date.now()}`;
+                const url = `${feederSubmitScriptUrl}?action=getFeederReadings&auth_token=${encodeURIComponent(APPS_SCRIPT_AUTH_TOKEN)}&t=${Date.now()}`;
                 const response = await fetch(url);
                 const text = await response.text();
 

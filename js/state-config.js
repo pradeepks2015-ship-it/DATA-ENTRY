@@ -46,6 +46,10 @@
 
         // Ek hi Apps Script deployment — sab modules isi ko use karte hain.
         const APPS_SCRIPT_EXEC_URL = "https://script.google.com/macros/s/AKfycbwH7cske7TMbQHw65eBt-fkKVFYWNLGqPr5UgZ3AblevWTKgdTuOk2NDNquo-1iTL0-XQ/exec";
+        // Shared secret sent with every backend request so the Apps Script can reject
+        // requests that don't come from this app. Must match AUTH_TOKEN in the Apps
+        // Script project exactly — if you rotate one, rotate the other too.
+        const APPS_SCRIPT_AUTH_TOKEN = "NlFwg1IQv6uGZz132Fti24qeG3c2ZJF2";
         const scriptURL = APPS_SCRIPT_EXEC_URL;
 
         // ===== Shared Module Sync (Broken Pole / Bijli Chori) =====
@@ -341,6 +345,7 @@
                 const payload = new URLSearchParams();
                 payload.append("module", module);
                 payload.append("entry_json", JSON.stringify(entryToSync));
+                payload.append("auth_token", APPS_SCRIPT_AUTH_TOKEN);
 
                 const response = await fetch(sharedModuleSyncScriptUrl, {
                     method: "POST",
@@ -379,6 +384,7 @@
                             photoPayload.append("photo_data", photo.data);
                             photoPayload.append("photo_name", photo.name);
                             photoPayload.append("photo_index", String(photo.index));
+                            photoPayload.append("auth_token", APPS_SCRIPT_AUTH_TOKEN);
 
                             const photoResponse = await fetch(sharedModuleSyncScriptUrl, {
                                 method: "POST",
@@ -517,7 +523,7 @@
                 return sharedModuleEntriesCache[module] || [];
             }
             try {
-                const url = `${sharedModuleSyncScriptUrl}?action=getEntries&module=${encodeURIComponent(module)}`;
+                const url = `${sharedModuleSyncScriptUrl}?action=getEntries&module=${encodeURIComponent(module)}&auth_token=${encodeURIComponent(APPS_SCRIPT_AUTH_TOKEN)}`;
                 const data = await loadRemoteJson(url);
                 if (data && data.status === "success" && Array.isArray(data.entries)) {
                     sharedModuleEntriesCache[module] = data.entries;
@@ -538,6 +544,7 @@
                 payload.append("module", module);
                 payload.append("action", "deleteEntry");
                 payload.append("entry_id", entryId);
+                payload.append("auth_token", APPS_SCRIPT_AUTH_TOKEN);
                 const response = await fetch(sharedModuleSyncScriptUrl, {
                     method: "POST",
                     headers: { "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8" },

@@ -122,7 +122,7 @@
 
         async function loadSubmittedMobileSheetMap() {
             try {
-                const res = await fetch(`${scriptURL}?action=getSummary&t=${Date.now()}`);
+                const res = await fetch(`${scriptURL}?action=getSummary&auth_token=${encodeURIComponent(APPS_SCRIPT_AUTH_TOKEN)}&t=${Date.now()}`);
                 const cloudData = await res.json();
                 const nextMap = {};
                 (Array.isArray(cloudData) ? cloudData : []).forEach((entry) => {
@@ -229,6 +229,7 @@
             p.append("dc", activeDC);
             p.append("division", activeDiv);
             p.append("timestamp", new Date().toLocaleDateString("en-GB"));
+            p.append("auth_token", APPS_SCRIPT_AUTH_TOKEN);
             try {
                 const btn = document.getElementById("submit-btn");
                 btn.innerText = "Submitting...";
@@ -326,7 +327,7 @@
 
                 if (!records || records.length === 0) {
                     // No records from API – pull from local Google Sheet summary instead
-                    const cloudData = await loadRemoteJson(`${scriptURL}?action=getSummary`);
+                    const cloudData = await loadRemoteJson(`${scriptURL}?action=getSummary&auth_token=${encodeURIComponent(APPS_SCRIPT_AUTH_TOKEN)}`);
                     const fromTs = new Date(fromDate);
                     const toTs = new Date(toDate);
                     toTs.setHours(23, 59, 59, 999);

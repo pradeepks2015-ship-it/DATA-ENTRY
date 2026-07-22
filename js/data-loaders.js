@@ -62,7 +62,7 @@
             if (!forceRefresh && feederReportLoaded && feederReportRows.length) return true;
             feederReportLoadMessage = "";
             try {
-                const rawData = await loadRemoteJson(`${feederSubmitScriptUrl}?action=getFeederReadings`);
+                const rawData = await loadRemoteJson(`${feederSubmitScriptUrl}?action=getFeederReadings&auth_token=${encodeURIComponent(APPS_SCRIPT_AUTH_TOKEN)}`);
                 if (rawData && !Array.isArray(rawData) && rawData.status === "success" && rawData.message) {
                     feederReportLoadMessage = String(rawData.message || "").trim();
                 }

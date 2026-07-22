@@ -49,6 +49,7 @@
                             const payload = new URLSearchParams();
                             payload.append("module", "karya_charitra");
                             payload.append("entry_json", JSON.stringify(record));
+                            payload.append("auth_token", APPS_SCRIPT_AUTH_TOKEN);
                             const response = await fetch(sharedModuleSyncScriptUrl, {
                                 method: "POST",
                                 headers: { "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8" },
@@ -102,6 +103,7 @@
                         const payload = new URLSearchParams();
                         payload.append("module", "karya_charitra");
                         payload.append("entry_json", JSON.stringify(record));
+                        payload.append("auth_token", APPS_SCRIPT_AUTH_TOKEN);
                         const response = await fetch(sharedModuleSyncScriptUrl, {
                             method: "POST",
                             headers: { "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8" },
@@ -134,6 +136,7 @@
                         payload.append("action", "updateEntry");
                         payload.append("entry_id", cloudEntryId);
                         payload.append("updates_json", JSON.stringify(updates));
+                        payload.append("auth_token", APPS_SCRIPT_AUTH_TOKEN);
                         await fetch(sharedModuleSyncScriptUrl, {
                             method: "POST",
                             headers: { "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8" },

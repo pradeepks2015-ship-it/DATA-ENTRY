@@ -71,7 +71,7 @@
                     ? [activeDC]
                     : (activeViewLevel === "DIVISION" ? getDivisionDcNames(activeDiv) : getAllDcNames());
                 await ensureConsumerDataLoadedFor(targetMobileDcs);
-                const cloudData = await loadRemoteJson(`${scriptURL}?action=getSummary`);
+                const cloudData = await loadRemoteJson(`${scriptURL}?action=getSummary&auth_token=${encodeURIComponent(APPS_SCRIPT_AUTH_TOKEN)}`);
                 uiListSummary = [];
                 grandTC = 0;
                 grandTU = 0;
