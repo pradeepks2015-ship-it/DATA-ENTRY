@@ -1,10 +1,30 @@
         // ===== Admin Dashboard (Phase-1: read-only report view) =====
-        // Access: 700ms long-press on the header title (from Home screen only) →
-        // PIN prompt. PIN check is client-side (same trust model as the other
-        // role passwords in this app — a deterrent for casual access, not real
-        // auth). PIN stored as a SHA-256 hash only, never in plaintext.
+        // Access: ⋮ header menu → "Admin Dashboard" (also: 700ms long-press on the
+        // header title from Home screen) → PIN prompt. PIN check is client-side
+        // (same trust model as the other role passwords in this app — a deterrent
+        // for casual access, not real auth). PIN stored as a SHA-256 hash only,
+        // never in plaintext.
         const ADMIN_PIN_HASH = "ab6b744b516e5f052f03c8ed6eaf9b617495aaee266ceeb9a1f4d96fa08d419f";
         let adminDashboardUnlocked_ = false;
+
+        function toggleHeaderMenu_() {
+            const menu = document.getElementById("header-menu-dropdown");
+            if (!menu) return;
+            menu.style.display = menu.style.display === "block" ? "none" : "block";
+        }
+
+        function closeHeaderMenu_() {
+            const menu = document.getElementById("header-menu-dropdown");
+            if (menu) menu.style.display = "none";
+        }
+
+        document.addEventListener("click", (e) => {
+            const menu = document.getElementById("header-menu-dropdown");
+            const btn = document.getElementById("header-menu-btn");
+            if (!menu || menu.style.display !== "block") return;
+            if (e.target === btn || menu.contains(e.target)) return;
+            menu.style.display = "none";
+        });
 
         function openAdminDashboardGate_() {
             if (adminDashboardUnlocked_) {

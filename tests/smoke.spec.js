@@ -373,4 +373,22 @@ test.describe('Admin Dashboard (Phase-1)', () => {
     await title.dispatchEvent('pointerup');
     await expect(page.locator('#admin-pin-overlay')).toBeVisible();
   });
+
+  test('⋮ header menu से Admin Dashboard खोला जा सकता है', async ({ page }) => {
+    await openApp(page, { beforeGoto: mockAdminBackend });
+    await expect(page.locator('#header-menu-dropdown')).toBeHidden();
+    await page.click('#header-menu-btn');
+    await expect(page.locator('#header-menu-dropdown')).toBeVisible();
+    await page.click('text=📊 Admin Dashboard');
+    await expect(page.locator('#header-menu-dropdown')).toBeHidden();
+    await expect(page.locator('#admin-pin-overlay')).toBeVisible();
+  });
+
+  test('मेनू के बाहर क्लिक करने पर ⋮ dropdown बंद हो जाता है', async ({ page }) => {
+    await openApp(page, { beforeGoto: mockAdminBackend });
+    await page.click('#header-menu-btn');
+    await expect(page.locator('#header-menu-dropdown')).toBeVisible();
+    await page.click('body', { position: { x: 5, y: 5 } });
+    await expect(page.locator('#header-menu-dropdown')).toBeHidden();
+  });
 });
