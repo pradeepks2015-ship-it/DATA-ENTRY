@@ -119,7 +119,7 @@
                         </div>
                     </div>
                 </div>
-                <div id="admin-dashboard-body" style="text-align:center; padding:20px; font-size:12px; font-weight:800; color:#ffffff;">लोड हो रहा है...</div>
+                <div id="admin-dashboard-body"><div style="text-align:center; padding:20px; font-size:12px; font-weight:800; color:#ffffff;">लोड हो रहा है...</div></div>
             `;
             refreshAdminDashboardData_();
         }
