@@ -940,14 +940,6 @@
             kcSetTab("emp");
         }
 
-
-
-        async function kcInitView_() {
-            await kcRefreshEmployeeDropdowns_();
-            document.getElementById("kc-incident-date").value = kcTodayISO_();
-            kcSetTab("view");
-        }
-
         function setDefaultMisDates_(fromId, toId) {
             const fromInput = document.getElementById(fromId);
             const toInput = document.getElementById(toId);

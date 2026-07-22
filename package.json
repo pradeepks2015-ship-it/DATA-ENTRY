@@ -1,0 +1,12 @@
+{
+  "name": "seoni-circle-app",
+  "version": "2.5.0",
+  "description": "Seoni Circle App — smoke tests",
+  "private": true,
+  "scripts": {
+    "test": "playwright test"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.61.1"
+  }
+}
