@@ -82,138 +82,10 @@
                 <button class="dashboard-btn btn-green-fix" onclick="window.open('https://pradeepks2015-ship-it.github.io/ADEGAON/', '_blank')">1. VASOOLI TRACKER</button>
                 <button class="dashboard-btn btn-update-red" onclick="switchView('mobile-update')">2. Mobile No Update</button>
                 <button class="dashboard-btn" style="background: linear-gradient(135deg, #f59e0b 0%, #b45309 100%);" onclick="switchView('broken-pole')">3. ⚡ Broken Pole / Damage Line</button>
-                <button class="dashboard-btn" style="background: linear-gradient(135deg, #6366f1 0%, #312e81 100%); display:none;" onclick="switchView('pdc-nontraceable')">4. 📄 PDC / NON-TRACEABLE</button>
-                <button class="dashboard-btn bg-cyan-grad" onclick="switchView('stock-material')" style="display:none;">4. STOCK MATERIAL</button>
                 <button class="dashboard-btn bg-indigo-grad" onclick="switchView('shms-entry')" style="display:none;">6. SHMS ENTRY</button>
                 <button class="dashboard-btn btn-feeder-light-pink" onclick="switchView('feeder-reading')">4. FEEDER / SS WISE INPUT</button>
-                <button class="dashboard-btn btn-stm-complaint" onclick="switchView('stm-complaint')" style="display:none;">8. STM COMPLAINT</button>
-                <button class="dashboard-btn btn-daily-houry-peak-load" onclick="switchView('daily-hourly-peak-load')" style="display:none;">9. DAILY HOURLY PEAK LOAD</button>
                 <button class="dashboard-btn" style="background: linear-gradient(135deg, #dc2626 0%, #7f1d1d 100%);" onclick="switchView('bijli-chori')">5. ⚠️ बिजली चोरी की जानकारी</button>
                 <button class="dashboard-btn" style="background: linear-gradient(135deg, #1e3a5f 0%, #0f172a 100%);" onclick="switchView('karya-charitra')">6. 📋 कर्मचारी कार्य चरित्रावली</button>
-            </div>
-        </main>
-
-        <main id="stm-complaint-view" class="view">
-            <div class="search-panel">
-                <div style="display:flex; flex-direction:column; gap:16px; width:100%;">
-                    <!-- MIS Report Widget -->
-                    <div style="width:100%; max-width:340px; margin:0 auto;">
-                        <div style="background: linear-gradient(135deg, #c08a57 0%, #6b4423 100%); border-radius: 18px; padding: 16px 18px; box-shadow: 0 8px 20px rgba(107,68,35,0.18);">
-                            <div style="font-size:12px; font-weight:900; color:#fde8d2; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:10px; text-align:center;">📊 STM Complaint MIS Report</div>
-                            <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:10px;">
-                                <div>
-                                    <div style="font-size:10px; font-weight:800; color:#fde8d2; text-transform:uppercase; margin-bottom:4px;">From Date</div>
-                                    <input type="date" id="stm-mis-from-date" onchange="refreshStmMisTotal()" style="width:100%; height:38px; border-radius:10px; border:1.5px solid #c08a57; padding:0 8px; font-size:0.8rem; font-weight:700; color:#5b3a21; background:#fdf3e8; outline:none;">
-                                </div>
-                                <div>
-                                    <div style="font-size:10px; font-weight:800; color:#fde8d2; text-transform:uppercase; margin-bottom:4px;">To Date</div>
-                                    <input type="date" id="stm-mis-to-date" onchange="refreshStmMisTotal()" style="width:100%; height:38px; border-radius:10px; border:1.5px solid #c08a57; padding:0 8px; font-size:0.8rem; font-weight:700; color:#5b3a21; background:#fdf3e8; outline:none;">
-                                </div>
-                            </div>
-                            <div id="stm-mis-total-box" style="text-align:center; margin-bottom:10px; font-size:12px; font-weight:900; color:#fde8d2;">Total Complaints: <span id="stm-mis-total">0</span></div>
-                            <div id="stm-storage-counter" style="text-align:center; margin-bottom:10px; font-size:11px; font-weight:800; color:#fde8d2;">Local Device Storage: <span id="stm-storage-used">0</span> / <span id="stm-storage-limit">0</span> entries saved</div>
-                            <button type="button" onclick="toggleEntriesList('stm_complaint')" style="width:100%; height:42px; border:none; border-radius:12px; background:rgba(255,255,255,0.18); color:#fde8d2; font-size:12px; font-weight:900; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:10px;">📂 Saved Entries Dekhein / Hatayein</button>
-                            <div id="entries-list-stm_complaint" style="display:none; margin-bottom:10px;"></div>
-                            <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:8px;">
-                                <button onclick="downloadModuleMisReport('stm','EXCEL')" style="height:42px; border:none; border-radius:12px; background:linear-gradient(135deg,#16a34a,#15803d); color:#fff; font-size:12px; font-weight:900; text-transform:uppercase;">Excel</button>
-                                <button onclick="downloadModuleMisReport('stm','PDF')" style="height:42px; border:none; border-radius:12px; background:linear-gradient(135deg,#ef4444,#b91c1c); color:#fff; font-size:12px; font-weight:900; text-transform:uppercase;">PDF (Table)</button>
-                            </div>
-                            <button onclick="downloadStmPhotoMisPdf()" style="width:100%; height:42px; border:none; border-radius:12px; background:linear-gradient(135deg,#7c3aed,#4c1d95); color:#fff; font-size:12px; font-weight:900; text-transform:uppercase;">📷 PDF with Photos</button>
-                        </div>
-                    </div>
-
-                    <div id="stm-operator-login-block" style="display:none; width:100%; max-width:340px; margin:0 auto;">
-                        <div style="position:relative; overflow:hidden; background:linear-gradient(160deg, #ffffff 0%, #fdf3e8 52%, #f8e2ca 100%); border:1.5px solid #e3c3a0; border-radius:26px; padding:18px 14px 16px; box-shadow:0 16px 36px rgba(154,103,55,0.10);">
-                            <div style="position:absolute; inset:0; background:radial-gradient(circle at top right, rgba(14,165,233,0.16), transparent 34%), radial-gradient(circle at bottom left, rgba(2,132,199,0.12), transparent 32%); pointer-events:none;"></div>
-                            <div style="position:relative;">
-                                <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:12px;">
-                                    <div>
-                                        <div style="font-size:15px; font-weight:900; text-transform:uppercase; color:#5b3a21; line-height:1.1;">STM Complaint Signup</div>
-                                        <div style="margin-top:4px; font-size:11px; font-weight:800; color:#7c5b3d; line-height:1.45;">Complaint record aur identification ke liye apni details save kijiye.</div>
-                                    </div>
-                                    <div style="width:46px; height:46px; border-radius:16px; background:linear-gradient(135deg, #c08a57 0%, #9a6737 100%); display:flex; align-items:center; justify-content:center; box-shadow:0 10px 22px rgba(154,103,55,0.22);">
-                                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 12c2.761 0 5-2.239 5-5s-2.239-5-5-5-5 2.239-5 5 2.239 5 5 5Z"></path><path d="M4 21c0-3.314 3.582-6 8-6s8 2.686 8 6"></path></svg>
-                                    </div>
-                                </div>
-                                <input id="stm-operator-name" class="ivrs-input" type="text" placeholder="Full Name" style="height:48px; font-size:0.92rem; border-width:1.5px; margin-bottom:10px; text-align:left; padding:0 16px; border-color:#d6b08a; background:#ffffff;">
-                                <input id="stm-operator-mobile" class="ivrs-input" type="tel" inputmode="numeric" maxlength="10" placeholder="Mobile No" style="height:48px; font-size:0.92rem; border-width:1.5px; margin-bottom:10px; text-align:left; padding:0 16px; border-color:#d6b08a; background:#ffffff;" oninput="this.value=this.value.replace(/[^0-9]/g,'').slice(0,10)">
-                                <label style="display:flex; align-items:center; justify-content:space-between; gap:10px; margin:2px 2px 14px; padding:10px 12px; border-radius:14px; background:rgba(255,255,255,0.8); border:1px solid #ead7c5;">
-                                    <span style="font-size:13px; font-weight:900; color:#5b3a21; text-transform:uppercase;">Remember Me</span>
-                                    <input id="stm-remember-operator" type="checkbox" style="width:18px; height:18px;">
-                                </label>
-                                <button onclick="saveStmComplaintOperator()" style="width:100%; height:48px; border:none; border-radius:14px; background:linear-gradient(135deg, #c08a57 0%, #9a6737 100%); color:#ffffff; font-size:14px; font-weight:900; text-transform:uppercase; box-shadow:0 12px 22px rgba(154,103,55,0.22);">Save & Continue</button>
-                            </div>
-                        </div>
-                    </div>
-                    <div id="stm-operator-summary-block" style="display:none; width:100%; max-width:340px; margin:0 auto;">
-                        <div style="background:linear-gradient(135deg, #fffaf5 0%, #fdf0e2 100%); color:#5b3a21; border:1.5px solid #e3c3a0; border-radius:18px; padding:12px 14px; display:flex; align-items:center; justify-content:space-between; gap:10px; box-shadow:0 10px 24px rgba(154,103,55,0.08);">
-                            <div id="stm-operator-summary" style="font-size:13px; font-weight:900; line-height:1.2; flex:1; text-align:left; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;"></div>
-                            <button onclick="editStmComplaintOperator()" style="width:auto; min-width:auto; height:auto; padding:0; border:none; background:transparent; color:#111827; font-size:13px; font-weight:900; text-transform:uppercase; white-space:nowrap;">Change Details</button>
-                        </div>
-                    </div>
-                    <div id="stm-complaint-flow-block" style="display:none; width:100%; max-width:340px; margin:0 auto;">
-                        <div style="background:#fffaf5; border:1.5px dashed #e3c3a0; color:#7c5b3d; border-radius:18px; padding:18px 16px; text-align:center; box-shadow:0 10px 24px rgba(154,103,55,0.06);">
-                            <div style="font-size:14px; font-weight:900; text-transform:uppercase; color:#2563eb; margin-bottom:12px;">Select Substation</div>
-                            <div class="dropdown-box" style="max-width:100%;">
-                                <div id="stm-complaint-substation-trigger" class="professional-trigger" style="height:52px; font-size:0.95rem; border-width:1.5px;" onclick="toggleStmComplaintSubstationDropdown()">
-                                    <span id="stm-complaint-substation-label">Select Substation Name</span>
-                                    <svg class="chevron-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M19 9l-7 7-7-7" stroke-linecap="round" stroke-linejoin="round" stroke-width="3"></path></svg>
-                                </div>
-                                <div id="stm-complaint-substation-menu" class="dropdown-menu"></div>
-                            </div>
-                            <div id="stm-shared-step" style="display:none; margin-top:14px; text-align:left;">
-                                <div>
-                                    <div style="font-size:11px; font-weight:900; color:#2563eb; text-transform:uppercase; margin:0 0 6px 2px;">Information Shared At</div>
-                                    <select id="stm-complaint-shared-mode" onchange="updateStmComplaintProgressiveUi()" class="ivrs-input" style="height:48px; font-size:0.92rem; border-width:1.5px; text-align:left; padding:0 14px; border-color:#7dd3fc; background:#ffffff;">
-                                        <option value="">Select Option</option>
-                                        <option value="WHATSAPP">WHATSAPP</option>
-                                        <option value="CALLING">CALLING</option>
-                                    </select>
-                                </div>
-                            </div>
-                            <div id="stm-datetime-step" style="display:none; margin-top:10px; text-align:left;">
-                                <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
-                                    <div>
-                                        <div style="font-size:11px; font-weight:900; color:#2563eb; text-transform:uppercase; margin:0 0 6px 2px;">Date</div>
-                                        <input id="stm-complaint-date" type="date" onchange="updateStmComplaintProgressiveUi()" class="ivrs-input" style="height:48px; font-size:0.92rem; border-width:1.5px; text-align:center; padding:0 12px; border-color:#7dd3fc; background:#ffffff;">
-                                    </div>
-                                    <div>
-                                        <div style="font-size:11px; font-weight:900; color:#2563eb; text-transform:uppercase; margin:0 0 6px 2px;">Time</div>
-                                        <input id="stm-complaint-time" type="text" inputmode="numeric" maxlength="5" placeholder="HH:MM" oninput="formatStmComplaintTimeInput(this); updateStmComplaintProgressiveUi()" class="ivrs-input" style="height:48px; font-size:0.92rem; border-width:1.5px; text-align:center; padding:0 12px; border-color:#7dd3fc; background:#ffffff;">
-                                    </div>
-                                </div>
-                            </div>
-                            <div id="stm-calling-step" style="display:none; margin-top:10px; text-align:left;">
-                                <div>
-                                    <div style="font-size:11px; font-weight:900; color:#2563eb; text-transform:uppercase; margin:0 0 6px 2px;">Call ke Madhyam Se Kise Jankari Di Gayi</div>
-                                    <textarea id="stm-complaint-calling-info" oninput="updateStmComplaintProgressiveUi()" placeholder="Yahan naam likhe jise apne suchit kiya" style="width:100%; min-height:82px; padding:12px 14px; border-radius:16px; border:1.5px solid #7dd3fc; background:#ffffff; color:#0f172a; font-size:0.92rem; font-weight:700; resize:vertical;"></textarea>
-                                </div>
-                            </div>
-                            <div id="stm-details-step" style="display:none; margin-top:10px; text-align:left;">
-                                <div>
-                                    <div style="font-size:11px; font-weight:900; color:#2563eb; text-transform:uppercase; margin:0 0 6px 2px;">Complaint Details</div>
-                                    <textarea id="stm-complaint-details" oninput="updateStmComplaintProgressiveUi()" placeholder="Yahan complaint ka short summary likhiye" style="width:100%; min-height:96px; padding:12px 14px; border-radius:16px; border:1.5px solid #7dd3fc; background:#ffffff; color:#0f172a; font-size:0.92rem; font-weight:700; resize:vertical;"></textarea>
-                                </div>
-                                <div style="margin-top:10px;">
-                                    <div style="font-size:11px; font-weight:900; color:#2563eb; text-transform:uppercase; margin:0 0 6px 2px;">Camera / Gallery</div>
-                                    <label for="stm-complaint-photo" style="display:flex; align-items:center; justify-content:center; gap:10px; min-height:48px; padding:0 14px; border-radius:16px; border:1.5px dashed #38bdf8; background:#f8fafc; color:#075985; font-size:13px; font-weight:900; text-transform:uppercase; cursor:pointer;">
-                                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h3l2-2h6l2 2h3v11H4z"></path><circle cx="12" cy="13" r="3.5"></circle></svg>
-                                        <span>Photo Select Kijiye</span>
-                                    </label>
-                                    <input id="stm-complaint-photo" type="file" accept="image/*" capture="environment" style="display:none;" onchange="updateStmComplaintPhotoName()">
-                                    <div id="stm-complaint-photo-name" style="margin-top:6px; font-size:11px; font-weight:800; color:#64748b; line-height:1.5;">Camera ya gallery dono se photo select kar sakte hain</div>
-                                    <div id="stm-complaint-photo-meta" class="photo-meta-box" style="display:none; margin-top:8px;">
-                                        <div id="stm-complaint-photo-latlong" class="photo-meta-row"><strong>Lat-Long:</strong> Not captured</div>
-                                        <div id="stm-complaint-photo-location" class="photo-meta-row"><strong>Location:</strong> Not captured</div>
-                                    </div>
-                                </div>
-                                <div style="display:flex; justify-content:center; width:100%; margin-top:14px;">
-                                    <button id="stm-complaint-submit-btn" onclick="submitStmComplaintStub()" style="display:none; width:170px; height:40px; padding:0 18px; border:none; border-radius:999px; background:#000000; color:#ffffff; font-size:12px; font-weight:900; text-transform:uppercase; box-shadow:0 8px 18px rgba(15,23,42,0.18); line-height:1; text-align:center; align-items:center; justify-content:center; vertical-align:middle;">Submit</button>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
             </div>
         </main>
 
@@ -291,100 +163,6 @@
                         <div id="feeder-list" class="feeder-list-wrap"></div>
                         <div id="feeder-progressive-panel" class="feeder-list-wrap" style="margin-top:14px;"></div>
                         <button id="feeder-submit-btn" class="feeder-submit-btn" onclick="submitFeederReadings()">Submit</button>
-                    </div>
-                </div>
-            </div>
-        </main>
-
-        <main id="daily-hourly-peak-load-view" class="view">
-            <div class="search-panel">
-                <div style="display:flex; flex-direction:column; gap:14px; width:100%;">
-                    <!-- MIS Report Widget -->
-                    <div style="width:100%; max-width:340px; margin:0 auto;">
-                        <div style="background: linear-gradient(135deg, #16a34a 0%, #14532d 100%); border-radius: 18px; padding: 16px 18px; box-shadow: 0 8px 20px rgba(20,83,45,0.18);">
-                            <div style="font-size:12px; font-weight:900; color:#bbf7d0; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:10px; text-align:center;">📊 Peak Load MIS Report</div>
-                            <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:10px;">
-                                <div>
-                                    <div style="font-size:10px; font-weight:800; color:#bbf7d0; text-transform:uppercase; margin-bottom:4px;">From Date</div>
-                                    <input type="date" id="peakload-mis-from-date" style="width:100%; height:38px; border-radius:10px; border:1.5px solid #16a34a; padding:0 8px; font-size:0.8rem; font-weight:700; color:#14532d; background:#f0fdf4; outline:none;">
-                                </div>
-                                <div>
-                                    <div style="font-size:10px; font-weight:800; color:#bbf7d0; text-transform:uppercase; margin-bottom:4px;">To Date</div>
-                                    <input type="date" id="peakload-mis-to-date" style="width:100%; height:38px; border-radius:10px; border:1.5px solid #16a34a; padding:0 8px; font-size:0.8rem; font-weight:700; color:#14532d; background:#f0fdf4; outline:none;">
-                                </div>
-                            </div>
-                            <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
-                                <button onclick="downloadModuleMisReport('peakload','EXCEL')" style="height:42px; border:none; border-radius:12px; background:linear-gradient(135deg,#16a34a,#15803d); color:#fff; font-size:12px; font-weight:900; text-transform:uppercase;">Excel</button>
-                                <button onclick="downloadModuleMisReport('peakload','PDF')" style="height:42px; border:none; border-radius:12px; background:linear-gradient(135deg,#ef4444,#b91c1c); color:#fff; font-size:12px; font-weight:900; text-transform:uppercase;">PDF</button>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div id="peak-load-operator-login-block" style="display:none; width:100%; max-width:340px; margin:0 auto;">
-                        <div style="background:#ffffff; border:1.5px solid #bbf7d0; border-radius:18px; padding:16px 14px; box-shadow:0 10px 30px rgba(22,163,74,0.08);">
-                            <div style="font-size:14px; font-weight:900; text-transform:uppercase; color:#166534; text-align:center; margin-bottom:10px;">Operator Signup</div>
-                            <input id="peak-load-operator-name" class="ivrs-input" type="text" placeholder="Full Name of Operator" style="height:46px; font-size:0.9rem; border-width:1.5px; margin-bottom:10px;">
-                            <input id="peak-load-operator-mobile" class="ivrs-input" type="tel" inputmode="numeric" maxlength="10" placeholder="Mobile No" style="height:46px; font-size:0.9rem; border-width:1.5px; margin-bottom:10px;">
-                            <label style="display:flex; align-items:center; justify-content:center; gap:8px; font-size:13px; font-weight:800; color:#15803d; margin-bottom:12px;">
-                                <input id="peak-load-remember-operator" type="checkbox" style="width:16px; height:16px;">
-                                <span>Remember Me</span>
-                            </label>
-                            <button onclick="savePeakLoadOperator()" style="width:100%; height:46px; border:none; border-radius:12px; background:#15803d; color:#ffffff; font-size:14px; font-weight:900; text-transform:uppercase;">Save & Continue</button>
-                        </div>
-                    </div>
-                    <div id="peak-load-operator-summary-block" style="display:none; width:100%; max-width:340px; margin:0 auto;">
-                        <div style="background:#f0fdf4; color:#166534; border:1.5px solid #bbf7d0; border-radius:16px; padding:10px 12px; display:flex; align-items:center; justify-content:space-between; gap:10px;">
-                            <div id="peak-load-operator-summary" style="font-size:13px; font-weight:900; line-height:1.2; flex:1; text-align:left; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;"></div>
-                            <button onclick="editPeakLoadOperator()" style="width:auto; min-width:auto; height:auto; padding:0; border:none; background:transparent; color:#111827; font-size:13px; font-weight:900; text-transform:uppercase; white-space:nowrap;">Change Details</button>
-                        </div>
-                    </div>
-                    <div id="peak-load-flow-block" style="display:none; width:100%;">
-                        <div style="width:100%; max-width:340px; margin:0 auto;">
-                            <div style="font-size:11px; font-weight:900; color:#2563eb; text-transform:uppercase; margin:0 0 6px 2px;">Date</div>
-                            <div style="position:relative; height:48px;">
-                                <div class="ivrs-input" style="height:48px; font-size:0.92rem; border-width:1.5px; text-align:center; padding:0 12px; border-color:#86efac; background:#ffffff; display:flex; align-items:center; justify-content:center; font-weight:900; letter-spacing:0.4px; pointer-events:none;">
-                                    <span id="peak-load-date-label">DD/MM/YYYY</span>
-                                </div>
-                                <input id="peak-load-date" type="date" onchange="updatePeakLoadDateSelection(this.value)" style="position:absolute; inset:0; width:100%; height:100%; opacity:0; cursor:pointer;">
-                            </div>
-                        </div>
-                        <div class="dropdown-box" style="max-width:340px;">
-                            <div id="peak-load-substation-trigger" class="professional-trigger" style="height:52px; font-size:0.95rem; border-width:1.5px;" onclick="togglePeakLoadDropdown('substation')">
-                                <span id="peak-load-substation-label">Select 33/11 KV Substation</span>
-                                <svg class="chevron-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M19 9l-7 7-7-7" stroke-linecap="round" stroke-linejoin="round" stroke-width="3"></path></svg>
-                            </div>
-                            <div id="peak-load-substation-menu" class="dropdown-menu"></div>
-                        </div>
-                        <div id="peak-load-feeder-block" style="display:none;">
-                            <div class="dropdown-box" style="max-width:340px;">
-                                <div id="peak-load-feeder-trigger" class="professional-trigger" style="height:52px; font-size:0.95rem; border-width:1.5px;" onclick="togglePeakLoadDropdown('feeder')">
-                                    <span id="peak-load-feeder-label">Select 11 KV Feeder</span>
-                                    <svg class="chevron-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M19 9l-7 7-7-7" stroke-linecap="round" stroke-linejoin="round" stroke-width="3"></path></svg>
-                                </div>
-                                <div id="peak-load-feeder-menu" class="dropdown-menu"></div>
-                            </div>
-                        </div>
-                        <div id="peak-load-entry-block" style="display:none; width:100%; max-width:340px; margin:0 auto;">
-                            <div style="background:#ffffff; border:1.5px solid #bbf7d0; border-radius:18px; padding:14px 12px; box-shadow:0 10px 30px rgba(22,163,74,0.08);">
-                                <div id="peak-load-entry-heading" style="font-size:18px; font-weight:900; color:#166534; text-transform:uppercase; line-height:1.25;"></div>
-                                <div id="peak-load-entry-subheading" style="margin-top:4px; font-size:13px; font-weight:800; color:#4b5563;"></div>
-                                <div style="display:grid; grid-template-columns:86px 1fr; gap:10px; margin-top:14px; margin-bottom:8px;">
-                                    <div style="font-size:13px; font-weight:900; color:#2563eb; text-transform:uppercase;">Time</div>
-                                    <div style="font-size:13px; font-weight:900; color:#2563eb; text-transform:uppercase;">Peak Load</div>
-                                </div>
-                                <div id="peak-load-time-grid" style="display:flex; flex-direction:column; gap:8px;"></div>
-                                <button id="peak-load-add-btn" onclick="addPeakLoadEntryToList()" style="width:100%; height:48px; margin-top:14px; border:none; border-radius:14px; background:#15803d; color:#ffffff; font-size:14px; font-weight:900; text-transform:uppercase;">Add To List</button>
-                            </div>
-                        </div>
-                        <div id="peak-load-done-list-block" style="display:none; width:100%; max-width:340px; margin:0 auto;">
-                            <div style="background:#f0fdf4; border:1.5px solid #bbf7d0; border-radius:18px; padding:14px 12px;">
-                                <div style="font-size:13px; font-weight:900; color:#166534; text-transform:uppercase; margin-bottom:10px;">Added Feeders</div>
-                                <div id="peak-load-done-list" style="display:flex; flex-direction:column; gap:8px;"></div>
-                            </div>
-                        </div>
-                        <div id="peak-load-submit-block" style="display:none; width:100%; max-width:340px; margin:0 auto;">
-                            <button id="peak-load-submit-btn" onclick="submitPeakLoadEntries()" style="width:100%; height:52px; border:none; border-radius:14px; background:#000000; color:#ffffff; font-size:15px; font-weight:900; text-transform:uppercase;">Submit</button>
-                        </div>
                     </div>
                 </div>
             </div>
@@ -515,16 +293,6 @@
             </div>
         </main>
 
-        <main id="stock-material-view" class="view">
-            <div class="stock-wrap">
-                <div class="stock-top-actions" style="grid-template-columns:1fr 1fr;">
-                    <button class="stock-top-btn form-green" onclick="openStockSection('material-receive')">📥 Receive</button>
-                    <button class="stock-top-btn form-red" onclick="openStockSection('material-issue')">📤 Issue</button>
-                </div>
-                <div id="stock-dashboard-content"></div>
-            </div>
-        </main>
-
           <main id="shms-progress-view" class="view">
               <div class="title-box-container"><div class="title-box flex flex-col items-center"><span class="title-text-bold">SHMS DAILY PROGRESS</span></div></div>
               <div class="px-2">
@@ -562,160 +330,6 @@
                 <div id="shms-pending-summary-cards" style="display:grid; grid-template-columns:repeat(3, 1fr); gap:8px; margin-bottom:14px;"></div>
                 <div id="shms-pending-status" style="display:none; text-align:center; font-weight:800; color:#0d9488; background:#dcfce7; border-radius:16px; padding:12px 14px; width:100%; margin-bottom:14px;"></div>
                 <div id="shms-pending-list" style="display:flex; flex-direction:column; gap:10px;"></div>
-            </div>
-        </main>
-
-        <main id="material-list-view" class="view">
-            <div class="stock-wrap">
-                <div class="stock-section-card">
-                    <h3 class="stock-section-title">Material List</h3>
-                    <div id="material-list-content"></div>
-                </div>
-            </div>
-        </main>
-
-        <main id="material-receive-view" class="view">
-            <div class="stock-wrap">
-                <div class="stock-section-card">
-                    <h3 class="stock-section-title">Material Receive Entry</h3>
-                    <div class="stock-form" style="margin-top: 14px;">
-                        <div class="stock-search-wrap">
-                            <!-- Dropdown selector -->
-                            <select id="receive-dropdown" onchange="selectFromDropdown('receive')" style="width:100%; height:44px; border-radius:10px; border:1.5px solid #16a34a; padding:0 12px; font-size:13px; font-weight:700; color:#1e293b; background:#f0fdf4; outline:none; margin-bottom:8px;">
-                                <option value="">-- Dropdown से Material चुनें --</option>
-                            </select>
-                            <div style="text-align:center; font-size:11px; font-weight:700; color:#64748b; margin-bottom:6px;">— या Search करें —</div>
-                            <input id="receive-search" class="stock-input stock-search-highlight" type="text" placeholder="Search Material Name">
-                            <div id="receive-suggestions" class="stock-suggestion-box"></div>
-                            <div id="receive-selected-chip" class="stock-picked-chip" style="display:none;"></div>
-                        </div>
-                        <div class="stock-search-row">
-                            <input id="receive-qty" class="stock-input" type="number" placeholder="Receive Qty">
-                            <button class="stock-small-btn form-green" onclick="addStockEntryToList('receive')">Add To List</button>
-                        </div>
-                        <div id="receive-added-list" class="stock-added-list"></div>
-                        <input id="receive-source" class="stock-input" type="text" placeholder="Received From">
-                        <input id="receive-person" class="stock-input" type="text" placeholder="Receive Person Name">
-                        <button class="stock-submit form-green" onclick="submitStockDemo('receive')">Save Receive Entry</button>
-                    </div>
-                </div>
-            </div>
-        </main>
-
-        <main id="material-issue-view" class="view">
-            <div class="stock-wrap">
-                <div class="stock-section-card">
-                    <h3 class="stock-section-title">Material Issue Entry</h3>
-                    <div class="dropdown-box" style="max-width:100%; margin-bottom:12px;">
-                        <div id="issue-dc-trigger" class="professional-trigger" onclick="toggleIssueDcDropdown()">
-                            <span id="issue-dc-label">Select DC Name...</span>
-                            <svg class="chevron-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M19 9l-7 7-7-7" stroke-linecap="round" stroke-linejoin="round" stroke-width="3"></path></svg>
-                        </div>
-                        <div id="issue-dc-menu" class="dropdown-menu"></div>
-                    </div>
-                    <div class="stock-form" style="margin-top: 14px;">
-                        <div class="stock-search-wrap">
-                            <select id="issue-dropdown" onchange="selectFromDropdown('issue')" style="width:100%; height:44px; border-radius:10px; border:1.5px solid #ef4444; padding:0 12px; font-size:13px; font-weight:700; color:#1e293b; background:#fef2f2; outline:none; margin-bottom:8px;">
-                                <option value="">-- Dropdown से Material चुनें --</option>
-                            </select>
-                            <div style="text-align:center; font-size:11px; font-weight:700; color:#64748b; margin-bottom:6px;">— या Search करें —</div>
-                            <input id="issue-search" class="stock-input stock-search-highlight" type="text" placeholder="Search Material Name">
-                            <div id="issue-suggestions" class="stock-suggestion-box"></div>
-                            <div id="issue-selected-chip" class="stock-picked-chip" style="display:none;"></div>
-                        </div>
-                        <div class="stock-search-row">
-                            <input id="issue-qty" class="stock-input" type="number" placeholder="Issue Qty">
-                            <button class="stock-small-btn form-red" onclick="addStockEntryToList('issue')">Add To List</button>
-                        </div>
-                        <div id="issue-added-list" class="stock-added-list"></div>
-                        <input id="issue-to" class="stock-input" type="text" placeholder="किसे Issue किया (व्यक्ति का नाम) *">
-
-                        <!-- Issue Date & Time -->
-                        <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:8px;">
-                            <div>
-                                <div style="font-size:10px; font-weight:800; color:#64748b; margin-bottom:3px;">Issue दिनांक</div>
-                                <input type="date" id="issue-date" class="stock-input" style="height:40px;">
-                            </div>
-                            <div>
-                                <div style="font-size:10px; font-weight:800; color:#64748b; margin-bottom:3px;">Issue समय</div>
-                                <input type="time" id="issue-time" class="stock-input" style="height:40px;">
-                            </div>
-                        </div>
-
-                        <!-- Returnable / Non-Returnable -->
-                        <div style="background:#f8fafc; border-radius:10px; padding:10px; margin-bottom:8px; border:1.5px solid #e2e8f0;">
-                            <div style="font-size:11px; font-weight:900; color:#334155; margin-bottom:8px;">वापसी का प्रकार:</div>
-                            <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
-                                <label style="display:flex; align-items:center; gap:8px; background:#dcfce7; border-radius:8px; padding:8px 10px; cursor:pointer; border:2px solid transparent;" id="returnable-label">
-                                    <input type="radio" name="issue-return-type" value="returnable" id="issue-returnable" onchange="toggleReturnDateField()" checked style="accent-color:#16a34a;">
-                                    <span style="font-size:12px; font-weight:900; color:#14532d;">↩️ Returnable</span>
-                                </label>
-                                <label style="display:flex; align-items:center; gap:8px; background:#fee2e2; border-radius:8px; padding:8px 10px; cursor:pointer; border:2px solid transparent;" id="non-returnable-label">
-                                    <input type="radio" name="issue-return-type" value="non_returnable" id="issue-non-returnable" onchange="toggleReturnDateField()" style="accent-color:#ef4444;">
-                                    <span style="font-size:12px; font-weight:900; color:#991b1b;">🚫 Non-Returnable</span>
-                                </label>
-                            </div>
-                            <!-- Expected return date (only for returnable) -->
-                            <div id="return-date-field" style="margin-top:8px;">
-                                <div style="font-size:10px; font-weight:800; color:#64748b; margin-bottom:3px;">वापसी की अपेक्षित तिथि</div>
-                                <input type="date" id="issue-expected-return" class="stock-input" style="height:40px;">
-                            </div>
-                        </div>
-
-                        <input id="issue-remark" class="stock-input" type="text" placeholder="Remark (वैकल्पिक)">
-                        <button class="stock-submit form-red" onclick="submitStockDemo('issue')">Save Issue Entry</button>
-                    </div>
-                </div>
-            </div>
-        </main>
-
-        <main id="stock-issue-history-view" class="view">
-            <div class="stock-wrap">
-                <div class="stock-section-card">
-                    <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:12px;">
-                        <h3 class="stock-section-title" style="margin:0;">📋 Issue इतिहास</h3>
-                        <div id="issue-history-count" style="font-size:11px; font-weight:700; color:#64748b;"></div>
-                    </div>
-                    <div id="issue-history-list"></div>
-                </div>
-            </div>
-        </main>
-
-        <main id="stock-return-view" class="view">
-            <div class="stock-wrap">
-                <div class="stock-section-card">
-                    <h3 class="stock-section-title">📦 Material वापसी Entry</h3>
-                    <div id="stock-return-list" style="margin-top:10px;">
-                        <div class="stock-empty">Loading...</div>
-                    </div>
-                </div>
-            </div>
-        </main>
-
-        <main id="live-stock-view" class="view">
-            <div class="stock-wrap">
-                <div class="stock-section-card">
-                    <h3 class="stock-section-title">Live Stock Position</h3>
-                    <div id="live-stock-content"></div>
-                </div>
-            </div>
-        </main>
-
-        <main id="low-stock-view" class="view">
-            <div class="stock-wrap">
-                <div class="stock-section-card">
-                    <h3 class="stock-section-title">Low Stock Alert</h3>
-                    <div id="low-stock-content"></div>
-                </div>
-            </div>
-        </main>
-
-        <main id="stock-report-view" class="view" style="display:none !important;">
-            <div class="stock-wrap">
-                <div class="stock-section-card">
-                    <h3 class="stock-section-title">Stock Report</h3>
-                    <div id="stock-report-content"></div>
-                </div>
             </div>
         </main>
 
@@ -834,54 +448,6 @@
                         <button type="button" onclick="toggleEntriesList('broken_pole')" style="width:100%; height:42px; border:none; border-radius:12px; background:rgba(255,255,255,0.18); color:#fffbeb; font-size:12px; font-weight:900; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:10px;">📂 Saved Entries Dekhein / Hatayein</button>
                         <div id="entries-list-broken_pole" style="display:none; margin-bottom:10px;"></div>
                         <button id="bp-mis-pdf-btn" onclick="downloadBrokenPoleMisPdf()" style="width:100%; height:44px; border:none; border-radius:12px; background:linear-gradient(135deg, #ef4444 0%, #b91c1c 100%); color:#ffffff; font-size:13px; font-weight:900; text-transform:uppercase; letter-spacing:0.5px; box-shadow:0 6px 14px rgba(239,68,68,0.3); cursor:pointer; display:flex; align-items:center; justify-content:center; gap:8px;">
-                            <svg width="16" height="16" fill="white" viewBox="0 0 24 24"><path d="M20 2H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-8.5 7.5c0 .83-.67 1.5-1.5 1.5H9v2H7.5V7H10c.83 0 1.5.67 1.5 1.5v1zm5 2c0 .83-.67 1.5-1.5 1.5h-2.5V7H15c.83 0 1.5.67 1.5 1.5v3zm4-3H19v1h1.5V11H19v2h-1.5V7h3v1.5zM9 9.5h1v-1H9v1zM4 6H2v14c0 1.1.9 2 2 2h14v-2H4V6zm10 5.5h1v-3h-1v3z"/></svg>
-                            Download PDF MIS Report
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </main>
-
-        <main id="pdc-nontraceable-view" class="view">
-            <div class="title-box-container"><div class="title-box"><span class="title-text-bold">📄 PDC / NON-TRACEABLE</span></div></div>
-            <div class="search-panel">
-                <div id="pdc-result-box" class="result-card-custom" style="display:block;">
-
-                    <!-- Consumer / Reference Info -->
-                    <div class="title-box-container" style="padding-top:0;"><div class="title-box" style="background-color:#e0e7ff;"><span class="title-text-bold" style="color:#312e81;">Consumer / Reference Details</span></div></div>
-                    <input type="text" id="pdc-ivrs" class="teal-boundary-input" placeholder="IVRS No / Account No" style="margin-bottom:12px;">
-                    <input type="text" id="pdc-name" class="teal-boundary-input" placeholder="Consumer Name" style="margin-bottom:12px;">
-
-                    <!-- 5 Photo Upload Slots -->
-                    <div class="title-box-container" style="padding-top: 15px;"><div class="title-box" style="background-color:#e0e7ff;"><span class="title-text-bold" style="color:#312e81;">Supporting Documents (Max 5 Photos)</span></div></div>
-                    <div id="pdc-photo-slots"></div>
-
-                    <!-- Remark -->
-                    <div class="title-box-container" style="padding-top: 15px;"><div class="title-box" style="background-color: #fee2e2;"><span class="title-text-bold" style="color: #991b1b;">Remark</span></div></div>
-                    <textarea id="pdc-remark" class="teal-boundary-input" placeholder="Remark likhein..." style="min-height:78px; resize:vertical; padding:12px;"></textarea>
-
-                </div>
-                <button id="pdc-submit-btn" class="submit-sync-btn" style="display:block;" onclick="submitPdcEntry()">Submit</button>
-
-                <!-- MIS Report Section -->
-                <div style="width:100%; max-width:340px; margin: 18px auto 0 auto;">
-                    <div style="background: linear-gradient(135deg, #4338ca 0%, #1e1b4b 100%); border-radius: 18px; padding: 16px 18px; box-shadow: 0 8px 20px rgba(67,56,202,0.18);">
-                        <div style="font-size:12px; font-weight:900; color:#c7d2fe; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:10px; text-align:center;">📊 MIS Report — PDC / Non-Traceable</div>
-                        <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:10px;">
-                            <div>
-                                <div style="font-size:10px; font-weight:800; color:#c7d2fe; text-transform:uppercase; margin-bottom:4px;">From Date</div>
-                                <input type="date" id="pdc-mis-from-date" onchange="refreshPdcMisTotal()" style="width:100%; height:38px; border-radius:10px; border:1.5px solid #6366f1; padding:0 8px; font-size:0.8rem; font-weight:700; color:#1e1b4b; background:#eef2ff; outline:none;">
-                            </div>
-                            <div>
-                                <div style="font-size:10px; font-weight:800; color:#c7d2fe; text-transform:uppercase; margin-bottom:4px;">To Date</div>
-                                <input type="date" id="pdc-mis-to-date" onchange="refreshPdcMisTotal()" style="width:100%; height:38px; border-radius:10px; border:1.5px solid #6366f1; padding:0 8px; font-size:0.8rem; font-weight:700; color:#1e1b4b; background:#eef2ff; outline:none;">
-                            </div>
-                        </div>
-                        <div id="pdc-mis-total-box" style="text-align:center; margin-bottom:10px; font-size:12px; font-weight:900; color:#e0e7ff;">Total Entries: <span id="pdc-mis-total">0</span></div>
-                        <div id="pdc-storage-counter" style="text-align:center; margin-bottom:10px; font-size:11px; font-weight:800; color:#e0e7ff;">Local Device Storage: <span id="pdc-storage-used">0</span> / <span id="pdc-storage-limit">0</span> entries saved</div>
-                        <button type="button" onclick="toggleEntriesList('pdc_nontraceable')" style="width:100%; height:42px; border:none; border-radius:12px; background:rgba(255,255,255,0.18); color:#e0e7ff; font-size:12px; font-weight:900; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:10px;">📂 Saved Entries Dekhein / Hatayein</button>
-                        <div id="entries-list-pdc_nontraceable" style="display:none; margin-bottom:10px;"></div>
-                        <button id="pdc-mis-pdf-btn" onclick="downloadPdcMisPdf()" style="width:100%; height:44px; border:none; border-radius:12px; background:linear-gradient(135deg, #ef4444 0%, #b91c1c 100%); color:#ffffff; font-size:13px; font-weight:900; text-transform:uppercase; letter-spacing:0.5px; box-shadow:0 6px 14px rgba(239,68,68,0.3); cursor:pointer; display:flex; align-items:center; justify-content:center; gap:8px;">
                             <svg width="16" height="16" fill="white" viewBox="0 0 24 24"><path d="M20 2H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-8.5 7.5c0 .83-.67 1.5-1.5 1.5H9v2H7.5V7H10c.83 0 1.5.67 1.5 1.5v1zm5 2c0 .83-.67 1.5-1.5 1.5h-2.5V7H15c.83 0 1.5.67 1.5 1.5v3zm4-3H19v1h1.5V11H19v2h-1.5V7h3v1.5zM9 9.5h1v-1H9v1zM4 6H2v14c0 1.1.9 2 2 2h14v-2H4V6zm10 5.5h1v-3h-1v3z"/></svg>
                             Download PDF MIS Report
                         </button>
@@ -1085,11 +651,9 @@
     <script src="js/karya-charitra.js"></script>
     <script src="js/mis-reports.js"></script>
     <script src="js/data-loaders.js"></script>
-    <script src="js/peak-load.js"></script>
-    <script src="js/stm-complaint.js"></script>
+    <script src="js/operator-profiles.js"></script>
     <script src="js/shms-progress.js"></script>
     <script src="js/shms-feeder-entry.js"></script>
-    <script src="js/stock.js"></script>
     <script src="js/chhapara.js"></script>
     <script src="js/navigation.js"></script>
     <script src="js/init.js"></script>

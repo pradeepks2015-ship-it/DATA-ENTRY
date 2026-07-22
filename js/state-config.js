@@ -47,44 +47,24 @@
         // Ek hi Apps Script deployment — sab modules isi ko use karte hain.
         const APPS_SCRIPT_EXEC_URL = "https://script.google.com/macros/s/AKfycbwH7cske7TMbQHw65eBt-fkKVFYWNLGqPr5UgZ3AblevWTKgdTuOk2NDNquo-1iTL0-XQ/exec";
         const scriptURL = APPS_SCRIPT_EXEC_URL;
-        const stockSubmitScriptUrl = APPS_SCRIPT_EXEC_URL;
         const shmsSubmitScriptUrl = APPS_SCRIPT_EXEC_URL;
-        const stmComplaintScriptUrl = APPS_SCRIPT_EXEC_URL;
 
-        // ===== Shared Module Sync (Broken Pole / PDC / STM Complaint / Bijli Chori) =====
+        // ===== Shared Module Sync (Broken Pole / Bijli Chori) =====
         // Single Apps Script Web App endpoint shared across all 4 modules (module name sent as a parameter).
         // PASTE the deployed Apps Script /exec URL here once available - leave empty to keep working
         // device-local only (entries will not sync between users until this is set).
         const sharedModuleSyncScriptUrl = APPS_SCRIPT_EXEC_URL;
-        const SHARED_SYNC_MODULES = ["broken_pole", "pdc_nontraceable", "stm_complaint", "bijli_chori"];
+        const SHARED_SYNC_MODULES = ["broken_pole", "bijli_chori"];
         const sharedModuleSyncEnabled = !!sharedModuleSyncScriptUrl;
 
         const shmsCsvUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTbq-yne90yg9Vn8eylxM3zKMfZjPLlVhca3JhsjAzMlcm6MAVl8vAA-xXVgZI_XjWQBHyjB36YO1Cz/pub?output=csv";
-        let stockMaterials = [
-            { id: "M001", name: "Pin Insulator",      unit: "Nos",   opening: 0, currentBalance: 0, inward: 0, issue: 0, min: 10 },
-            { id: "M002", name: "Disc Insulator",     unit: "Nos",   opening: 0, currentBalance: 0, inward: 0, issue: 0, min: 10 },
-            { id: "M003", name: "रस्सा (Rope)",        unit: "Nos",   opening: 0, currentBalance: 0, inward: 0, issue: 0, min: 2  },
-            { id: "M004", name: "Discharge Rod",      unit: "Nos",   opening: 0, currentBalance: 0, inward: 0, issue: 0, min: 2  },
-            { id: "M005", name: "Hand Gloves",        unit: "Pair",  opening: 0, currentBalance: 0, inward: 0, issue: 0, min: 4  },
-            { id: "M006", name: "Torch",              unit: "Nos",   opening: 0, currentBalance: 0, inward: 0, issue: 0, min: 2  },
-            { id: "M007", name: "Lightning Arrester", unit: "Nos",   opening: 0, currentBalance: 0, inward: 0, issue: 0, min: 5  },
-            { id: "M008", name: "Neon Tester",        unit: "Nos",   opening: 0, currentBalance: 0, inward: 0, issue: 0, min: 2  },
-            { id: "M009", name: "Conductor",          unit: "Kg",    opening: 0, currentBalance: 0, inward: 0, issue: 0, min: 50 },
-            { id: "M010", name: "Cable",              unit: "Meter", opening: 0, currentBalance: 0, inward: 0, issue: 0, min: 100},
-            { id: "M011", name: "DTR (Transformer)",  unit: "Nos",   opening: 0, currentBalance: 0, inward: 0, issue: 0, min: 1  },
-            { id: "M012", name: "Stay Set Complete",  unit: "Nos",   opening: 0, currentBalance: 0, inward: 0, issue: 0, min: 4  }
-        ];
-        let stockMovements = []; localStorage.removeItem("stock-movements-cache");
+        localStorage.removeItem("stock-movements-cache");
 
         let activeDiv = "", activeDC = "", activeGrad = "bg-teal-grad", summaryMode = "DAILY", summaryModule = "MOBILE", activeViewLevel = "", currentData = null, pendingLevel = "", dcCacheRaw = {}, dcCacheRows = {}, uiListSummary = [], grandTC = 0, grandTU = 0;
-        let selectedStockReceiveItem = null, selectedStockIssueItem = null, pendingReceiveItems = [], pendingIssueItems = [];
-        let activeIssueDc = "";
         let shmsRows = [], shmsSubstations = [], selectedShmsRow = null, shmsDataLoaded = false, selectedShmsSubstation = "", selectedShmsEventType = "", shmsPendingEntries = [];
         const feederCsvUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vT8bBAXJZhlwS_giGXBlS6rDXJ_auZfWZzNVPQaBnD09jB_m7jnrqeGGX5WP8V2jOD_WL90_KQ2pJa4/pub?output=csv";
         const feederSubmitScriptUrl = APPS_SCRIPT_EXEC_URL;
         const feederReportSheetCsvUrl = "https://docs.google.com/spreadsheets/d/1XnsLz_5643XqGgrcMzhIzI_cF4E4S6Zc1esNEQe554A/export?format=csv&gid=0";
-        const peakLoadCsvUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTqnZksaehWGnKJq2xcy1sJsQjrddCJZKJo_ynvjkZnUqxMzdvnlQv3uARWYiiuJEsVVBdL6wTd1bhv/pub?output=csv";
-        const peakLoadSubmitScriptUrl = APPS_SCRIPT_EXEC_URL;
         const feederDcDistributionConfig = {
             "11 KV - BAKODA SEONI AG": [
                 { dcName: "CHHAPARA-1", percent: 100 }
@@ -185,15 +165,12 @@
             { "33/11 KV SUBSTATION": "CHAMARI", "33 AND 11 KV FEEDER": "33KV ADEGAON (CHAMARI)", substation: "CHAMARI", feeder: "33KV ADEGAON (CHAMARI)", meterNo: "BS12775544", mf: "12000", feederType: "33 KV" },
             { "33/11 KV SUBSTATION": "MADHI", "33 AND 11 KV FEEDER": "33KV MADHI INCOMING", substation: "MADHI", feeder: "33KV MADHI INCOMING", meterNo: "BS12775543", mf: "12000", feederType: "33 KV" }
         ];
-        let peakLoadRows = [];
-        let peakLoadDataLoaded = false;
         let feederReportRows = [];
         let feederReportLoaded = false;
         let feederReportLoadMessage = "";
         let selectedFeederSubstation = "";
         let activeFeederOperator = null;
         let activeShmsOperator = null;
-        let activeStmComplaintOperator = null;
         let shmsProgressRows = [];
         let shmsProgressLoaded = false;
         let shmsProgressMode = "DAILY";
@@ -202,18 +179,6 @@
         let shmsRecentSubmittedEntries = [];
         let summaryRefreshToken = 0;
         let chhaparaFeederEntries = [];
-        let activePeakLoadOperator = null;
-        let selectedPeakLoadSubstation = "";
-        let selectedPeakLoadFeeder = null;
-        let selectedPeakLoadDateIso = "";
-        let peakLoadEntries = [];
-        const peakLoadTimeSlots = Array.from({ length: 24 }, (_, index) => `${String(index).padStart(2, "0")}:00`);
-        const stmComplaintOperatorStorageKey = "stmComplaintOperatorProfile";
-        const peakLoadOperatorStorageKey = "dailyHourlyPeakLoadOperatorProfile";
-        const peakLoadSubmissionStorageKey = "dailyHourlyPeakLoadSubmissionDrafts";
-        let selectedStmComplaintSubstation = "";
-        const adegaonIssueDcs = ["ADEGAON", "MAINTENANCE TEAM", "OTHER"];
-        let activeSubDnDcs = adegaonIssueDcs;
         const mobileUpdateStorageKey = "seoni-circle-mobile-updated";
         const dcCsvCacheStoragePrefix = "seoni-circle-dc-csv-";
         const chhaparaFeederStorageKey = "seoni-circle-chhapara-feeder-output";
@@ -224,20 +189,17 @@
         const brokenPoleStorageKey = "seoni-circle-broken-pole-entries";
         const pdcStorageKey = "seoni-circle-pdc-nontraceable-entries";
         let bpGeoData = null;
-        let pdcPhotoSlots = [null, null, null, null, null]; // each: { name, photoData } or null
 
-        // ===== IndexedDB wrapper for photo-heavy entries (Broken Pole / PDC) =====
+        // ===== IndexedDB wrapper for photo-heavy entries (Broken Pole) =====
         // localStorage has a tiny ~5-10MB shared limit; IndexedDB allows much larger storage
         // for entries that include base64 photo data.
         const IDB_DB_NAME = "seoni-circle-photo-store";
         const IDB_DB_VERSION = 4;
-        const IDB_STORES = ["broken_pole", "pdc_nontraceable", "stm_complaint", "bijli_chori", "karya_charitra", "sync_queue"];
+        const IDB_STORES = ["broken_pole", "bijli_chori", "karya_charitra", "sync_queue"];
         // Max entries allowed per store (raised from 500 to 2000 - photos are resized small,
         // so 2000 entries comfortably fits within typical IndexedDB quotas on mobile browsers).
         const IDB_STORE_LIMITS = {
             broken_pole: 500,
-            pdc_nontraceable: 200,
-            stm_complaint: 500,
             bijli_chori: 200,
             karya_charitra: 1000   // Text-only, no photos — higher limit ok
         };
@@ -363,12 +325,10 @@
 
         const feederAlertStartDateKey = "2026-07-01";
 
-        // ===== Shared Module Sync helpers (Broken Pole / PDC / STM / Bijli Chori) =====
+        // ===== Shared Module Sync helpers (Broken Pole / Bijli Chori) =====
         // In-memory cache of remote (shared) entries per module, refreshed on view open.
         const sharedModuleEntriesCache = {
             broken_pole: [],
-            pdc_nontraceable: [],
-            stm_complaint: [],
             bijli_chori: [],
             karya_charitra: []
         };
@@ -668,15 +628,7 @@
                 } catch (e) {}
             });
 
-            localStorage.setItem("stock-issue-log", "[]");
-            stockMovements = [];
-            loadStockMaterialsData();
             initChhaparaFeederCalculator();
-            renderStockDashboard();
-            refreshStockDropdowns_();
-            setupStockEntrySearch("receive");
-            setupStockEntrySearch("issue");
-            renderIssueDcDropdown();
             switchView("home");
         });
 

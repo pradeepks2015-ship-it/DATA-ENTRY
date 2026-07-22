@@ -168,10 +168,6 @@
             if (inputHash === ROLE_PASSWORD_HASHES[pendingLevel]) {
                 activeViewLevel = pendingLevel;
                 closePwdModal();
-                if (pendingLevel === "STOCK") {
-                    openStockDashboard();
-                    return;
-                }
                 switchView("summary");
                 refreshSummary();
             } else {

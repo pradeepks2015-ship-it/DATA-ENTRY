@@ -1011,3 +1011,64 @@
             });
         });
 
+
+        async function checkFeederBackendStatus() {
+            const box = document.getElementById("feeder-backend-status");
+            if (!box) return;
+            box.style.display = "block";
+            box.style.background = "rgba(255,255,255,0.18)";
+            box.style.color = "#fce7f3";
+            box.innerText = "Checking...";
+
+            try {
+                const url = `${feederSubmitScriptUrl}?action=getFeederReadings&t=${Date.now()}`;
+                const response = await fetch(url);
+                const text = await response.text();
+
+                let parsed;
+                try {
+                    parsed = JSON.parse(text);
+                } catch (_) {
+                    box.style.background = "#fee2e2";
+                    box.style.color = "#7f1d1d";
+                    box.innerText = `❌ Backend ne JSON nahi bheja (HTML/error page mil raha hai). Apps Script deployment check karein.\n\nResponse (first 200 chars):\n${text.slice(0, 200)}`;
+                    return;
+                }
+
+                if (Array.isArray(parsed)) {
+                    box.style.background = "#dcfce7";
+                    box.style.color = "#14532d";
+                    box.innerText = `✅ Backend connected hai. Total saved readings: ${parsed.length}`;
+                    return;
+                }
+
+                if (parsed && parsed.status === "error") {
+                    box.style.background = "#fee2e2";
+                    box.style.color = "#7f1d1d";
+                    box.innerText = `❌ Backend error: ${parsed.message || "Unknown error"}\n\n${getFriendlyScriptError(parsed.message)}`;
+                    return;
+                }
+
+                box.style.background = "#fef9c3";
+                box.style.color = "#713f12";
+                box.innerText = `⚠️ Backend se anjaan response mila:\n${JSON.stringify(parsed).slice(0, 200)}`;
+            } catch (err) {
+                box.style.background = "#fee2e2";
+                box.style.color = "#7f1d1d";
+                box.innerText = `❌ Network error: ${err?.message || "Unknown"}\n\nURL check karein ya internet connection check karein.`;
+            }
+        }
+
+        function getFriendlyScriptError(message) {
+            const raw = String(message || "").trim();
+            const upper = raw.toUpperCase();
+            if (!raw) return "Stock submit failed";
+            if (upper.includes("SCRIPT FUNCTION NOT FOUND") || upper.includes("DOGET") || upper.includes("DOPOST")) {
+                return "Backend script abhi sahi se deploy nahi hua hai. Entry safe hai (is device par save ho gayi), lekin cloud sync abhi nahi ho paya. Apps Script deployment dobara check karein.";
+            }
+            if (upper.includes("URLFETCHAPP")) return "Script me external permission pending hai. Apps Script ko ek baar authorize kijiye.";
+            if (upper.includes("DRIVE")) return "Sheet ya Drive permission issue aaya. Apps Script deployment aur access settings check kijiye.";
+            if (upper.includes("EXCEPTION")) return "Script side par error aaya. Apps Script version aur permissions check kijiye.";
+            if (upper.includes("FAILED TO FETCH")) return "Network ya browser block ki wajah se submit nahi ho paya (entry is device par safe hai).";
+            return raw;
+        }

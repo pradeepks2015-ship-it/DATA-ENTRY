@@ -213,66 +213,6 @@
             }).filter(Boolean);
         }
 
-        function parsePeakLoadCsv(csvText) {
-            const lines = (csvText || "").split(/\r?\n/).filter((line) => line.trim());
-            if (lines.length < 2) return [];
-
-            const headerCols = splitCsvLine(lines[0]).map((item) => String(item || "").trim());
-            const headerKeys = headerCols.map((item) => item.toLowerCase().replace(/[^a-z0-9]+/g, ""));
-            const findHeaderIndex = (keywords, fallback) => {
-                const idx = headerKeys.findIndex((key) => keywords.some((word) => key.includes(word)));
-                return idx > -1 ? idx : fallback;
-            };
-
-            const substationIndex = findHeaderIndex(["3311kvsubstation", "substation", "ssname"], 0);
-            const feederIndex = findHeaderIndex(["11kvfeeder", "feeder"], 1);
-            const meterIndex = findHeaderIndex(["meterno", "meter", "meternumber"], 2);
-
-            return lines.slice(1).map((line) => {
-                const cols = splitCsvLine(line);
-                const substation = String(cols[substationIndex] || "").replace(/\s+/g, " ").trim();
-                const feeder = String(cols[feederIndex] || "").replace(/\s+/g, " ").trim();
-                const meterNo = String(cols[meterIndex] || "").replace(/\s+/g, " ").trim();
-                if (!substation || !feeder) return null;
-                return {
-                    substation,
-                    feeder,
-                    meterNo,
-                    feederType: "11 KV"
-                };
-            }).filter(Boolean);
-        }
-
-        async function loadPeakLoadData(forceRefresh = false) {
-            if (!forceRefresh && peakLoadDataLoaded && peakLoadRows.length) return true;
-            try {
-                const csvText = await loadRemoteText(peakLoadCsvUrl);
-                peakLoadRows = mergeFallbackFeederRows_(parsePeakLoadCsv(csvText));
-                peakLoadDataLoaded = peakLoadRows.length > 0;
-                return peakLoadDataLoaded;
-            } catch (_) {
-                try {
-                    const feederLoaded = await loadFeederData(forceRefresh);
-                    if (feederLoaded && feederRows.length) {
-                        peakLoadRows = mergeFallbackFeederRows_(feederRows
-                            .filter((row) => !String(row.feeder || "").toUpperCase().includes("33"))
-                            .map((row) => ({
-                                substation: String(row.substation || "").trim(),
-                                feeder: String(row.feeder || "").trim(),
-                                meterNo: String(row.meterNo || "").trim(),
-                                feederType: "11 KV"
-                            })));
-                        peakLoadDataLoaded = peakLoadRows.length > 0;
-                        return peakLoadDataLoaded;
-                    }
-                } catch (_) {}
-
-                peakLoadRows = mergeFallbackFeederRows_([]);
-                peakLoadDataLoaded = peakLoadRows.length > 0;
-                return peakLoadDataLoaded;
-            }
-        }
-
         function buildFeederRowsFromReport_(rows) {
             const list = Array.isArray(rows) ? rows : [];
             const deduped = [];
