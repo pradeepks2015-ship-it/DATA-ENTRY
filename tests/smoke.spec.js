@@ -64,14 +64,17 @@ test.describe('DC dashboard — hidden/removed features', () => {
     await goToDcDashboard(page);
 
     const buttons = await page.locator('#dc-dashboard-view .dashboard-btn').allTextContents();
-    expect(buttons.map((b) => b.trim())).toEqual([
+    expect(buttons.map((b) => b.trim().replace(/\s+/g, ' '))).toEqual([
       '1. VASOOLI TRACKER',
       '2. Mobile No Update',
-      '3. ⚡ Broken Pole / Damage Line',
+      '3. Broken Pole / Damage Line',
       '4. FEEDER / SS WISE INPUT',
-      '5. ⚠️ बिजली चोरी की जानकारी',
+      '5. बिजली चोरी की जानकारी',
       '6. 📋 कर्मचारी कार्य चरित्रावली',
     ]);
+    // Broken Pole aur बिजली चोरी ab custom SVG icon use karte hain (emoji nahi)
+    await expect(page.locator('#dc-dashboard-view .dashboard-btn').nth(2).locator('svg')).toBeVisible();
+    await expect(page.locator('#dc-dashboard-view .dashboard-btn').nth(4).locator('svg')).toBeVisible();
     expect(errors).toEqual([]);
   });
 
