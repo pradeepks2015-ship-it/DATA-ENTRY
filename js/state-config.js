@@ -721,6 +721,11 @@
             });
 
             initChhaparaFeederCalculator();
-            switchView("home");
+            updateHeaderMenuEmpName_();
+            if (employeeLoggedIn_()) {
+                switchView("home");
+            } else {
+                showEmployeeLoginGate_();
+            }
         });
 

@@ -648,7 +648,8 @@
                 created_at: new Date().toISOString(),
                 reply_text: "",
                 reply_date_iso: "",
-                remark_text: ""
+                remark_text: "",
+                ...currentEmployeeTag_()
             };
 
             const ok = await kcSaveRecord_(record);

@@ -15,11 +15,19 @@ async function blockExternal(page) {
  * specific route जोड़ने देता है — Playwright बाद में register हुए route को पहले चेक
  * करता है, इसलिए specific route (जैसे सिर्फ़ **\/macros/**) blockExternal के catch-all
  * से पहले माना जाएगा।
+ * डिफ़ॉल्ट रूप से employee login pre-seed कर देता है (localStorage) ताकि बाकी सभी
+ * tests employee-login gate की परवाह किए बिना सीधे home तक पहुँच जाएँ — सिर्फ़
+ * employee-login वाले tests इसे `employeeLoggedIn: false` से बंद करते हैं।
  * @param {import('@playwright/test').Page} page
- * @param {{ beforeGoto?: (page: import('@playwright/test').Page) => Promise<void> }} [opts]
+ * @param {{ beforeGoto?: (page: import('@playwright/test').Page) => Promise<void>, employeeLoggedIn?: boolean }} [opts]
  */
 async function openApp(page, opts = {}) {
   await blockExternal(page);
+  if (opts.employeeLoggedIn !== false) {
+    await page.addInitScript(() => {
+      localStorage.setItem('seoni-circle-employee-v1', JSON.stringify({ emp_id: 'TEST_EMP', emp_name: 'Test Employee', emp_designation: 'Lineman' }));
+    });
+  }
   if (opts.beforeGoto) await opts.beforeGoto(page);
   await page.goto('/');
   await page.waitForFunction(() => document.getElementById('home-view').classList.contains('active'), null, { timeout: 15000 });
@@ -504,5 +512,130 @@ test.describe('Home reminders (Push Notification lite)', () => {
     await page.click('text=देखें');
     await page.waitForFunction(() => document.getElementById('karya-charitra-view').classList.contains('active'));
     expect(errors).toEqual([]);
+  });
+});
+
+test.describe('Employee Login (accountability)', () => {
+  /** @param {import('@playwright/test').Page} page */
+  async function mockEmployeeBackend(page) {
+    await page.route('**/macros/**', (route) => {
+      const req = route.request();
+      const url = new URL(req.url());
+      if (req.method() === 'GET' && url.searchParams.get('action') === 'getEmployeeNames') {
+        return route.fulfill({
+          status: 200, contentType: 'application/json',
+          body: JSON.stringify({ status: 'success', employees: [{ emp_id: 'E1', emp_name: 'Ram Kumar', emp_designation: 'Lineman' }] }),
+        });
+      }
+      if (req.method() === 'POST') {
+        const params = new URLSearchParams(req.postData() || '');
+        if (params.get('action') === 'verifyEmployeePin') {
+          // '1234' ka SHA-256 hash — asli PIN kabhi network par nahi jaata, sirf hash
+          const CORRECT_PIN_HASH = '03ac674216f3e15c761ee1a5e255f067953623c8b388b4459e13f978d7c846f4';
+          if (params.get('emp_id') === 'E1' && params.get('pin_hash') === CORRECT_PIN_HASH) {
+            return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ status: 'success', emp_id: 'E1', emp_name: 'Ram Kumar', emp_designation: 'Lineman' }) });
+          }
+          return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ status: 'error', message: 'गलत PIN' }) });
+        }
+      }
+      return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ status: 'success', entries: [] }) });
+    });
+  }
+
+  test('login किए बिना app खुलने पर सीधे employee-login gate दिखता है, home नहीं', async ({ page }) => {
+    await blockExternal(page);
+    await mockEmployeeBackend(page);
+    await page.goto('/');
+    await page.waitForFunction(() => document.getElementById('employee-login-modal').style.display === 'flex');
+    expect(await page.evaluate(() => document.getElementById('home-view').classList.contains('active') && document.getElementById('employee-login-modal').style.display !== 'flex')).toBe(false);
+  });
+
+  test('naam chune bina login submit karne par validation message dikhta hai', async ({ page }) => {
+    await blockExternal(page);
+    await mockEmployeeBackend(page);
+    await page.goto('/');
+    await page.waitForFunction(() => document.getElementById('employee-login-modal').style.display === 'flex');
+    await page.fill('#emp-login-pin', '0000');
+    await page.click('#employee-login-modal .pwd-card-btn');
+    await expect(page.locator('#emp-login-status')).toContainText('नाम चुनें');
+    expect(await page.evaluate(() => document.getElementById('employee-login-modal').style.display)).toBe('flex');
+  });
+
+  test('galat PIN se login fail hota hai, gate khula rehta hai', async ({ page }) => {
+    await blockExternal(page);
+    await mockEmployeeBackend(page);
+    await page.goto('/');
+    await page.waitForFunction(() => document.getElementById('employee-login-modal').style.display === 'flex');
+    await page.selectOption('#emp-login-select', 'E1');
+    await page.fill('#emp-login-pin', '9999');
+    await page.click('#employee-login-modal .pwd-card-btn');
+    await expect(page.locator('#emp-login-status')).toContainText('गलत PIN');
+    expect(await page.evaluate(() => document.getElementById('employee-login-modal').style.display)).toBe('flex');
+    expect(await page.evaluate(() => localStorage.getItem('seoni-circle-employee-v1'))).toBeNull();
+  });
+
+  test('sahi PIN se login hone par home khulta hai aur localStorage me save ho jaata hai', async ({ page }) => {
+    await blockExternal(page);
+    await mockEmployeeBackend(page);
+    await page.goto('/');
+    await page.waitForFunction(() => document.getElementById('employee-login-modal').style.display === 'flex');
+    await page.selectOption('#emp-login-select', 'E1');
+    await page.fill('#emp-login-pin', '1234');
+    await page.click('#employee-login-modal .pwd-card-btn');
+    await page.waitForFunction(() => document.getElementById('home-view').classList.contains('active'));
+    await expect(page.locator('#employee-login-modal')).toBeHidden();
+    const stored = await page.evaluate(() => JSON.parse(localStorage.getItem('seoni-circle-employee-v1')));
+    expect(stored).toEqual({ emp_id: 'E1', emp_name: 'Ram Kumar', emp_designation: 'Lineman' });
+  });
+
+  test('logout karne par gate dobara khulta hai aur localStorage saaf ho jaata hai', async ({ page }) => {
+    await openApp(page, { beforeGoto: mockEmployeeBackend });
+    await page.click('#header-menu-btn');
+    await page.click('text=🚪 Logout (कर्मचारी बदलें)');
+    await expect(page.locator('#employee-login-modal')).toBeVisible();
+    const stored = await page.evaluate(() => localStorage.getItem('seoni-circle-employee-v1'));
+    expect(stored).toBeNull();
+  });
+
+  test('Broken Pole entry submit karte waqt submitted_by_id/name payload me jaate hain', async ({ page }) => {
+    /** @type {URLSearchParams[]} */
+    const posts = [];
+    await openApp(page, {
+      beforeGoto: (p) => p.route('**/macros/**', (route) => {
+        const req = route.request();
+        if (req.method() === 'POST') posts.push(new URLSearchParams(req.postData() || ''));
+        route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ status: 'success', entry_id: 'BP1' }) });
+      }),
+    });
+    await page.evaluate(async () => {
+      const entry = { date: '01-07-2026', remark1: 'Test Pole', remark2: '', ...currentEmployeeTag_() };
+      await syncEntryToCloud_('broken_pole', entry);
+    });
+    const relevant = posts.find((p) => p.get('module') === 'broken_pole');
+    const sentEntry = JSON.parse(relevant?.get('entry_json') || '{}');
+    expect(sentEntry.submitted_by_id).toBe('TEST_EMP');
+    expect(sentEntry.submitted_by_name).toBe('Test Employee');
+  });
+
+  test('Admin Dashboard "कर्मचारी अनुसार" breakdown submitted_by_name se count karta hai', async ({ page }) => {
+    await openApp(page, {
+      beforeGoto: (p) => p.route('**/macros/**', (route) => {
+        const url = new URL(route.request().url());
+        const action = url.searchParams.get('action');
+        const module = url.searchParams.get('module');
+        if (action === 'getEntries' && module === 'broken_pole') {
+          return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ status: 'success', entries: [
+            { date: '01-07-2026', remark1: 'A', entry_id: 'bp1', submitted_by_name: 'Ram Kumar' },
+            { date: '02-07-2026', remark1: 'B', entry_id: 'bp2', submitted_by_name: 'Ram Kumar' },
+          ] }) });
+        }
+        return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ status: 'success', entries: [] }) });
+      }),
+    });
+    await page.evaluate(() => { adminDashboardUnlocked_ = true; openAdminDashboardGate_(); });
+    await page.waitForFunction(() => !document.getElementById('admin-dashboard-body')?.innerText.includes('लोड हो रहा है'));
+    const body = page.locator('#admin-dashboard-body');
+    await expect(body).toContainText('Ram Kumar');
+    await expect(body).toContainText('कर्मचारी अनुसार');
   });
 });

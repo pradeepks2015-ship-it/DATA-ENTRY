@@ -17,6 +17,20 @@
 <body>
     <div id="toast-notif"></div>
 
+    <div id="employee-login-modal" style="position:fixed; inset:0; background:linear-gradient(135deg, rgba(15,23,42,0.97), rgba(30,58,95,0.97)); backdrop-filter:blur(12px); z-index:6000; display:none; align-items:center; justify-content:center; padding:24px;">
+        <div class="pwd-card">
+            <div class="pwd-card-icon">👷</div>
+            <h3>कर्मचारी लॉगिन</h3>
+            <div class="pwd-card-sub">आदेगांव बिजली वितरण केंद्र — पहचान के लिए एक बार लॉगिन करें</div>
+            <select id="emp-login-select" style="width:100%; height:50px; border-radius:14px; border:2px solid #e2e8f0; background:#f8fafc; padding:0 14px; font-size:14px; font-weight:800; color:#1e293b; outline:none; margin-bottom:12px;">
+                <option value="">-- अपना नाम चुनें --</option>
+            </select>
+            <input type="password" id="emp-login-pin" inputmode="numeric" placeholder="PIN" onkeydown="if(event.key==='Enter') submitEmployeeLogin_()">
+            <button class="pwd-card-btn" onclick="submitEmployeeLogin_()">🔓 Login करें</button>
+            <div id="emp-login-status" style="font-size:11px; font-weight:800; color:#f87171; min-height:14px;"></div>
+        </div>
+    </div>
+
     <div id="pwd-modal">
         <div class="pwd-card">
             <div class="pwd-card-icon">🔐</div>
@@ -43,9 +57,11 @@
             <div style="grid-column: 3; display:flex; align-items:center; justify-content:center;">
                 <div style="position:relative;">
                     <button type="button" id="header-menu-btn" onclick="toggleHeaderMenu_()" aria-label="मेनू" style="background:none; border:none; color:#ffffff; opacity:0.85; font-size:20px; font-weight:900; cursor:pointer; width:36px; height:36px; display:flex; align-items:center; justify-content:center;">⋮</button>
-                    <div id="header-menu-dropdown" style="display:none; position:absolute; top:40px; right:0; background:#ffffff; border-radius:12px; box-shadow:0 8px 24px rgba(0,0,0,0.25); min-width:170px; overflow:hidden; z-index:1000;">
-                        <button type="button" onclick="closeHeaderMenu_(); openErrorLogModal_();" aria-label="एरर लॉग देखें" style="display:block; width:100%; text-align:left; background:none; border:none; padding:12px 14px; font-size:12px; font-weight:800; color:#1e293b; cursor:pointer;">🐞 Error Log</button>
+                    <div id="header-menu-dropdown" style="display:none; position:absolute; top:40px; right:0; background:#ffffff; border-radius:12px; box-shadow:0 8px 24px rgba(0,0,0,0.25); min-width:190px; overflow:hidden; z-index:1000;">
+                        <div id="header-menu-emp-name" style="padding:10px 14px; font-size:11px; font-weight:900; color:#475569; background:#f8fafc; text-transform:uppercase;"></div>
+                        <button type="button" onclick="closeHeaderMenu_(); openErrorLogModal_();" aria-label="एरर लॉग देखें" style="display:block; width:100%; text-align:left; background:none; border:none; padding:12px 14px; font-size:12px; font-weight:800; color:#1e293b; cursor:pointer; border-top:1px solid #e5e7eb;">🐞 Error Log</button>
                         <button type="button" onclick="closeHeaderMenu_(); openAdminDashboardGate_();" style="display:block; width:100%; text-align:left; background:none; border:none; padding:12px 14px; font-size:12px; font-weight:800; color:#1e293b; cursor:pointer; border-top:1px solid #e5e7eb;">📊 Admin Dashboard</button>
+                        <button type="button" onclick="closeHeaderMenu_(); logoutEmployee_();" style="display:block; width:100%; text-align:left; background:none; border:none; padding:12px 14px; font-size:12px; font-weight:800; color:#b91c1c; cursor:pointer; border-top:1px solid #e5e7eb;">🚪 Logout (कर्मचारी बदलें)</button>
                     </div>
                 </div>
             </div>
@@ -494,6 +510,7 @@
     </div>
 
     <script src="js/state-config.js"></script>
+    <script src="js/employee-auth.js"></script>
     <script src="js/core-actions.js"></script>
     <script src="js/summary-utils.js"></script>
     <script src="js/field-reports.js"></script>

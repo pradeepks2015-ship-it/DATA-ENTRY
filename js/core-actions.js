@@ -229,6 +229,9 @@
             p.append("dc", activeDC);
             p.append("division", activeDiv);
             p.append("timestamp", new Date().toLocaleDateString("en-GB"));
+            const empTag = currentEmployeeTag_();
+            p.append("submitted_by_id", empTag.submitted_by_id);
+            p.append("submitted_by_name", empTag.submitted_by_name);
             p.append("auth_token", APPS_SCRIPT_AUTH_TOKEN);
             try {
                 const btn = document.getElementById("submit-btn");

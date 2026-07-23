@@ -109,6 +109,15 @@
                     <button type="button" onclick="admExportExcel_()" style="flex:1; height:40px; border:none; border-radius:10px; background:rgba(0,0,0,0.15); color:#ffffff; font-size:10px; font-weight:900; text-transform:uppercase;">📥 Excel</button>
                 </div>
                 <div style="background:rgba(255,255,255,0.95); border-radius:14px; padding:12px; margin-bottom:12px;">
+                    <div style="font-size:11px; font-weight:900; color:#1e293b; margin-bottom:8px;">🔑 नए कर्मचारी के लिए PIN Hash बनाएं</div>
+                    <div style="font-size:10px; font-weight:700; color:#64748b; margin-bottom:8px;">PIN डालें, hash कॉपी करके Employees sheet के pin_hash column में डालें — असली PIN कहीं save नहीं होता।</div>
+                    <div style="display:flex; gap:8px; margin-bottom:8px;">
+                        <input type="text" id="admin-pin-hash-input" placeholder="PIN" style="flex:1; height:38px; border-radius:10px; border:1.5px solid #cbd5e1; padding:0 10px; font-size:0.8rem; font-weight:700; color:#1e293b; box-sizing:border-box;">
+                        <button type="button" onclick="admGeneratePinHash_()" style="height:38px; padding:0 14px; border:none; border-radius:10px; background:#1e293b; color:#ffffff; font-size:10px; font-weight:900; text-transform:uppercase;">Hash बनाएं</button>
+                    </div>
+                    <input type="text" id="admin-pin-hash-output" readonly placeholder="यहाँ hash दिखेगा" onclick="this.select()" style="width:100%; height:38px; border-radius:10px; border:1.5px dashed #94a3b8; padding:0 10px; font-size:0.7rem; font-weight:700; color:#075985; box-sizing:border-box; background:#f0f9ff;">
+                </div>
+                <div style="background:rgba(255,255,255,0.95); border-radius:14px; padding:12px; margin-bottom:12px;">
                     <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
                         <div>
                             <div style="font-size:10px; font-weight:800; color:#64748b; text-transform:uppercase; margin-bottom:4px;">From Date</div>
@@ -123,6 +132,16 @@
                 <div id="admin-dashboard-body"><div style="text-align:center; padding:20px; font-size:12px; font-weight:800; color:#ffffff;">लोड हो रहा है...</div></div>
             `;
             refreshAdminDashboardData_();
+        }
+
+        async function admGeneratePinHash_() {
+            const input = document.getElementById("admin-pin-hash-input");
+            const output = document.getElementById("admin-pin-hash-output");
+            const pin = input?.value || "";
+            if (!pin) return showToast("पहले PIN डालें", false);
+            const hash = await sha256Hex_(pin);
+            if (output) output.value = hash || "";
+            if (!hash) showToast("Secure (https) connection ज़रूरी है", false);
         }
 
         async function admFetchFeederRows_(fromKey, toKey) {
@@ -154,13 +173,13 @@
                     XLSX.utils.book_append_sheet(wb, ws, name);
                 };
 
-                addSheet("Feeder Reading", ["Date", "Substation", "Feeder", "Meter No", "Previous", "Current", "Consumption", "DC Name"], feederRows.map((r) => [
+                addSheet("Feeder Reading", ["Date", "Substation", "Feeder", "Meter No", "Previous", "Current", "Consumption", "DC Name", "Submitted By"], feederRows.map((r) => [
                     r["DATE(DD/MM/YYY)"] || "", r["33/11 KV SUBSTATION"] || "", r["33 AND 11 KV FEEDER"] || "", r["METER NO"] || "",
-                    r["PREVIUS READING"] || "", r["CURRENT READING"] || "", r["CONSUMPTION"] || "", r["DC NAME"] || ""
+                    r["PREVIUS READING"] || "", r["CURRENT READING"] || "", r["CONSUMPTION"] || "", r["DC NAME"] || "", r.submitted_by_name || ""
                 ]));
-                addSheet("Broken Pole", ["Date", "Remark 1", "Remark 2", "Location"], bpInRange.map((e) => [e.date || "", e.remark1 || "", e.remark2 || "", e.gps_location || ""]));
-                addSheet("Bijli Chori", ["Date", "Name/IVRS", "Remark"], bcInRange.map((e) => [e.date || "", e.name || e.ivrs || "", e.remark || ""]));
-                addSheet("Karya Charitra", ["Date", "Employee", "SCN No"], kcInRange.map((r) => [kcFormatDate_ ? kcFormatDate_(r.scn_date_iso) : (r.scn_date_iso || ""), r.emp_name || "", `SCN-${String(r.dispatch_no || "").padStart(4, "0")}`]));
+                addSheet("Broken Pole", ["Date", "Remark 1", "Remark 2", "Location", "Submitted By"], bpInRange.map((e) => [e.date || "", e.remark1 || "", e.remark2 || "", e.gps_location || "", e.submitted_by_name || ""]));
+                addSheet("Bijli Chori", ["Date", "Name/IVRS", "Remark", "Submitted By"], bcInRange.map((e) => [e.date || "", e.name || e.ivrs || "", e.remark || "", e.submitted_by_name || ""]));
+                addSheet("Karya Charitra", ["Date", "Employee", "SCN No", "Submitted By"], kcInRange.map((r) => [kcFormatDate_ ? kcFormatDate_(r.scn_date_iso) : (r.scn_date_iso || ""), r.emp_name || "", `SCN-${String(r.dispatch_no || "").padStart(4, "0")}`, r.submitted_by_name || ""]));
                 addSheet("Mobile Update", ["DC", "IVRS", "Mobile"], (mobileRows || []).map((r) => [r.dc || "", r.ivrs || "", r.mobile || ""]));
 
                 const filename = `Admin_Dashboard_${(fromKey || "all").replace(/-/g, "")}_${(toKey || "all").replace(/-/g, "")}.xlsx`;
@@ -213,6 +232,17 @@
             `;
         }
 
+        function admEmployeeBreakdown_(datasets) {
+            const counts = {};
+            datasets.forEach((rows) => {
+                rows.forEach((r) => {
+                    const name = r.submitted_by_name || "अज्ञात / पुरानी एंट्री";
+                    counts[name] = (counts[name] || 0) + 1;
+                });
+            });
+            return Object.entries(counts).sort((a, b) => b[1] - a[1]);
+        }
+
         async function refreshAdminDashboardData_() {
             const body = document.getElementById("admin-dashboard-body");
             if (!body) return;
@@ -259,6 +289,21 @@
                 admEntryRow_(row["DATE(DD/MM/YYY)"] || "", `${row["33/11 KV SUBSTATION"] || ""} / ${row["33 AND 11 KV FEEDER"] || ""}`, `Consumption: ${row["CONSUMPTION"] || "-"}`)
             );
 
+            const employeeBreakdown = admEmployeeBreakdown_([feederRows, bpInRange, bcInRange, kcInRange]);
+            const employeeBreakdownHtml = employeeBreakdown.length ? `
+                <div style="margin-bottom:12px;">
+                    <div style="font-size:12px; font-weight:900; color:#ffffff; margin-bottom:6px;">👤 कर्मचारी अनुसार (कुल entries)</div>
+                    <div style="background:rgba(255,255,255,0.92); border-radius:14px; padding:8px; max-height:200px; overflow-y:auto;">
+                        ${employeeBreakdown.map(([name, count]) => `
+                            <div style="display:flex; align-items:center; justify-content:space-between; padding:7px 8px; border-bottom:1px solid #e5e7eb;">
+                                <div style="font-size:11px; font-weight:800; color:#1e293b;">${escapeHtml(name)}</div>
+                                <div style="font-size:11px; font-weight:900; color:#075985;">${count}</div>
+                            </div>
+                        `).join("")}
+                    </div>
+                </div>
+            ` : "";
+
             const photoEntries = [
                 ...bpInRange.map((e) => ({ storeName: "broken_pole", entry: e, thumb: ENTRY_STORE_CONFIG.broken_pole.getThumb(e) })),
                 ...bcInRange.map((e) => ({ storeName: "bijli_chori", entry: e, thumb: ENTRY_STORE_CONFIG.bijli_chori.getThumb(e) }))
@@ -275,6 +320,7 @@
 
             body.innerHTML = `
                 <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:14px;">${cards}</div>
+                ${employeeBreakdownHtml}
                 ${photoGridHtml}
                 ${admEntrySection_("🔌 Feeder Reading", feederRowsHtml)}
                 ${admEntrySection_("⚡ Broken Pole", bpRows)}

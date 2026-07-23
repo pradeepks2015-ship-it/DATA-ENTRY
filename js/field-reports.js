@@ -129,7 +129,8 @@
                     gps_longitude: bpGeoData?.longitude || "",
                     gps_location: bpGeoData?.locationText || "",
                     photo_name: photoFile.name || "",
-                    photo_data: photoData
+                    photo_data: photoData,
+                    ...currentEmployeeTag_()
                 };
 
                 const entryId = await syncEntryToCloud_("broken_pole", entry);
@@ -478,7 +479,8 @@
                         gps_latitude: p.geo?.latitude || "",
                         gps_longitude: p.geo?.longitude || "",
                         gps_location: p.geo?.locationText || ""
-                    }))
+                    })),
+                    ...currentEmployeeTag_()
                 };
 
                 // Show upload progress since photo uploads are awaited (may take 10-30 sec for 3 photos)
