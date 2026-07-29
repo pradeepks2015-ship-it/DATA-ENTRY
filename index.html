@@ -176,8 +176,7 @@
             </div>
         </main>
         <main id="mobile-update-view" class="view">
-            <div class="title-box-container"><div class="title-box"><span class="title-text-bold">UPDATE MOBILE NO</span></div></div>
-            <div style="display:flex; justify-content:flex-end; width:100%; max-width:340px; margin:0 auto 8px auto; position:relative;">
+            <div style="display:flex; justify-content:flex-end; width:100%; max-width:340px; margin:14px auto 8px auto; position:relative;">
                 <button type="button" id="mu-menu-btn" onclick="toggleMobileUpdateMenu_()" aria-label="MIS / Excel मेनू" style="background:#1e3a5f; border:none; color:#ffffff; width:38px; height:38px; border-radius:10px; font-size:18px; font-weight:900; cursor:pointer;">⋮</button>
                 <div id="mu-menu-dropdown" style="display:none; position:absolute; top:44px; right:0; width:290px; max-width:calc(100vw - 32px); background:#ffffff; border-radius:14px; box-shadow:0 8px 24px rgba(0,0,0,0.25); padding:14px; z-index:1000; text-align:left;">
                     <div style="font-size:11px; font-weight:900; color:#9a3412; text-transform:uppercase; letter-spacing:0.4px; margin-bottom:10px;">⚡ MPEZ Portal</div>
@@ -187,8 +186,13 @@
                     </button>
                     <div style="border-top:1px solid #e2e8f0; margin:0 0 12px 0;"></div>
                     <div style="font-size:11px; font-weight:900; color:#991b1b; text-transform:uppercase; letter-spacing:0.4px; margin-bottom:10px;">📵 गलत मोबाइल नंबर सूची</div>
-                    <button id="mc-excel-btn" onclick="downloadMobileCorrectionExcel_()" style="width:100%; height:42px; border:none; border-radius:10px; background:linear-gradient(135deg, #16a34a 0%, #15803d 100%); color:#ffffff; font-size:11px; font-weight:900; text-transform:uppercase; letter-spacing:0.4px; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:6px;">
+                    <button id="mc-excel-btn" onclick="downloadMobileCorrectionExcel_()" style="width:100%; height:42px; border:none; border-radius:10px; background:linear-gradient(135deg, #16a34a 0%, #15803d 100%); color:#ffffff; font-size:11px; font-weight:900; text-transform:uppercase; letter-spacing:0.4px; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:6px; margin-bottom:12px;">
                         📥 Excel में Download करें
+                    </button>
+                    <div style="border-top:1px solid #e2e8f0; margin:0 0 12px 0;"></div>
+                    <div style="font-size:11px; font-weight:900; color:#1e3a5f; text-transform:uppercase; letter-spacing:0.4px; margin-bottom:10px;">📊 करेक्शन स्कोरकार्ड</div>
+                    <button id="mc-scorecard-btn" onclick="mcOpenScorecard_()" style="width:100%; height:42px; border:none; border-radius:10px; background:linear-gradient(135deg, #1e3a5f 0%, #0f172a 100%); color:#ffffff; font-size:11px; font-weight:900; text-transform:uppercase; letter-spacing:0.4px; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:6px;">
+                        📊 मुख्यालय वार स्कोरकार्ड देखें
                     </button>
                 </div>
             </div>
@@ -200,11 +204,11 @@
 
                 <div id="result-box" class="result-card-custom">
                     <div class="res-grid">
-                        <div class="res-row"><span class="res-label">IVRS NO</span><span id="res-ivrs" class="res-val"></span></div>
+                        <div class="res-row"><span class="res-label">IVRS NO</span><span id="res-ivrs" class="res-val mc-tap-copy" onclick="mcCopyIvrsField_()"></span></div>
                         <div class="res-row"><span class="res-label">Consumer Name</span><span id="res-name" class="res-val"></span></div>
                         <div class="res-row"><span class="res-label">HQ</span><span id="res-hq" class="res-val"></span></div>
                         <div class="res-row"><span class="res-label">Tariff / Load</span><span id="res-tariff" class="res-val"></span></div>
-                        <div class="res-row"><span class="res-label">Old Mobile No</span><span id="res-old" class="res-val"></span></div>
+                        <div class="res-row"><span class="res-label">Old Mobile No</span><span id="res-old" class="res-val mc-tap-copy" onclick="mcShowMobileActionsField_()"></span></div>
                         <div class="res-row res-row-full border-none"><span class="res-label">Address</span><span id="res-addr" class="res-val"></span></div>
                     </div>
 
@@ -216,7 +220,12 @@
                 <div style="width:100%; max-width:100%; margin: 14px auto 0 auto;">
                     <div style="background: linear-gradient(135deg, #7f1d1d 0%, #450a0a 100%); border-radius: 18px; padding: 16px 14px; box-shadow: 0 8px 20px rgba(127,29,29,0.18);">
                         <div style="font-size:12px; font-weight:900; color:#fecaca; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:10px; text-align:center;">📵 गलत मोबाइल नंबर — पेंडिंग सूची (HQ-wise)</div>
-                        <button type="button" onclick="toggleMobileCorrectionList_()" style="width:100%; height:42px; border:none; border-radius:12px; background:rgba(255,255,255,0.18); color:#fef2f2; font-size:12px; font-weight:900; text-transform:uppercase; letter-spacing:0.5px;">📂 सूची देखें / छिपाएं</button>
+                        <div style="display:flex; gap:8px;">
+                            <button type="button" onclick="toggleMobileCorrectionList_()" style="flex:1 1 auto; min-width:0; height:42px; border:none; border-radius:12px; background:rgba(255,255,255,0.18); color:#fef2f2; font-size:12px; font-weight:900; text-transform:uppercase; letter-spacing:0.5px;">📂 सूची देखें / छिपाएं</button>
+                            <select id="mc-hq-filter" onchange="mcHqFilterChanged_()" style="flex:0 0 120px; width:120px; height:42px; border:none; border-radius:12px; background:rgba(255,255,255,0.18); color:#fef2f2; font-size:11px; font-weight:900; text-transform:uppercase; padding:0 8px; outline:none;">
+                                <option value="">सभी HQ</option>
+                            </select>
+                        </div>
                         <div id="mc-pending-list" style="display:none; margin-top:10px; max-height:400px; overflow-y:auto;"></div>
                     </div>
                 </div>

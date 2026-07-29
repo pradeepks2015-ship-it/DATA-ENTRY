@@ -594,7 +594,7 @@ test.describe('Home reminders (Push Notification lite)', () => {
 });
 
 test.describe('Mobile Correction Tracker (galat mobile number flag + monitor)', () => {
-  const CONSUMER_CSV = 'IVRS NO,NAME,FATHER,OLD MOBILE,ADDRESS,HQ,TARIFF,LOAD\n1234567890,Test Consumer,Test Father,9998887771,"Test Address, Adegaon",ADEGAON HQ,LV1,1\n';
+  const CONSUMER_CSV = 'IVRS NO,NAME,FATHER,OLD MOBILE,ADDRESS,HQ,TARIFF,LOAD\n1234567890,Test Consumer,Test Father,9998887771,"Test Address, Adegaon",ADEGAON HQ,LV1,1\n2345678901,Doosra Consumer,Doosra Father,9998887772,"Doosra Address, Bibi",BIBI HQ,LV1,1\n';
 
   /** @param {import('@playwright/test').Page} page */
   async function mockConsumerCsv(page) {
@@ -639,6 +639,39 @@ test.describe('Mobile Correction Tracker (galat mobile number flag + monitor)', 
       ivrs: '1234567890', name: 'Test Consumer', hq: 'ADEGAON HQ',
       old_mobile: '9998887771', status: 'pending',
     });
+  });
+
+  test('IVRS number par tap karne se copy hota hai, mobile number par tap karne se Call/SMS/WhatsApp sheet khulti hai', async ({ page }) => {
+    await openApp(page, {
+      beforeGoto: async (p) => {
+        await mockConsumerCsv(p);
+        await p.route('**/macros/**', (route) => {
+          route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ status: 'success', entry_id: 'MC1', entries: [] }) });
+        });
+      },
+    });
+    await goToMobileUpdate(page);
+
+    // navigator.clipboard.writeText headless me permission ke bina fail ho sakta
+    // hai — window par capture karke verify karte hain ki sahi text bheja gaya.
+    await page.evaluate(() => {
+      window.__copiedText = null;
+      navigator.clipboard.writeText = (t) => { window.__copiedText = t; return Promise.resolve(); };
+    });
+
+    await page.click('#res-ivrs');
+    await page.waitForFunction(() => window.__copiedText === '1234567890');
+    await expect(page.locator('#toast-notif')).toContainText(/कॉपी/);
+
+    await page.click('#res-old');
+    const sheet = page.locator('#mc-mobile-actions-overlay');
+    await expect(sheet).toBeVisible();
+    await expect(sheet.locator('a[href^="tel:"]')).toHaveAttribute('href', 'tel:+919998887771');
+    await expect(sheet.locator('a[href^="sms:"]')).toHaveAttribute('href', 'sms:+919998887771');
+    await expect(sheet.locator('a[href*="wa.me"]')).toHaveAttribute('href', 'https://wa.me/919998887771');
+
+    await page.click('#mc-mobile-actions-close-btn');
+    await expect(sheet).toHaveCount(0);
   });
 
   test('same IVRS दोबारा flag करने पर duplicate pending entry नहीं बनती', async ({ page }) => {
@@ -693,11 +726,15 @@ test.describe('Mobile Correction Tracker (galat mobile number flag + monitor)', 
     await page.waitForFunction(() => document.getElementById('mc-pending-list').innerText.includes('Test Consumer'));
 
     const list = page.locator('#mc-pending-list');
-    await expect(list).toContainText('ADEGAON HQ');
     await expect(list).toContainText('कुल फ़्लैग: 1');
     await expect(list).toContainText('बाकी: 1');
     await expect(list.locator('table')).toBeVisible();
+    await expect(list.locator('th')).not.toContainText(['HQ']);
+    await expect(list.locator('th')).not.toContainText(['फ़्लैग किया']);
     await expect(list).toContainText('⏳ पेंडिंग');
+    // flagged_date ab "पुराना (गलत) नंबर" cell ke andar niche dikhti hai (alag column nahi)
+    const expectedFlagDate = await page.evaluate(() => getCurrentDateDDMMYYYY());
+    await expect(list).toContainText(expectedFlagDate);
 
     const uid = await page.evaluate(async () => {
       const entries = await getMobileCorrectionEntries_();
@@ -713,6 +750,47 @@ test.describe('Mobile Correction Tracker (galat mobile number flag + monitor)', 
     const entries = await page.evaluate(() => getMobileCorrectionEntries_());
     expect(entries[0].status).toBe('corrected');
     expect(entries[0].correct_mobile).toBe('9123456789');
+  });
+
+  test('सूची देखें बटन के बगल में HQ filter dropdown se list HQ ke hisaab se filter hoti hai', async ({ page }) => {
+    await openApp(page, {
+      beforeGoto: async (p) => {
+        await mockConsumerCsv(p);
+        await p.route('**/macros/**', (route) => {
+          route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ status: 'success', entry_id: 'MC1', entries: [] }) });
+        });
+      },
+    });
+    await goToMobileUpdate(page);
+    await page.click('#mc-flag-btn');
+    await page.waitForTimeout(300);
+
+    await page.fill('#search-ivrs', '2345678901');
+    await page.click('#search-btn');
+    await page.waitForFunction(() => document.getElementById('result-box').style.display !== 'none');
+    await page.click('#mc-flag-btn');
+    await page.waitForTimeout(300);
+
+    await page.click('button[onclick="toggleMobileCorrectionList_()"]');
+    await page.waitForFunction(() => document.getElementById('mc-pending-list').innerText.includes('Test Consumer'));
+
+    const hqFilter = page.locator('#mc-hq-filter');
+    await expect(hqFilter.locator('option')).toHaveCount(3); // सभी HQ + ADEGAON HQ + BIBI HQ
+    const list = page.locator('#mc-pending-list');
+    await expect(list).toContainText('Test Consumer');
+    await expect(list).toContainText('Doosra Consumer');
+
+    await hqFilter.selectOption('ADEGAON HQ');
+    await page.waitForFunction(() => !document.getElementById('mc-pending-list').innerText.includes('Doosra Consumer'));
+    await expect(list).toContainText('Test Consumer');
+    await expect(list).toContainText('कुल फ़्लैग: 1');
+
+    await hqFilter.selectOption('BIBI HQ');
+    await page.waitForFunction(() => !document.getElementById('mc-pending-list').innerText.includes('Test Consumer'));
+    await expect(list).toContainText('Doosra Consumer');
+
+    await hqFilter.selectOption('');
+    await page.waitForFunction(() => document.getElementById('mc-pending-list').innerText.includes('Test Consumer') && document.getElementById('mc-pending-list').innerText.includes('Doosra Consumer'));
   });
 
   test('⋮ मेनू me MPEZ Portal aur Excel download milte hain, PDF MIS Report option nahi hai', async ({ page }) => {
@@ -742,6 +820,70 @@ test.describe('Mobile Correction Tracker (galat mobile number flag + monitor)', 
 
     await page.click('body', { position: { x: 5, y: 5 } });
     await expect(page.locator('#mu-menu-dropdown')).toBeHidden();
+    expect(errors).toEqual([]);
+  });
+
+  test('⋮ मेनू का HQ-wise scorecard flagged/corrected/pending counts sahi dikhata hai aur date filter kaam karta hai', async ({ page }) => {
+    const errors = [];
+    page.on('pageerror', (e) => errors.push(e.message));
+    await openApp(page, {
+      beforeGoto: async (p) => {
+        await mockConsumerCsv(p);
+        await p.route('**/macros/**', (route) => {
+          route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ status: 'success', entry_id: 'MC1', entries: [] }) });
+        });
+      },
+    });
+    await goToMobileUpdate(page);
+
+    // ADEGAON HQ se 2 flag (1 corrected), BIBI HQ se 1 flag (pending)
+    await page.click('#mc-flag-btn');
+    await page.waitForTimeout(300);
+    await page.fill('#search-ivrs', '2345678901');
+    await page.click('#search-btn');
+    await page.waitForFunction(() => document.getElementById('result-box').style.display !== 'none');
+    await page.click('#mc-flag-btn');
+    await page.waitForTimeout(300);
+
+    const uid = await page.evaluate(async () => {
+      const entries = await getMobileCorrectionEntries_();
+      const e = entries.find((x) => x.ivrs === '1234567890');
+      return getEntryUid_(e);
+    });
+    await page.click('button[onclick="toggleMobileCorrectionList_()"]');
+    await page.waitForFunction(() => document.getElementById('mc-pending-list').innerText.includes('Test Consumer'));
+    await page.fill(`#mc-correct-${uid}`, '9123456789');
+    await page.click(`button[onclick="saveCorrectMobile_('${uid}')"]`);
+    await page.waitForTimeout(300);
+
+    await page.click('#mu-menu-btn');
+    await page.click('#mc-scorecard-btn');
+    const sheet = page.locator('#mc-scorecard-overlay');
+    await expect(sheet).toContainText('मुख्यालय वार मोबाइल नंबर करेक्शन स्कोरकार्ड');
+    await page.waitForFunction(() => document.getElementById('mc-scorecard-body').innerText.includes('ADEGAON HQ'));
+
+    const body = page.locator('#mc-scorecard-body');
+    await expect(body).toContainText('ADEGAON HQ');
+    await expect(body).toContainText('BIBI HQ');
+    await expect(body).toContainText('कुल योग');
+
+    const adegaonRow = body.locator('tr', { hasText: 'ADEGAON HQ' });
+    await expect(adegaonRow.locator('td').nth(1)).toHaveText('1'); // flagged
+    await expect(adegaonRow.locator('td').nth(2)).toHaveText('1'); // corrected
+    await expect(adegaonRow.locator('td').nth(3)).toHaveText('0'); // pending
+
+    const bibiRow = body.locator('tr', { hasText: 'BIBI HQ' });
+    await expect(bibiRow.locator('td').nth(1)).toHaveText('1');
+    await expect(bibiRow.locator('td').nth(2)).toHaveText('0');
+    await expect(bibiRow.locator('td').nth(3)).toHaveText('1');
+
+    // Date filter ko future range me daalne par koi entry na dikhe
+    await page.fill('#mc-sc-from', '2099-01-01');
+    await page.fill('#mc-sc-to', '2099-01-31');
+    await page.waitForFunction(() => document.getElementById('mc-scorecard-body').innerText.includes('कोई flag की हुई entry नहीं है'));
+
+    await page.click('#mc-scorecard-close-btn');
+    await expect(sheet).toHaveCount(0);
     expect(errors).toEqual([]);
   });
 });
