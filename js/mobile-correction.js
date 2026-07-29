@@ -18,6 +18,70 @@
             menu.style.display = menu.style.display === "block" ? "none" : "block";
         }
 
+        // ===== IVRS copy + मोबाइल नंबर पर tap करके Call/SMS/WhatsApp (result card + pending list दोनों में) =====
+        // inline onclick='...' attribute ke andar safely embed karne ke liye —
+        // IVRS/mobile master CSV se aate hain, isliye ' ya \ jaisa stray character
+        // ho sakta hai jo attribute todd sakta hai.
+        function mcJsEscape_(s) {
+            return String(s || "").replace(/\\/g, "\\\\").replace(/'/g, "\\'");
+        }
+
+        async function mcCopyText_(text, label) {
+            if (!text) return;
+            try {
+                await navigator.clipboard.writeText(text);
+            } catch (_) {
+                try {
+                    const ta = document.createElement("textarea");
+                    ta.value = text;
+                    ta.style.cssText = "position:fixed; top:-9999px;";
+                    document.body.appendChild(ta);
+                    ta.select();
+                    document.execCommand("copy");
+                    document.body.removeChild(ta);
+                } catch (_) {
+                    return showToast("कॉपी नहीं हो पाया", false);
+                }
+            }
+            showToast(`${label || "टेक्स्ट"} कॉपी हो गया 📋`, true);
+        }
+
+        function mcCopyIvrsField_() {
+            const val = document.getElementById("res-ivrs")?.innerText?.trim();
+            if (val) mcCopyText_(val, "IVRS नंबर");
+        }
+
+        function mcShowMobileActionsField_() {
+            const val = document.getElementById("res-old")?.innerText?.trim();
+            if (val && val !== "N/A") mcShowMobileActions_(val);
+        }
+
+        function mcShowMobileActions_(mobile) {
+            const digits = String(mobile || "").replace(/\D/g, "");
+            if (digits.length !== 10) return showToast("मोबाइल नंबर उपलब्ध नहीं है", false);
+            const existing = document.getElementById("mc-mobile-actions-overlay");
+            if (existing) existing.remove();
+
+            const overlay = document.createElement("div");
+            overlay.id = "mc-mobile-actions-overlay";
+            overlay.style.cssText = "position:fixed; inset:0; background:rgba(0,0,0,0.55); z-index:9999; display:flex; align-items:flex-end; justify-content:center;";
+            overlay.addEventListener("click", (e) => { if (e.target === overlay) overlay.remove(); });
+
+            const sheet = document.createElement("div");
+            sheet.style.cssText = "background:#ffffff; border-radius:20px 20px 0 0; padding:18px; width:100%; max-width:420px; box-shadow:0 -12px 30px rgba(0,0,0,0.25);";
+            sheet.innerHTML = `
+                <div style="font-size:14px; font-weight:900; color:#1e293b; text-align:center; margin-bottom:4px;">📱 ${escapeHtml(digits)}</div>
+                <div style="font-size:11px; font-weight:700; color:#64748b; text-align:center; margin-bottom:14px;">क्या करना चाहते हैं?</div>
+                <a href="tel:+91${digits}" style="display:flex; align-items:center; justify-content:center; gap:8px; width:100%; height:48px; border-radius:12px; background:linear-gradient(135deg,#16a34a,#15803d); color:#fff; font-size:13px; font-weight:900; text-decoration:none; margin-bottom:10px;">📞 कॉल करें</a>
+                <a href="sms:+91${digits}" style="display:flex; align-items:center; justify-content:center; gap:8px; width:100%; height:48px; border-radius:12px; background:linear-gradient(135deg,#3b82f6,#1d4ed8); color:#fff; font-size:13px; font-weight:900; text-decoration:none; margin-bottom:10px;">💬 SMS करें</a>
+                <a href="https://wa.me/91${digits}" target="_blank" rel="noopener" style="display:flex; align-items:center; justify-content:center; gap:8px; width:100%; height:48px; border-radius:12px; background:linear-gradient(135deg,#25D366,#128C7E); color:#fff; font-size:13px; font-weight:900; text-decoration:none; margin-bottom:10px;">🟢 WhatsApp करें</a>
+                <button id="mc-mobile-actions-close-btn" style="width:100%; height:42px; border:none; border-radius:12px; background:#e2e8f0; color:#1e293b; font-size:12px; font-weight:900; text-transform:uppercase;">बंद करें</button>
+            `;
+            overlay.appendChild(sheet);
+            document.body.appendChild(overlay);
+            document.getElementById("mc-mobile-actions-close-btn").onclick = () => overlay.remove();
+        }
+
         document.addEventListener("click", (e) => {
             const menu = document.getElementById("mu-menu-dropdown");
             const btn = document.getElementById("mu-menu-btn");
@@ -215,12 +279,10 @@
                 <th style="${thStyle}">नाम</th>
                 <th style="${thStyle}">पिता का नाम</th>
                 <th style="${thStyle}">पता</th>
-                <th style="${thStyle}">HQ</th>
                 <th style="${thStyle}">टैरिफ / लोड</th>
                 <th style="${thStyle}">पुराना (गलत) नंबर</th>
                 <th style="${thStyle}">स्थिति</th>
                 <th style="${thStyle}">सही मोबाइल नंबर</th>
-                <th style="${thStyle}">फ़्लैग किया</th>
             </tr>`;
 
             let sNo = 0;
@@ -231,15 +293,17 @@
                     const uid = getEntryUid_(e);
                     const isPending = e.status !== "corrected";
                     const rowBg = isPending ? "#fee2e2" : "#f0fdf4";
+                    const ivrsJs = mcJsEscape_(e.ivrs || "");
+                    const oldMobileJs = mcJsEscape_(e.old_mobile || "");
+                    const correctMobileJs = mcJsEscape_(e.correct_mobile || "");
                     return `<tr style="background:${rowBg};">
                         <td style="${mcTableCellStyle_()}">${sNo}</td>
-                        <td style="${mcTableCellStyle_("font-weight:900;")}">${escapeHtml(e.ivrs || "")}</td>
+                        <td style="${mcTableCellStyle_("font-weight:900;")}" class="mc-tap-copy" onclick="mcCopyText_('${ivrsJs}','IVRS नंबर')">${escapeHtml(e.ivrs || "")}</td>
                         <td style="${mcTableCellStyle_("text-align:left;")}">${escapeHtml(e.name || "-")}</td>
                         <td style="${mcTableCellStyle_("text-align:left;")}">${escapeHtml(e.father || "-")}</td>
                         <td style="${mcTableCellStyle_("text-align:left; white-space:normal; min-width:120px;")}">${escapeHtml(e.address || "-")}</td>
-                        <td style="${mcTableCellStyle_()}">${escapeHtml(e.hq || hq)}</td>
                         <td style="${mcTableCellStyle_()}">${escapeHtml([e.tariff, e.load].filter(Boolean).join(" / ") || "-")}</td>
-                        <td style="${mcTableCellStyle_("color:#991b1b; font-weight:900;")}">${escapeHtml(e.old_mobile || "N/A")}</td>
+                        <td style="${mcTableCellStyle_("color:#991b1b; font-weight:900;")}"${e.old_mobile ? ` class="mc-tap-copy" onclick="mcShowMobileActions_('${oldMobileJs}')"` : ""}>${escapeHtml(e.old_mobile || "N/A")}${e.flagged_date ? `<br><span style="color:#64748b; font-weight:700; text-decoration:none;">${escapeHtml(e.flagged_date)}</span>` : ""}</td>
                         <td style="${mcTableCellStyle_(isPending ? "color:#b91c1c; font-weight:900;" : "color:#15803d; font-weight:900;")}">${isPending ? "⏳ पेंडिंग" : "✅ ठीक हुआ"}</td>
                         <td style="${mcTableCellStyle_()}">
                             ${isPending ? `
@@ -247,9 +311,8 @@
                                     <input type="tel" id="mc-correct-${uid}" placeholder="10 अंक" oninput="this.value=this.value.replace(/[^0-9]/g,'').slice(0,10)" style="width:90px; height:30px; border-radius:6px; border:1.5px solid #fca5a5; padding:0 6px; font-size:10.5px; font-weight:700; box-sizing:border-box;">
                                     <button onclick="saveCorrectMobile_('${uid}')" style="border:none; background:#16a34a; color:#ffffff; border-radius:6px; padding:0 8px; height:30px; font-size:9.5px; font-weight:900; text-transform:uppercase; flex-shrink:0;">सेव</button>
                                 </div>
-                            ` : `<span style="color:#15803d; font-weight:900;">${escapeHtml(e.correct_mobile || "")}</span> <span style="color:#64748b; font-weight:700;">(${escapeHtml(e.corrected_date || "")})</span>`}
+                            ` : `<span class="mc-tap-copy" onclick="mcShowMobileActions_('${correctMobileJs}')" style="color:#15803d; font-weight:900;">${escapeHtml(e.correct_mobile || "")}</span> <span style="color:#64748b; font-weight:700;">(${escapeHtml(e.corrected_date || "")})</span>`}
                         </td>
-                        <td style="${mcTableCellStyle_()}">${escapeHtml(e.flagged_date || "")}${e.submitted_by_name ? `<br><span style="color:#64748b; font-weight:700;">${escapeHtml(e.submitted_by_name)}</span>` : ""}</td>
                     </tr>`;
                 }).join("");
             }).join("");
