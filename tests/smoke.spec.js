@@ -113,6 +113,29 @@ test.describe('DC dashboard — hidden/removed features', () => {
     Object.values(state.views).forEach((v) => expect(v).toBe(false));
     Object.values(state.fns).forEach((v) => expect(v).toBe('undefined'));
   });
+
+  test('BADALPAR aur BANDOL DC "Coming Soon" dikhte hain aur click par dc-dashboard nahi khulta', async ({ page }) => {
+    await openApp(page);
+    await page.click('.list-item.bg-blue-grad'); // Seoni Division
+    await page.waitForFunction(() => document.getElementById('dc-selection-view').classList.contains('active'));
+    await page.click('#prof-trigger');
+
+    const items = page.locator('#dc-menu .option-item');
+    const badalpar = items.filter({ hasText: 'BADALPAR' });
+    const bandol = items.filter({ hasText: 'BANDOL' });
+    await expect(badalpar).toContainText('Coming Soon');
+    await expect(bandol).toContainText('Coming Soon');
+
+    await badalpar.click();
+    await page.waitForTimeout(200);
+    expect(await page.evaluate(() => document.getElementById('dc-dashboard-view').classList.contains('active'))).toBe(false);
+
+    // Ek normal DC (ARI) abhi bhi bilkul theek khulna chahiye
+    const ari = items.filter({ hasText: /^ARI$/ });
+    await expect(ari).not.toContainText('Coming Soon');
+    await ari.click();
+    await page.waitForFunction(() => document.getElementById('dc-dashboard-view').classList.contains('active'));
+  });
 });
 
 test.describe('Feeder Reading (active feature)', () => {

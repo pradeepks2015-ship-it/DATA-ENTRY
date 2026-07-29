@@ -206,7 +206,12 @@
             btn.innerText = "Generating...";
             btn.disabled = true;
 
+            let holder = null;
             try {
+                if (typeof html2canvas === "undefined") {
+                    showToast("PDF library load nahi hui — internet check karke dobara try karein", false);
+                    return;
+                }
                 const filtered = await filterBrokenPoleEntries_(fromDate, toDate);
                 await refreshBrokenPoleMisTotal();
                 await hydratePhotoDataForPdf_(filtered);
@@ -220,99 +225,107 @@
                 const { jsPDF } = window.jspdf;
                 const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
 
-                // Header
-                doc.setFillColor(180, 83, 9);
-                doc.rect(0, 0, 210, 22, "F");
-                doc.setFontSize(13);
-                doc.setTextColor(255, 255, 255);
-                doc.setFont(undefined, "bold");
-                doc.text("BROKEN POLE / DAMAGE LINE MIS REPORT", 105, 10, { align: "center" });
-                doc.setFontSize(8);
-                doc.setFont(undefined, "normal");
-                doc.text(`DC: ${activeDC || "-"}  |  Period: ${fmtDate(fromDate)} to ${fmtDate(toDate)}`, 105, 17, { align: "center" });
+                // Report ko HTML me banakar image ke roop me PDF me lagate hain — jsPDF
+                // ka apna text-rendering Hindi/Devanagari nahi dikha pata (remark1/remark2
+                // aksar Hindi me bhare jaate hain), html2canvas se bilkul screen jaisa saaf
+                // render hota hai — bijli_chori ka MIS PDF isi tarah banta hai.
+                holder = document.createElement("div");
+                holder.style.cssText = "position:fixed; left:-12000px; top:0; width:760px; background:#ffffff; font-family:'Noto Sans Devanagari','Mangal','Nirmala UI',Arial,sans-serif; color:#1e293b;";
+                document.body.appendChild(holder);
 
-                doc.setTextColor(100);
-                doc.setFontSize(7);
-                doc.text(`Generated: ${new Date().toLocaleString("en-IN")}`, 200, 26, { align: "right" });
+                const renderBlock = async (innerHtml) => {
+                    const el = document.createElement("div");
+                    el.style.cssText = "width:760px; background:#ffffff; padding:4px 2px; box-sizing:border-box;";
+                    el.innerHTML = innerHtml;
+                    holder.appendChild(el);
+                    const canvas = await html2canvas(el, { scale: 2, backgroundColor: "#ffffff", logging: false });
+                    holder.removeChild(el);
+                    return { dataUrl: canvas.toDataURL("image/jpeg", 0.92), wPx: canvas.width, hPx: canvas.height };
+                };
 
-                doc.setFontSize(10);
-                doc.setTextColor(180, 83, 9);
-                doc.setFont(undefined, "bold");
-                doc.text(`TOTAL ENTRIES: ${filtered.length}`, 14, 32);
+                let y = 10;
+                const addBlock = (img, gapMm = 3) => {
+                    const hMm = img.hPx * (182 / img.wPx);
+                    if (y + hMm > 278 && y > 10) { doc.addPage(); y = 10; }
+                    doc.addImage(img.dataUrl, "JPEG", 14, y, 182, hMm);
+                    y += hMm + gapMm;
+                };
 
-                const PHOTO_CELL_W = 32;
-                const PHOTO_CELL_H = 32;
+                // ----- Header block -----
+                const headerHtml = `
+                    <div style="background:#b45309; color:#ffffff; border-radius:8px; padding:16px 12px; text-align:center;">
+                        <div style="font-size:24px; font-weight:900; letter-spacing:0.5px;">टूटे खंभे / डैमेज लाइन — MIS रिपोर्ट</div>
+                        <div style="font-size:14px; font-weight:700; margin-top:6px;">डीसी: ${escapeHtml(activeDC || "-")} &nbsp;|&nbsp; अवधि: ${fmtDate(fromDate)} से ${fmtDate(toDate)} तक &nbsp;|&nbsp; v2.5</div>
+                    </div>
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-top:10px; padding:0 2px;">
+                        <div style="color:#b45309; font-weight:900; font-size:16px;">कुल एंट्री: ${filtered.length}</div>
+                        <div style="font-size:12px; font-weight:700; color:#64748b;">तैयार किया गया: ${new Date().toLocaleString("en-IN")}</div>
+                    </div>`;
+                addBlock(await renderBlock(headerHtml), 4);
 
-                const detailBody = filtered.map((e, i) => [
-                    i + 1,
-                    "", // photo placeholder, drawn via didDrawCell
-                    e.date || "",
-                    e.remark1 || "",
-                    e.remark2 || "",
-                    (e.gps_latitude && e.gps_longitude) ? `${e.gps_latitude}, ${e.gps_longitude}` : "N/A",
-                    e.gps_location || "",
-                    isValidLatLon_(e.gps_latitude, e.gps_longitude) ? "Open Map" : "N/A"
-                ]);
+                // ----- Table blocks (chunks me, taaki page-break saaf rahe) -----
+                const cellTh = "border:1px solid #92400e; background:#b45309; color:#ffffff; padding:7px 5px; font-size:12px; font-weight:900; text-align:center;";
+                const cellTd = "border:1px solid #e2e8f0; padding:7px 5px; font-size:12.5px; font-weight:600; text-align:center; vertical-align:top;";
+                const theadHtml = `<tr>
+                    <th style="${cellTh} width:44px;">क्र.सं.</th>
+                    <th style="${cellTh} width:82px;">दिनांक</th>
+                    <th style="${cellTh} width:90px;">डीसी</th>
+                    <th style="${cellTh}">रिमार्क 1</th>
+                    <th style="${cellTh}">रिमार्क 2</th>
+                    <th style="${cellTh} width:106px;">GPS निर्देशांक</th>
+                    <th style="${cellTh}">स्थान</th>
+                </tr>`;
+                const rowHtml = (e, i) => `<tr style="background:${i % 2 ? "#fffbeb" : "#ffffff"};">
+                    <td style="${cellTd}">${i + 1}</td>
+                    <td style="${cellTd}">${escapeHtml(e.date || "")}</td>
+                    <td style="${cellTd}">${escapeHtml(e.dc_name || "")}</td>
+                    <td style="${cellTd} text-align:left;">${escapeHtml(e.remark1 || "")}</td>
+                    <td style="${cellTd} text-align:left;">${escapeHtml(e.remark2 || "")}</td>
+                    <td style="${cellTd}">${escapeHtml((e.gps_latitude && e.gps_longitude) ? `${e.gps_latitude}, ${e.gps_longitude}` : "N/A")}</td>
+                    <td style="${cellTd} text-align:left;">${escapeHtml(e.gps_location || "N/A")}</td>
+                </tr>`;
 
-                doc.autoTable({
-                    startY: 38,
-                    margin: { left: 5, right: 5 },
-                    tableWidth: "auto",
-                    head: [["S.No.", "Photo", "Date", "Remark 1", "Remark 2", "GPS Coordinates", "Location", "Directions"]],
-                    body: detailBody.length ? detailBody : [["-", "-", "-", "No entries found", "-", "-", "-", "-"]],
-                    theme: "striped",
-                    headStyles: { fillColor: [180, 83, 9], textColor: 255, halign: "center", fontSize: 7, fontStyle: "bold" },
-                    bodyStyles: { fontSize: 7, valign: "middle", overflow: "linebreak" },
-                    styles: { cellWidth: "wrap" },
-                    columnStyles: {
-                        0: { halign: "center", cellWidth: 9 },
-                        1: { halign: "center", cellWidth: PHOTO_CELL_W + 2 },
-                        2: { halign: "center", cellWidth: 18 },
-                        3: { halign: "left", cellWidth: 26 },
-                        4: { halign: "left", cellWidth: 26 },
-                        5: { halign: "center", cellWidth: 28 },
-                        6: { halign: "left", cellWidth: 30 },
-                        7: { halign: "center", cellWidth: 16, textColor: [21, 128, 61], fontStyle: "bold" }
-                    },
-                    didParseCell: (data) => {
-                        // Give the photo row extra height so the image fits
-                        if (data.section === "body" && data.column.index === 1 && filtered.length) {
-                            const e = filtered[data.row.index];
-                            if (e && e.photo_data) {
-                                data.cell.styles.minCellHeight = PHOTO_CELL_H + 4;
-                            }
-                        }
-                    },
-                    didDrawCell: (data) => {
-                        if (data.section === "body" && filtered.length) {
-                            const e = filtered[data.row.index];
-                            if (data.column.index === 1 && e && e.photo_data) {
-                                try {
-                                    const x = data.cell.x + (data.cell.width - PHOTO_CELL_W) / 2;
-                                    const y = data.cell.y + 2;
-                                    doc.addImage(e.photo_data, "JPEG", x, y, PHOTO_CELL_W, PHOTO_CELL_H);
-                                } catch (_) {}
-                            }
-                            if (data.column.index === 7 && e && isValidLatLon_(e.gps_latitude, e.gps_longitude)) {
-                                const mapsUrl = `https://www.google.com/maps/dir/?api=1&destination=${e.gps_latitude},${e.gps_longitude}`;
-                                doc.link(data.cell.x, data.cell.y, data.cell.width, data.cell.height, { url: mapsUrl });
-                            }
-                        }
+                if (!filtered.length) {
+                    addBlock(await renderBlock(`<table style="width:100%; border-collapse:collapse;"><thead>${theadHtml}</thead><tbody><tr><td colspan="7" style="${cellTd} padding:14px;">कोई एंट्री नहीं मिली</td></tr></tbody></table>`));
+                } else {
+                    const CHUNK = 12;
+                    for (let s = 0; s < filtered.length; s += CHUNK) {
+                        const rows = filtered.slice(s, s + CHUNK).map((e, k) => rowHtml(e, s + k)).join("");
+                        addBlock(await renderBlock(`<table style="width:100%; border-collapse:collapse;"><thead>${theadHtml}</thead><tbody>${rows}</tbody></table>`), 2);
                     }
-                });
-
-                // Footnote with directions links (table "Directions" column also has clickable links)
-                if (filtered.some((e) => isValidLatLon_(e.gps_latitude, e.gps_longitude))) {
-                    let noteY = doc.lastAutoTable.finalY + 6;
-                    if (noteY > 280) {
-                        doc.addPage();
-                        noteY = 14;
-                    }
-                    doc.setFontSize(7);
-                    doc.setTextColor(100);
-                    doc.setFont(undefined, "italic");
-                    doc.text(`Tip: Tap "Open Map" in the Directions column to navigate to the exact location.`, 14, noteY);
                 }
+
+                // ----- Photo blocks -----
+                for (let i = 0; i < filtered.length; i++) {
+                    const e = filtered[i];
+                    if (!e.photo_data) continue;
+                    const gpsLine = (e.gps_latitude && e.gps_longitude) ? `${escapeHtml(String(e.gps_latitude))}, ${escapeHtml(String(e.gps_longitude))}` : "N/A";
+                    const photoHtml = `
+                        <div style="border:1.5px solid #fed7aa; border-radius:10px; padding:10px; background:#fffbf5;">
+                            <div style="font-size:14px; font-weight:900; color:#1e293b; margin-bottom:8px;">एंट्री ${i + 1} — ${escapeHtml(e.date || "")} — ${escapeHtml(e.remark1 || "")}</div>
+                            <div style="display:flex; gap:12px; align-items:flex-start;">
+                                <img src="${e.photo_data}" alt="अपलोड की गई फोटो" style="width:330px; height:248px; object-fit:cover; border-radius:8px; border:1px solid #e2e8f0; flex-shrink:0;">
+                                <div style="font-size:13px; font-weight:700; color:#475569; line-height:1.7;">
+                                    <div><span style="color:#1e293b; font-weight:900;">GPS:</span> ${gpsLine}</div>
+                                    <div style="margin-top:4px;"><span style="color:#1e293b; font-weight:900;">स्थान:</span> ${escapeHtml(e.gps_location || "N/A")}</div>
+                                </div>
+                            </div>
+                        </div>`;
+                    addBlock(await renderBlock(photoHtml), 1);
+                    if (isValidLatLon_(e.gps_latitude, e.gps_longitude)) {
+                        if (y > 274) { doc.addPage(); y = 10; }
+                        const mapsUrl = `https://www.google.com/maps/dir/?api=1&destination=${e.gps_latitude},${e.gps_longitude}`;
+                        doc.setFontSize(9);
+                        doc.setTextColor(21, 128, 61);
+                        doc.setFont(undefined, "bold");
+                        doc.text("Open Map (Directions)", 15, y + 2);
+                        doc.link(15, y - 1.5, 48, 5.5, { url: mapsUrl });
+                        y += 8;
+                    }
+                }
+
+                holder.remove();
+                holder = null;
 
                 const totalPages = doc.internal.getNumberOfPages();
                 for (let i = 1; i <= totalPages; i++) {
@@ -328,6 +341,7 @@
             } catch (_) {
                 showToast("Report generate karne mein error aaya", false);
             } finally {
+                if (holder) { try { holder.remove(); } catch (_) {} }
                 btn.innerHTML = '<svg width="16" height="16" fill="white" viewBox="0 0 24 24"><path d="M20 2H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-8.5 7.5c0 .83-.67 1.5-1.5 1.5H9v2H7.5V7H10c.83 0 1.5.67 1.5 1.5v1zm5 2c0 .83-.67 1.5-1.5 1.5h-2.5V7H15c.83 0 1.5.67 1.5 1.5v3zm4-3H19v1h1.5V11H19v2h-1.5V7h3v1.5zM9 9.5h1v-1H9v1zM4 6H2v14c0 1.1.9 2 2 2h14v-2H4V6zm10 5.5h1v-3h-1v3z"/></svg> Download PDF MIS Report';
                 btn.disabled = false;
             }
