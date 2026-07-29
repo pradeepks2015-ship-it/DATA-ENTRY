@@ -209,6 +209,52 @@ test.describe('XSS सुरक्षा', () => {
   });
 });
 
+test.describe('Entry detail view (UX fix — instant feedback + no redundant refetch)', () => {
+  test('View click par turant loading overlay dikhta hai (data aane se pehle hi)', async ({ page }) => {
+    let resolveEntries;
+    const entriesPromise = new Promise((resolve) => { resolveEntries = resolve; });
+    await openApp(page, {
+      beforeGoto: (p) => p.route('**/macros/**', async (route) => {
+        const url = new URL(route.request().url());
+        if (url.searchParams.get('action') === 'getEntries' && url.searchParams.get('module') === 'broken_pole') {
+          await entriesPromise; // jaan-boojh kar rok kar rakhte hain — loader dikhna chahiye tab tak
+          return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ status: 'success', entries: [{ date: '01-07-2026', remark1: 'Pole A', entry_id: 'bp1' }] }) });
+        }
+        return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ status: 'success', entries: [] }) });
+      }),
+    });
+
+    const clickPromise = page.evaluate(() => viewEntryDetail_('broken_pole', 'cloud_bp1'));
+    await page.waitForFunction(() => document.getElementById('entry-detail-overlay')?.innerText.includes('लोड हो रहा है'));
+    resolveEntries();
+    await page.waitForFunction(() => document.getElementById('entry-detail-overlay')?.innerText.includes('Pole A'));
+    await clickPromise;
+  });
+
+  test('list ek baar render hone ke baad, View dobara getEntries fetch nahi karta (cache se milta hai)', async ({ page }) => {
+    let fetchCount = 0;
+    await openApp(page, {
+      beforeGoto: (p) => p.route('**/macros/**', (route) => {
+        const url = new URL(route.request().url());
+        if (url.searchParams.get('action') === 'getEntries' && url.searchParams.get('module') === 'broken_pole') {
+          fetchCount++;
+          return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ status: 'success', entries: [{ date: '01-07-2026', remark1: 'Pole A', entry_id: 'bp1' }] }) });
+        }
+        return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ status: 'success', entries: [] }) });
+      }),
+    });
+
+    await page.evaluate(() => renderEntriesList_('broken_pole'));
+    await page.waitForFunction(() => document.getElementById('entries-list-broken_pole').innerText.includes('Pole A'));
+    expect(fetchCount).toBe(1);
+
+    await page.evaluate(() => viewEntryDetail_('broken_pole', 'cloud_bp1'));
+    await page.waitForFunction(() => document.getElementById('entry-detail-overlay')?.innerText.includes('Pole A'));
+
+    expect(fetchCount).toBe(1); // sirf list render ke waqt hi fetch hua, View click par nahi
+  });
+});
+
 test.describe('Backend auth token', () => {
   test('हर backend request (GET और POST दोनों) में auth_token जाता है', async ({ page }) => {
     /** @type {{url: string, method: string, postData: string|null}[]} */
@@ -454,9 +500,17 @@ test.describe('Home reminders (Push Notification lite)', () => {
     });
   }
 
+  // Hardcoded absolute dates flake out as real time moves past their 7-din window —
+  // "today" ke relative se banate hain taaki test hamesha valid rahe.
+  function isoDateDaysAgo(days) {
+    const d = new Date();
+    d.setDate(d.getDate() - days);
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  }
+
   test('सभी SCN का समय पर जवाब आ चुका हो तो कोई reminder नहीं दिखता', async ({ page }) => {
     await openApp(page, {
-      beforeGoto: (p) => mockKcEntries(p, [{ scn_date_iso: '2026-07-10', emp_name: 'Ram Kumar', dispatch_no: 3, entry_id: 'kc1', reply_text: 'माफ़ी', reply_date_iso: '2026-07-11' }]),
+      beforeGoto: (p) => mockKcEntries(p, [{ scn_date_iso: isoDateDaysAgo(10), emp_name: 'Ram Kumar', dispatch_no: 3, entry_id: 'kc1', reply_text: 'माफ़ी', reply_date_iso: isoDateDaysAgo(9) }]),
     });
     await page.evaluate(() => renderScnReminderBanner_());
     await expect(page.locator('#scn-reminder-banner')).toHaveCount(0);
@@ -464,7 +518,7 @@ test.describe('Home reminders (Push Notification lite)', () => {
 
   test('SCN का जवाब बाकी हो और 7 दिन की समय सीमा पार हो चुकी हो तो overdue banner दिखता है', async ({ page }) => {
     await openApp(page, {
-      beforeGoto: (p) => mockKcEntries(p, [{ scn_date_iso: '2026-07-10', emp_name: 'Ram Kumar', dispatch_no: 3, entry_id: 'kc1' }]),
+      beforeGoto: (p) => mockKcEntries(p, [{ scn_date_iso: isoDateDaysAgo(10), emp_name: 'Ram Kumar', dispatch_no: 3, entry_id: 'kc1' }]),
     });
     await page.evaluate(() => renderScnReminderBanner_());
     await expect(page.locator('#scn-reminder-banner')).toBeVisible();
@@ -473,7 +527,7 @@ test.describe('Home reminders (Push Notification lite)', () => {
 
   test('SCN का जवाब बाकी हो पर अभी 7 दिन की समय सीमा के अंदर हो तो neutral (non-overdue) banner दिखता है', async ({ page }) => {
     await openApp(page, {
-      beforeGoto: (p) => mockKcEntries(p, [{ scn_date_iso: '2026-07-20', emp_name: 'Shyam Lal', dispatch_no: 5, entry_id: 'kc2' }]),
+      beforeGoto: (p) => mockKcEntries(p, [{ scn_date_iso: isoDateDaysAgo(2), emp_name: 'Shyam Lal', dispatch_no: 5, entry_id: 'kc2' }]),
     });
     await page.evaluate(() => renderScnReminderBanner_());
     const banner = page.locator('#scn-reminder-banner');

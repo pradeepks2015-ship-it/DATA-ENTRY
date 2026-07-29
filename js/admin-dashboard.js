@@ -237,6 +237,8 @@
             const mobileCount = mobileRows ? mobileRows.length : null;
 
             admLastData_ = { feederRows, bpInRange, bcInRange, kcInRange, mobileRows: mobileRows || [], fromKey, toKey };
+            cacheEntriesForDetail_("broken_pole", bpInRange);
+            cacheEntriesForDetail_("bijli_chori", bcInRange);
 
             const cards = [
                 admSummaryCard_("🔌", "Feeder Reading", feederRows.length),
