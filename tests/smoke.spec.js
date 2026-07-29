@@ -715,7 +715,7 @@ test.describe('Mobile Correction Tracker (galat mobile number flag + monitor)', 
     expect(entries[0].correct_mobile).toBe('9123456789');
   });
 
-  test('⋮ मेनू me MIS Report aur Excel download dono milte hain (bina errors ke)', async ({ page }) => {
+  test('⋮ मेनू me MPEZ Portal aur Excel download milte hain, PDF MIS Report option nahi hai', async ({ page }) => {
     const errors = [];
     page.on('pageerror', (e) => errors.push(e.message));
     await openApp(page, {
@@ -731,9 +731,10 @@ test.describe('Mobile Correction Tracker (galat mobile number flag + monitor)', 
     await expect(page.locator('#mu-menu-dropdown')).toBeHidden();
     await page.click('#mu-menu-btn');
     await expect(page.locator('#mu-menu-dropdown')).toBeVisible();
-    await expect(page.locator('#mu-menu-dropdown')).toContainText('MIS Report');
-    await expect(page.locator('#mis-pdf-btn')).toBeVisible();
+    await expect(page.locator('#mu-menu-dropdown')).toContainText('MPEZ Portal');
+    await expect(page.locator('#mpez-redirect-btn')).toBeVisible();
     await expect(page.locator('#mc-excel-btn')).toBeVisible();
+    await expect(page.locator('#mis-pdf-btn')).toHaveCount(0);
 
     // Koi flagged entry na hone par bhi crash nahi hona chahiye
     await page.click('#mc-excel-btn');
