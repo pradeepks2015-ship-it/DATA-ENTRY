@@ -453,8 +453,8 @@
             const groups = mcGroupByHq_(entries);
             const hqNames = Object.keys(groups).sort();
 
-            const thStyle = "border:1px solid #1e3a5f; background:#1e3a5f; color:#ffffff; padding:7px 8px; font-size:10px; font-weight:900; text-transform:uppercase; white-space:nowrap;";
-            const tdStyle = "border:1px solid #cbd5e1; padding:6px 8px; font-size:11px; font-weight:700; color:#1e293b; white-space:nowrap; text-align:center;";
+            const thStyle = "border:1px solid #1e3a5f; background:#1e3a5f; color:#ffffff; padding:6px 4px; font-size:8.5px; font-weight:900; text-transform:uppercase; white-space:normal; word-break:break-word; line-height:1.25;";
+            const tdStyle = "border:1px solid #cbd5e1; padding:6px 4px; font-size:12px; font-weight:700; color:#1e293b; white-space:normal; text-align:center;";
 
             let totalFlagged = 0, totalCorrected = 0;
             const rowsHtml = hqNames.map((hq) => {
@@ -481,8 +481,11 @@
             </tr>`;
 
             body.innerHTML = `
-                <div style="overflow-x:auto; border-radius:10px;">
-                    <table style="border-collapse:collapse; width:100%;">
+                <div style="border-radius:10px;">
+                    <table style="border-collapse:collapse; width:100%; table-layout:fixed;">
+                        <colgroup>
+                            <col style="width:30%;"><col style="width:24%;"><col style="width:24%;"><col style="width:22%;">
+                        </colgroup>
                         <thead><tr>
                             <th style="${thStyle} text-align:left;">मुख्यालय</th>
                             <th style="${thStyle}">किये गये wrong mb. no. फ्लैग</th>
