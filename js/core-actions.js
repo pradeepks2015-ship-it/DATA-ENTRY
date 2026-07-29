@@ -1,6 +1,7 @@
-        // Yeh DCs abhi taiyar nahi hain — list me dikhte hain (context ke liye) par
-        // "Coming Soon" ke saath disabled rehte hain jab tak inka data ready na ho.
-        const COMING_SOON_DCS = ["BADALPAR", "BANDOL"];
+        // Poora Division Seoni abhi taiyar nahi hai (sirf Division Lakhnadon ka ADEGAON
+        // kaam kar raha hai) — iski sabhi DCs list me dikhti hain (context ke liye) par
+        // "Coming Soon" ke saath disabled rehti hain jab tak data ready na ho.
+        const COMING_SOON_DIVISIONS = ["DIVISION SEONI"];
 
         function showDivision(name, colorClass) {
             activeDiv = name.trim().toUpperCase();
@@ -12,8 +13,9 @@
             switchView("dc-selection");
             const menu = document.getElementById("dc-menu");
             menu.innerHTML = "";
+            const divisionComingSoon = COMING_SOON_DIVISIONS.includes(activeDiv);
             getDivisionDcNames(activeDiv).forEach((dc) => {
-                const isComingSoon = COMING_SOON_DCS.includes(dc.toUpperCase());
+                const isComingSoon = divisionComingSoon;
                 const item = document.createElement("div");
                 item.className = "option-item";
                 if (isComingSoon) {

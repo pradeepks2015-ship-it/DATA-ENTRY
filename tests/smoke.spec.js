@@ -34,14 +34,16 @@ async function openApp(page, opts = {}) {
 }
 
 /**
- * Home → Seoni Division → पहला DC चुनकर dc-dashboard-view तक पहुंचाता है।
+ * Home → Lakhnadon Division → ADEGAON चुनकर dc-dashboard-view तक पहुंचाता है।
+ * (Seoni Division की सभी DCs अभी "Coming Soon" हैं, इसलिए क्लिक करने पर आगे नहीं
+ * खुलतीं — इसीलिए tests यहाँ Lakhnadon/ADEGAON का इस्तेमाल करते हैं, जो असल में काम करती है।)
  * @param {import('@playwright/test').Page} page
  */
 async function goToDcDashboard(page) {
-  await page.click('.list-item.bg-blue-grad'); // Seoni Division
+  await page.click('.list-item.bg-orange-grad'); // Lakhnadon Division
   await page.waitForFunction(() => document.getElementById('dc-selection-view').classList.contains('active'));
   await page.click('#prof-trigger');
-  await page.click('#dc-menu .option-item >> nth=0');
+  await page.click('#dc-menu .option-item >> nth=0'); // ADEGAON
   await page.waitForFunction(() => document.getElementById('dc-dashboard-view').classList.contains('active'));
 }
 
@@ -114,26 +116,33 @@ test.describe('DC dashboard — hidden/removed features', () => {
     Object.values(state.fns).forEach((v) => expect(v).toBe('undefined'));
   });
 
-  test('BADALPAR aur BANDOL DC "Coming Soon" dikhte hain aur click par dc-dashboard nahi khulta', async ({ page }) => {
+  test('Division Seoni ki sabhi DCs "Coming Soon" dikhti hain aur click par dc-dashboard nahi khulta', async ({ page }) => {
     await openApp(page);
     await page.click('.list-item.bg-blue-grad'); // Seoni Division
     await page.waitForFunction(() => document.getElementById('dc-selection-view').classList.contains('active'));
     await page.click('#prof-trigger');
 
     const items = page.locator('#dc-menu .option-item');
-    const badalpar = items.filter({ hasText: 'BADALPAR' });
-    const bandol = items.filter({ hasText: 'BANDOL' });
-    await expect(badalpar).toContainText('Coming Soon');
-    await expect(bandol).toContainText('Coming Soon');
+    const count = await items.count();
+    expect(count).toBeGreaterThan(0);
+    for (let i = 0; i < count; i++) {
+      await expect(items.nth(i)).toContainText('Coming Soon');
+    }
 
-    await badalpar.click();
+    await items.nth(0).click(); // ARI
     await page.waitForTimeout(200);
     expect(await page.evaluate(() => document.getElementById('dc-dashboard-view').classList.contains('active'))).toBe(false);
+  });
 
-    // Ek normal DC (ARI) abhi bhi bilkul theek khulna chahiye
-    const ari = items.filter({ hasText: /^ARI$/ });
-    await expect(ari).not.toContainText('Coming Soon');
-    await ari.click();
+  test('Division Lakhnadon ka ADEGAON "Coming Soon" nahi hai, saamanya roop se khulta hai', async ({ page }) => {
+    await openApp(page);
+    await page.click('.list-item.bg-orange-grad'); // Lakhnadon Division
+    await page.waitForFunction(() => document.getElementById('dc-selection-view').classList.contains('active'));
+    await page.click('#prof-trigger');
+
+    const adegaon = page.locator('#dc-menu .option-item').filter({ hasText: 'ADEGAON' });
+    await expect(adegaon).not.toContainText('Coming Soon');
+    await adegaon.click();
     await page.waitForFunction(() => document.getElementById('dc-dashboard-view').classList.contains('active'));
   });
 });
