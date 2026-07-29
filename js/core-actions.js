@@ -88,69 +88,6 @@
             return String(value || "").replace(/\D/g, "");
         }
 
-        function getMobileUpdateStorageMap() {
-            try {
-                return JSON.parse(localStorage.getItem(mobileUpdateStorageKey) || "{}");
-            } catch (_) {
-                return {};
-            }
-        }
-
-        function getMobileUpdateKey(record) {
-            if (!record) return "";
-            const dc = normalizeLookupValue(activeDC || "");
-            const ivrs = normalizeLookupDigits(record.ivrs || "");
-            return `${dc}__${ivrs}`;
-        }
-
-        function isMobileAlreadySubmitted(record) {
-            const key = getMobileUpdateKey(record);
-            if (!key) return false;
-            const submittedMap = getMobileUpdateStorageMap();
-            return !!submittedMap[key] || !!mobileSubmittedSheetMap[key];
-        }
-
-        function isMobileAlreadySubmittedByIvrs(ivrsValue, dcName = activeDC) {
-            const dc = normalizeLookupValue(dcName || "");
-            const ivrs = normalizeLookupDigits(ivrsValue || "");
-            if (!dc || !ivrs) return false;
-            const key = `${dc}__${ivrs}`;
-            const submittedMap = getMobileUpdateStorageMap();
-            return !!submittedMap[key] || !!mobileSubmittedSheetMap[key];
-        }
-
-        function markMobileSubmitted(record, newMobile) {
-            const key = getMobileUpdateKey(record);
-            if (!key) return;
-            const submittedMap = getMobileUpdateStorageMap();
-            submittedMap[key] = {
-                submittedAt: new Date().toISOString(),
-                dc: activeDC || "",
-                ivrs: record.ivrs || "",
-                mobile: newMobile || ""
-            };
-            localStorage.setItem(mobileUpdateStorageKey, JSON.stringify(submittedMap));
-            mobileSubmittedSheetMap[key] = true;
-        }
-
-        async function loadSubmittedMobileSheetMap() {
-            try {
-                const res = await fetch(`${scriptURL}?action=getSummary&auth_token=${encodeURIComponent(APPS_SCRIPT_AUTH_TOKEN)}&t=${Date.now()}`);
-                const cloudData = await res.json();
-                const nextMap = {};
-                (Array.isArray(cloudData) ? cloudData : []).forEach((entry) => {
-                    const dc = normalizeLookupValue(entry.dc || "");
-                    const ivrs = normalizeLookupDigits(entry.ivrs || "");
-                    if (!dc || !ivrs) return;
-                    nextMap[`${dc}__${ivrs}`] = true;
-                });
-                mobileSubmittedSheetMap = nextMap;
-                return nextMap;
-            } catch (_) {
-                return mobileSubmittedSheetMap;
-            }
-        }
-
         function toggleDropdown() {
             document.getElementById("dc-menu").classList.toggle("show");
             document.getElementById("prof-trigger").classList.toggle("active");
@@ -202,7 +139,6 @@
             const v = document.getElementById("search-ivrs").value.trim();
             currentData = null;
             document.getElementById("result-box").style.display = "none";
-            document.getElementById("submit-btn").style.display = "none";
             if (v.length !== 10) return showToast("Enter 10 digit IVRS", false);
             let rows = getConsumerRows(activeDC);
             if (!rows.length) {
@@ -232,66 +168,6 @@
             const tariffNode = document.getElementById("res-tariff");
             if (tariffNode) tariffNode.innerText = [currentData.tariff, currentData.load && `${currentData.load} ${currentData.unit || ""}`.trim()].filter(Boolean).join(" | ") || "N/A";
             document.getElementById("result-box").style.display = "block";
-            document.getElementById("submit-btn").style.display = "block";
-        }
-
-        async function submitToSheet() {
-            const n = document.getElementById("new-mobile").value;
-            if (n.length !== 10) return showToast("Enter 10 Digit No", false);
-            const p = new URLSearchParams();
-            p.append("ivrs", currentData.ivrs);
-            p.append("name", currentData.name);
-            p.append("father", currentData.father);
-            p.append("old_mobile", currentData.old);
-            p.append("address", currentData.addr);
-            p.append("hq", currentData.hq);
-            p.append("correct_mobile", n);
-            p.append("dc", activeDC);
-            p.append("division", activeDiv);
-            p.append("timestamp", new Date().toLocaleDateString("en-GB"));
-            const empTag = currentEmployeeTag_();
-            p.append("submitted_by_id", empTag.submitted_by_id);
-            p.append("submitted_by_name", empTag.submitted_by_name);
-            p.append("auth_token", APPS_SCRIPT_AUTH_TOKEN);
-            try {
-                const btn = document.getElementById("submit-btn");
-                btn.innerText = "Submitting...";
-                btn.disabled = true;
-                const response = await fetch(scriptURL, {
-                    method: "POST",
-                    headers: { "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8" },
-                    body: p.toString()
-                });
-
-                const responseText = await response.text();
-                let submitOk = response.ok;
-                let submitMessage = submitOk ? "Submitted Successfully!" : "Submit error aaya";
-
-                try {
-                    const parsed = JSON.parse(responseText || "{}");
-                    if (parsed && parsed.status === "error") {
-                        submitOk = false;
-                        submitMessage = parsed.message || "Submit error aaya";
-                    } else if (parsed && parsed.message) {
-                        submitMessage = parsed.message;
-                    }
-                } catch (_) {
-                    if (!submitOk && responseText) {
-                        submitMessage = responseText;
-                    }
-                }
-
-                showToast(submitMessage, submitOk);
-                if (!submitOk) return;
-                resetForm(true);
-                const searchInput = document.getElementById("search-ivrs");
-                if (searchInput) searchInput.focus();
-            } catch (e) {
-                showToast("Submit blocked ya network issue aaya", false);
-            } finally {
-                document.getElementById("submit-btn").innerText = "Submit";
-                document.getElementById("submit-btn").disabled = false;
-            }
         }
 
         async function downloadMisReportPdf() {

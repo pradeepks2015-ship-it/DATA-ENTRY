@@ -249,13 +249,6 @@
                         </div>
                     </div>
 
-                    <!-- Also keep local new mobile input for record keeping -->
-                    <div style="margin-top:14px;">
-                        <div class="title-box-container" style="padding:8px 0 10px 0;"><div class="title-box" style="background-color:#fee2e2;"><span class="title-text-bold" style="color:#991b1b;">Local Record (Optional)</span></div></div>
-                        <div style="font-size:10px; color:#6b7280; font-weight:600; text-align:center; margin-bottom:8px;">MPEZ site par update karne ke baad yahan bhi save karein</div>
-                        <input type="tel" id="new-mobile" class="teal-boundary-input" placeholder="Naya Mobile No (10 digit)..." oninput="this.value=this.value.replace(/[^0-9]/g,'').slice(0,10)">
-                    </div>
-
                     <!-- Wrong Mobile Number Tracker -->
                     <div style="margin-top:14px; padding:14px; background:linear-gradient(135deg,#fef2f2,#fee2e2); border:1.5px solid #fca5a5; border-radius:14px;">
                         <div style="font-size:11px; font-weight:900; color:#991b1b; text-transform:uppercase; letter-spacing:0.4px; margin-bottom:8px; text-align:center;">
@@ -267,7 +260,6 @@
                         <button id="mc-flag-btn" onclick="flagWrongMobile_()" style="width:100%; height:46px; border:none; border-radius:12px; background:linear-gradient(135deg,#dc2626 0%,#7f1d1d 100%); color:#ffffff; font-size:12px; font-weight:900; text-transform:uppercase;">❌ यह नंबर गलत है — Flag करें</button>
                     </div>
                 </div>
-                <button id="submit-btn" class="submit-sync-btn" onclick="submitToSheet()">Save Local Record</button>
 
                 <!-- Pending Correction List (HQ-wise) -->
                 <div style="width:100%; max-width:340px; margin: 14px auto 0 auto;">
