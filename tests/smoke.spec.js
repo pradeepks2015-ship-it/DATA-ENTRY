@@ -694,7 +694,10 @@ test.describe('Mobile Correction Tracker (galat mobile number flag + monitor)', 
 
     const list = page.locator('#mc-pending-list');
     await expect(list).toContainText('ADEGAON HQ');
-    await expect(list).toContainText('0/1 ठीक हुए');
+    await expect(list).toContainText('कुल फ़्लैग: 1');
+    await expect(list).toContainText('बाकी: 1');
+    await expect(list.locator('table')).toBeVisible();
+    await expect(list).toContainText('⏳ पेंडिंग');
 
     const uid = await page.evaluate(async () => {
       const entries = await getMobileCorrectionEntries_();
@@ -704,7 +707,9 @@ test.describe('Mobile Correction Tracker (galat mobile number flag + monitor)', 
     await page.click(`button[onclick="saveCorrectMobile_('${uid}')"]`);
     await page.waitForFunction((u) => document.getElementById('mc-pending-list').innerText.includes('9123456789'), uid);
 
-    await expect(list).toContainText('1/1 ठीक हुए');
+    await expect(list).toContainText('ठीक हुए: 1');
+    await expect(list).toContainText('बाकी: 0');
+    await expect(list).toContainText('✅ ठीक हुआ');
     const entries = await page.evaluate(() => getMobileCorrectionEntries_());
     expect(entries[0].status).toBe('corrected');
     expect(entries[0].correct_mobile).toBe('9123456789');
