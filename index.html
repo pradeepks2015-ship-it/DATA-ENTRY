@@ -193,6 +193,31 @@
         </main>
         <main id="mobile-update-view" class="view">
             <div class="title-box-container"><div class="title-box"><span class="title-text-bold">UPDATE MOBILE NO</span></div></div>
+            <div style="display:flex; justify-content:flex-end; width:100%; max-width:340px; margin:0 auto 8px auto; position:relative;">
+                <button type="button" id="mu-menu-btn" onclick="toggleMobileUpdateMenu_()" aria-label="MIS / Excel मेनू" style="background:#1e3a5f; border:none; color:#ffffff; width:38px; height:38px; border-radius:10px; font-size:18px; font-weight:900; cursor:pointer;">⋮</button>
+                <div id="mu-menu-dropdown" style="display:none; position:absolute; top:44px; right:0; width:290px; max-width:calc(100vw - 32px); background:#ffffff; border-radius:14px; box-shadow:0 8px 24px rgba(0,0,0,0.25); padding:14px; z-index:1000; text-align:left;">
+                    <div style="font-size:11px; font-weight:900; color:#1e3a5f; text-transform:uppercase; letter-spacing:0.4px; margin-bottom:10px;">📊 MIS Report</div>
+                    <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:10px;">
+                        <div>
+                            <div style="font-size:10px; font-weight:800; color:#64748b; text-transform:uppercase; margin-bottom:4px;">From Date</div>
+                            <input type="date" id="mis-from-date" style="width:100%; height:38px; border-radius:10px; border:1.5px solid #cbd5e1; padding:0 6px; font-size:0.75rem; font-weight:700; color:#1e3a5f; background:#eff6ff; outline:none; box-sizing:border-box;">
+                        </div>
+                        <div>
+                            <div style="font-size:10px; font-weight:800; color:#64748b; text-transform:uppercase; margin-bottom:4px;">To Date</div>
+                            <input type="date" id="mis-to-date" style="width:100%; height:38px; border-radius:10px; border:1.5px solid #cbd5e1; padding:0 6px; font-size:0.75rem; font-weight:700; color:#1e3a5f; background:#eff6ff; outline:none; box-sizing:border-box;">
+                        </div>
+                    </div>
+                    <button id="mis-pdf-btn" onclick="downloadMisReportPdf()" style="width:100%; height:42px; border:none; border-radius:10px; background:linear-gradient(135deg, #ef4444 0%, #b91c1c 100%); color:#ffffff; font-size:11px; font-weight:900; text-transform:uppercase; letter-spacing:0.4px; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:6px; margin-bottom:12px;">
+                        <svg width="14" height="14" fill="white" viewBox="0 0 24 24"><path d="M20 2H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-8.5 7.5c0 .83-.67 1.5-1.5 1.5H9v2H7.5V7H10c.83 0 1.5.67 1.5 1.5v1zm5 2c0 .83-.67 1.5-1.5 1.5h-2.5V7H15c.83 0 1.5.67 1.5 1.5v3zm4-3H19v1h1.5V11H19v2h-1.5V7h3v1.5zM9 9.5h1v-1H9v1zM4 6H2v14c0 1.1.9 2 2 2h14v-2H4V6zm10 5.5h1v-3h-1v3z"/></svg>
+                        Download PDF MIS Report
+                    </button>
+                    <div style="border-top:1px solid #e2e8f0; margin:0 0 12px 0;"></div>
+                    <div style="font-size:11px; font-weight:900; color:#991b1b; text-transform:uppercase; letter-spacing:0.4px; margin-bottom:10px;">📵 गलत मोबाइल नंबर सूची</div>
+                    <button id="mc-excel-btn" onclick="downloadMobileCorrectionExcel_()" style="width:100%; height:42px; border:none; border-radius:10px; background:linear-gradient(135deg, #16a34a 0%, #15803d 100%); color:#ffffff; font-size:11px; font-weight:900; text-transform:uppercase; letter-spacing:0.4px; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:6px;">
+                        📥 Excel में Download करें
+                    </button>
+                </div>
+            </div>
             <div class="search-panel">
                 <div class="input-wrapper relative w-full max-w-[260px] mx-auto">
                     <input type="tel" id="search-ivrs" class="ivrs-input" placeholder="Search IVRS No" oninput="this.value=this.value.replace(/[^0-9]/g,'').slice(0,10)">
@@ -250,27 +275,6 @@
                         <div style="font-size:12px; font-weight:900; color:#fecaca; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:10px; text-align:center;">📵 गलत मोबाइल नंबर — पेंडिंग सूची (HQ-wise)</div>
                         <button type="button" onclick="toggleMobileCorrectionList_()" style="width:100%; height:42px; border:none; border-radius:12px; background:rgba(255,255,255,0.18); color:#fef2f2; font-size:12px; font-weight:900; text-transform:uppercase; letter-spacing:0.5px;">📂 सूची देखें / छिपाएं</button>
                         <div id="mc-pending-list" style="display:none; margin-top:10px; max-height:400px; overflow-y:auto;"></div>
-                    </div>
-                </div>
-
-                <!-- MIS Report Section -->
-                <div style="width:100%; max-width:340px; margin: 18px auto 0 auto;">
-                    <div style="background: linear-gradient(135deg, #1e3a5f 0%, #1e40af 100%); border-radius: 18px; padding: 16px 18px; box-shadow: 0 8px 20px rgba(30,58,138,0.18);">
-                        <div style="font-size:12px; font-weight:900; color:#bfdbfe; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:10px; text-align:center;">📊 MIS Report</div>
-                        <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:10px;">
-                            <div>
-                                <div style="font-size:10px; font-weight:800; color:#93c5fd; text-transform:uppercase; margin-bottom:4px;">From Date</div>
-                                <input type="date" id="mis-from-date" style="width:100%; height:38px; border-radius:10px; border:1.5px solid #3b82f6; padding:0 8px; font-size:0.8rem; font-weight:700; color:#1e3a5f; background:#eff6ff; outline:none;">
-                            </div>
-                            <div>
-                                <div style="font-size:10px; font-weight:800; color:#93c5fd; text-transform:uppercase; margin-bottom:4px;">To Date</div>
-                                <input type="date" id="mis-to-date" style="width:100%; height:38px; border-radius:10px; border:1.5px solid #3b82f6; padding:0 8px; font-size:0.8rem; font-weight:700; color:#1e3a5f; background:#eff6ff; outline:none;">
-                            </div>
-                        </div>
-                        <button id="mis-pdf-btn" onclick="downloadMisReportPdf()" style="width:100%; height:44px; border:none; border-radius:12px; background:linear-gradient(135deg, #ef4444 0%, #b91c1c 100%); color:#ffffff; font-size:13px; font-weight:900; text-transform:uppercase; letter-spacing:0.5px; box-shadow:0 6px 14px rgba(239,68,68,0.3); cursor:pointer; display:flex; align-items:center; justify-content:center; gap:8px;">
-                            <svg width="16" height="16" fill="white" viewBox="0 0 24 24"><path d="M20 2H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-8.5 7.5c0 .83-.67 1.5-1.5 1.5H9v2H7.5V7H10c.83 0 1.5.67 1.5 1.5v1zm5 2c0 .83-.67 1.5-1.5 1.5h-2.5V7H15c.83 0 1.5.67 1.5 1.5v3zm4-3H19v1h1.5V11H19v2h-1.5V7h3v1.5zM9 9.5h1v-1H9v1zM4 6H2v14c0 1.1.9 2 2 2h14v-2H4V6zm10 5.5h1v-3h-1v3z"/></svg>
-                            Download PDF MIS Report
-                        </button>
                     </div>
                 </div>
             </div>

@@ -847,4 +847,33 @@ test.describe('Mobile Correction Tracker (galat mobile number flag + monitor)', 
     expect(entries[0].status).toBe('corrected');
     expect(entries[0].correct_mobile).toBe('9123456789');
   });
+
+  test('⋮ मेनू me MIS Report aur Excel download dono milte hain (bina errors ke)', async ({ page }) => {
+    const errors = [];
+    page.on('pageerror', (e) => errors.push(e.message));
+    await openApp(page, {
+      beforeGoto: async (p) => {
+        await mockConsumerCsv(p);
+        await p.route('**/macros/**', (route) => {
+          route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ status: 'success', entry_id: 'MC1', entries: [] }) });
+        });
+      },
+    });
+    await goToMobileUpdate(page);
+
+    await expect(page.locator('#mu-menu-dropdown')).toBeHidden();
+    await page.click('#mu-menu-btn');
+    await expect(page.locator('#mu-menu-dropdown')).toBeVisible();
+    await expect(page.locator('#mu-menu-dropdown')).toContainText('MIS Report');
+    await expect(page.locator('#mis-pdf-btn')).toBeVisible();
+    await expect(page.locator('#mc-excel-btn')).toBeVisible();
+
+    // Koi flagged entry na hone par bhi crash nahi hona chahiye
+    await page.click('#mc-excel-btn');
+    await page.waitForTimeout(300);
+
+    await page.click('body', { position: { x: 5, y: 5 } });
+    await expect(page.locator('#mu-menu-dropdown')).toBeHidden();
+    expect(errors).toEqual([]);
+  });
 });
