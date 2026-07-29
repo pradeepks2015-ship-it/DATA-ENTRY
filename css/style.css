@@ -119,9 +119,9 @@
         .mpez-logo-float { animation: float 3s ease-in-out infinite; }
         .dots-container { display: flex; justify-content: center; gap: 15px; margin-bottom: 20px; width: 100%; }
         .color-dot { width: 22px; height: 22px; border-radius: 50%; cursor: pointer; border: 3px solid white; box-shadow: 0 4px 6px rgba(0,0,0,0.15); }
-        .list-item { position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 12px 45px 12px 30px; cursor: pointer; color: #ffffff !important; text-align: center; clip-path: polygon(0% 0%, 92% 0%, 100% 50%, 92% 100%, 0% 100%); margin-bottom: 15px; filter: drop-shadow(0 4px 6px rgba(0,0,0,0.1)); font-weight: 800; }
-        .item-title { font-size: 1.3rem; }
-        .item-subtitle { font-size: 0.9rem; opacity: 0.95; }
+        .list-item { position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 8px 36px 8px 22px; cursor: pointer; color: #ffffff !important; text-align: center; clip-path: polygon(0% 0%, 92% 0%, 100% 50%, 92% 100%, 0% 100%); margin-bottom: 10px; filter: drop-shadow(0 4px 6px rgba(0,0,0,0.1)); font-weight: 800; }
+        .item-title { font-size: 1.05rem; }
+        .item-subtitle { font-size: 0.72rem; opacity: 0.95; }
         .dashboard-btn { width: 100%; padding: 16px 18px; border-radius: 16px; color: #ffffff !important; font-weight: 800; text-align: center; text-transform: uppercase; font-size: 0.85rem; margin-bottom: 15px; box-shadow: 0 6px 15px rgba(0,0,0,0.1); background: var(--theme-grad); }
         .btn-update-red { background: linear-gradient(135deg, #ef4444 0%, #b91c1c 100%) !important; }
         .btn-progress-black { background: #000000 !important; padding: 12px 18px !important; font-size: 0.75rem !important; }
