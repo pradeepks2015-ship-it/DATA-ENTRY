@@ -6,6 +6,12 @@
 
         const MC_MODULE = "mobile_correction";
 
+        // employee-auth.js (login) abhi production par nahi hai — is helper se yeh
+        // file bina us feature ke bhi kaam karti hai (khaali submitted_by fields ke saath).
+        function mcEmployeeTag_() {
+            return typeof currentEmployeeTag_ === "function" ? currentEmployeeTag_() : { submitted_by_id: "", submitted_by_name: "" };
+        }
+
         async function getMobileCorrectionEntries_() {
             const rows = await idbGetAll_(MC_MODULE);
             const local = rows.slice().sort((a, b) => (a.id || 0) - (b.id || 0));
@@ -45,7 +51,7 @@
                     timestamp: new Date().toISOString(),
                     corrected_by_id: "",
                     corrected_by_name: "",
-                    ...currentEmployeeTag_()
+                    ...mcEmployeeTag_()
                 };
 
                 const entryId = await syncEntryToCloud_(MC_MODULE, entry);
@@ -163,7 +169,7 @@
             if (!entry) return showToast("Entry नहीं मिली", false);
 
             const localId = entry.entry_id ? entry.entry_id : entry.id;
-            const empTag = currentEmployeeTag_();
+            const empTag = mcEmployeeTag_();
             const updates = {
                 correct_mobile: value,
                 status: "corrected",
