@@ -725,3 +725,121 @@ test.describe('Employee Login (accountability)', () => {
     await expect(body).toContainText('कर्मचारी अनुसार');
   });
 });
+
+test.describe('Mobile Correction Tracker (galat mobile number flag + monitor)', () => {
+  const CONSUMER_CSV = 'IVRS NO,NAME,FATHER,OLD MOBILE,ADDRESS,HQ,TARIFF,LOAD\n1234567890,Test Consumer,Test Father,9998887771,"Test Address, Adegaon",ADEGAON HQ,LV1,1\n';
+
+  /** @param {import('@playwright/test').Page} page */
+  async function mockConsumerCsv(page) {
+    // ADEGAON ka csvUrl (./data/adegaon-consumers.csv, same-origin) mock karte
+    // hain — isse ensureDcDataLoaded() ka production code path hi chalta hai
+    // (koi race/overwrite risk nahi), aur asli 10k+ row file test me load nahi karni padti.
+    await page.route('**/data/adegaon-consumers.csv**', (route) => {
+      route.fulfill({ status: 200, contentType: 'text/csv', body: CONSUMER_CSV });
+    });
+  }
+
+  /** @param {import('@playwright/test').Page} page */
+  async function goToMobileUpdate(page) {
+    await goToDcDashboard(page); // Lakhnadon -> ADEGAON
+    await page.evaluate(() => switchView('mobile-update'));
+    await page.waitForFunction(() => document.getElementById('mobile-update-view').classList.contains('active'));
+    await page.fill('#search-ivrs', '1234567890');
+    await page.click('#search-btn');
+    await page.waitForFunction(() => document.getElementById('result-box').style.display !== 'none', null, { timeout: 15000 });
+  }
+
+  test('IVRS search se consumer detail dikhte hain aur "flag karein" button se entry save hoti hai', async ({ page }) => {
+    await openApp(page, {
+      beforeGoto: async (p) => {
+        await mockConsumerCsv(p);
+        await p.route('**/macros/**', (route) => {
+          route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ status: 'success', entry_id: 'MC1', entries: [] }) });
+        });
+      },
+    });
+    await goToMobileUpdate(page);
+
+    await expect(page.locator('#res-name')).toHaveText('Test Consumer');
+    await expect(page.locator('#res-old')).toHaveText('9998887771');
+
+    await page.click('#mc-flag-btn');
+    await page.waitForTimeout(300);
+
+    const entries = await page.evaluate(() => getMobileCorrectionEntries_());
+    expect(entries.length).toBe(1);
+    expect(entries[0]).toMatchObject({
+      ivrs: '1234567890', name: 'Test Consumer', hq: 'ADEGAON HQ',
+      old_mobile: '9998887771', status: 'pending', submitted_by_name: 'Test Employee',
+    });
+  });
+
+  test('same IVRS दोबारा flag करने पर duplicate pending entry नहीं बनती', async ({ page }) => {
+    await openApp(page, {
+      beforeGoto: async (p) => {
+        await mockConsumerCsv(p);
+        await p.route('**/macros/**', (route) => {
+          route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ status: 'success', entry_id: 'MC1', entries: [] }) });
+        });
+      },
+    });
+    await goToMobileUpdate(page);
+    await page.click('#mc-flag-btn');
+    await page.waitForTimeout(300);
+
+    await page.fill('#search-ivrs', '1234567890');
+    await page.click('#search-btn');
+    await page.waitForFunction(() => document.getElementById('result-box').style.display !== 'none');
+    await page.click('#mc-flag-btn');
+    await page.waitForTimeout(300);
+
+    const entries = await page.evaluate(() => getMobileCorrectionEntries_());
+    expect(entries.length).toBe(1);
+  });
+
+  test('Pending list HQ-wise dikhti hai (highlighted), aur सही नंबर सेव करने पर "corrected" ho jaati hai', async ({ page }) => {
+    await openApp(page, {
+      beforeGoto: async (p) => {
+        await mockConsumerCsv(p);
+        await p.route('**/macros/**', (route) => {
+          const url = new URL(route.request().url());
+          const req = route.request();
+          if (req.method() === 'POST') {
+            const params = new URLSearchParams(req.postData() || '');
+            if (params.get('action') === 'updateEntry') {
+              return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ status: 'success' }) });
+            }
+            return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ status: 'success', entry_id: 'MC1' }) });
+          }
+          if (url.searchParams.get('action') === 'getEntries' && url.searchParams.get('module') === 'mobile_correction') {
+            return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ status: 'success', entries: [] }) });
+          }
+          return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ status: 'success', entries: [] }) });
+        });
+      },
+    });
+    await goToMobileUpdate(page);
+    await page.click('#mc-flag-btn');
+    await page.waitForTimeout(300);
+
+    await page.click('button[onclick="toggleMobileCorrectionList_()"]');
+    await page.waitForFunction(() => document.getElementById('mc-pending-list').innerText.includes('Test Consumer'));
+
+    const list = page.locator('#mc-pending-list');
+    await expect(list).toContainText('ADEGAON HQ');
+    await expect(list).toContainText('0/1 ठीक हुए');
+
+    const uid = await page.evaluate(async () => {
+      const entries = await getMobileCorrectionEntries_();
+      return getEntryUid_(entries[0]);
+    });
+    await page.fill(`#mc-correct-${uid}`, '9123456789');
+    await page.click(`button[onclick="saveCorrectMobile_('${uid}')"]`);
+    await page.waitForFunction((u) => document.getElementById('mc-pending-list').innerText.includes('9123456789'), uid);
+
+    await expect(list).toContainText('1/1 ठीक हुए');
+    const entries = await page.evaluate(() => getMobileCorrectionEntries_());
+    expect(entries[0].status).toBe('corrected');
+    expect(entries[0].correct_mobile).toBe('9123456789');
+  });
+});

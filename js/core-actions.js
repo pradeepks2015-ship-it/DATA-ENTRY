@@ -213,17 +213,24 @@
             const found = rows.find((row) => normalizeLookupDigits(getConsumerField(row, ["IVRS", "IVRS NO", "IVRS NUMBER"])) === searchIvrs);
             if (!found) return showToast("Record Not Found!", false);
             currentData = {
-                ivrs: getConsumerField(found, ["IVRS", "IVRS NO", "IVRS NUMBER"]),
+                ivrs: getConsumerField(found, ["IVRS", "IVRS NO", "IVRS NUMBER", "CONSUMER NO"]),
                 name: getConsumerField(found, ["NAME", "CONSUMER NAME"]),
                 father: getConsumerField(found, ["FATHER", "FATHER NAME"]),
                 old: getConsumerField(found, ["OLD MOBILE", "OLD MOBILE NO", "OLD MOBILE NUMBER", "MOBILE NO", "MOBILE NUMBER"]),
                 addr: getConsumerField(found, ["ADDRESS", "ADDR"]),
-                hq: getConsumerField(found, ["HQ", "HQ NAME", "HEADQUARTER", "HEAD QUARTER", "H.Q."])
+                hq: getConsumerField(found, ["HQ", "HQ NAME", "HEADQUARTER", "HEAD QUARTER", "H.Q."]),
+                tariff: getConsumerField(found, ["TARIFF"]),
+                load: getConsumerField(found, ["LOAD"]),
+                unit: getConsumerField(found, ["UNIT"])
             };
             document.getElementById("res-ivrs").innerText = currentData.ivrs;
             document.getElementById("res-name").innerText = currentData.name;
             document.getElementById("res-old").innerText = currentData.old || "N/A";
             document.getElementById("res-addr").innerText = currentData.addr;
+            const hqNode = document.getElementById("res-hq");
+            if (hqNode) hqNode.innerText = currentData.hq || "N/A";
+            const tariffNode = document.getElementById("res-tariff");
+            if (tariffNode) tariffNode.innerText = [currentData.tariff, currentData.load && `${currentData.load} ${currentData.unit || ""}`.trim()].filter(Boolean).join(" | ") || "N/A";
             document.getElementById("result-box").style.display = "block";
             document.getElementById("submit-btn").style.display = "block";
         }
