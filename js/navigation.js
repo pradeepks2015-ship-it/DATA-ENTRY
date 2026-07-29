@@ -41,7 +41,9 @@
                     kcInitView_();
                 }
                 if (id === "mobile-update" && activeDC) {
-                    ensureDcDataLoaded(activeDC);
+                    ensureDcDataLoaded(activeDC).then(() => {
+                        if (typeof mcPopulateHqFilter_ === "function") mcPopulateHqFilter_();
+                    });
                 }
                 if (id === "feeder-reading") {
                     initFeederReading();
