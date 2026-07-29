@@ -12,6 +12,55 @@
             return typeof currentEmployeeTag_ === "function" ? currentEmployeeTag_() : { submitted_by_id: "", submitted_by_name: "" };
         }
 
+        function toggleMobileUpdateMenu_() {
+            const menu = document.getElementById("mu-menu-dropdown");
+            if (!menu) return;
+            menu.style.display = menu.style.display === "block" ? "none" : "block";
+        }
+
+        document.addEventListener("click", (e) => {
+            const menu = document.getElementById("mu-menu-dropdown");
+            const btn = document.getElementById("mu-menu-btn");
+            if (!menu || menu.style.display !== "block") return;
+            if (e.target === btn || menu.contains(e.target)) return;
+            menu.style.display = "none";
+        });
+
+        async function downloadMobileCorrectionExcel_() {
+            if (!window.XLSX) return showToast("Excel library load नहीं हुई, फिर कोशिश करें", false);
+            const btn = document.getElementById("mc-excel-btn");
+            if (btn) { btn.innerText = "बन रहा है..."; btn.disabled = true; }
+            try {
+                const dcFilter = activeDC || "";
+                const all = await getMobileCorrectionEntries_();
+                const entries = all.filter((e) => !dcFilter || e.dc_name === dcFilter);
+                if (!entries.length) {
+                    showToast("इस DC में अभी कोई flag की हुई entry नहीं है", false);
+                    return;
+                }
+
+                const headers = ["क्र", "IVRS No", "नाम", "पिता का नाम", "पता", "HQ", "टैरिफ", "लोड", "पुराना (गलत) नंबर", "स्थिति", "सही मोबाइल नंबर", "फ़्लैग किया (तारीख)", "फ़्लैग करने वाला", "ठीक हुआ (तारीख)", "ठीक करने वाला"];
+                const rows = entries.map((e, i) => [
+                    i + 1, e.ivrs || "", e.name || "", e.father || "", e.address || "", e.hq || "",
+                    e.tariff || "", e.load || "", e.old_mobile || "",
+                    e.status === "corrected" ? "ठीक हुआ" : "पेंडिंग",
+                    e.correct_mobile || "", e.flagged_date || "", e.submitted_by_name || "",
+                    e.corrected_date || "", e.corrected_by_name || ""
+                ]);
+
+                const ws = XLSX.utils.aoa_to_sheet([headers, ...rows]);
+                const wb = XLSX.utils.book_new();
+                XLSX.utils.book_append_sheet(wb, ws, "Mobile Correction");
+                const filename = `Mobile_Correction_${dcFilter || "all"}_${localTodayIso_().replace(/-/g, "")}.xlsx`;
+                XLSX.writeFile(wb, filename);
+                showToast("Excel Downloaded!", true);
+            } catch (_) {
+                showToast("Excel generate करने में error आया", false);
+            } finally {
+                if (btn) { btn.innerText = "📥 Excel में Download करें"; btn.disabled = false; }
+            }
+        }
+
         async function getMobileCorrectionEntries_() {
             const rows = await idbGetAll_(MC_MODULE);
             const local = rows.slice().sort((a, b) => (a.id || 0) - (b.id || 0));
