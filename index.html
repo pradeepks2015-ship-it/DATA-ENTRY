@@ -192,8 +192,7 @@
             </div>
         </main>
         <main id="mobile-update-view" class="view">
-            <div class="title-box-container"><div class="title-box"><span class="title-text-bold">UPDATE MOBILE NO</span></div></div>
-            <div style="display:flex; justify-content:flex-end; width:100%; max-width:340px; margin:0 auto 8px auto; position:relative;">
+            <div style="display:flex; justify-content:flex-end; width:100%; max-width:340px; margin:14px auto 8px auto; position:relative;">
                 <button type="button" id="mu-menu-btn" onclick="toggleMobileUpdateMenu_()" aria-label="MIS / Excel मेनू" style="background:#1e3a5f; border:none; color:#ffffff; width:38px; height:38px; border-radius:10px; font-size:18px; font-weight:900; cursor:pointer;">⋮</button>
                 <div id="mu-menu-dropdown" style="display:none; position:absolute; top:44px; right:0; width:290px; max-width:calc(100vw - 32px); background:#ffffff; border-radius:14px; box-shadow:0 8px 24px rgba(0,0,0,0.25); padding:14px; z-index:1000; text-align:left;">
                     <div style="font-size:11px; font-weight:900; color:#9a3412; text-transform:uppercase; letter-spacing:0.4px; margin-bottom:10px;">⚡ MPEZ Portal</div>
@@ -232,7 +231,12 @@
                 <div style="width:100%; max-width:100%; margin: 14px auto 0 auto;">
                     <div style="background: linear-gradient(135deg, #7f1d1d 0%, #450a0a 100%); border-radius: 18px; padding: 16px 14px; box-shadow: 0 8px 20px rgba(127,29,29,0.18);">
                         <div style="font-size:12px; font-weight:900; color:#fecaca; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:10px; text-align:center;">📵 गलत मोबाइल नंबर — पेंडिंग सूची (HQ-wise)</div>
-                        <button type="button" onclick="toggleMobileCorrectionList_()" style="width:100%; height:42px; border:none; border-radius:12px; background:rgba(255,255,255,0.18); color:#fef2f2; font-size:12px; font-weight:900; text-transform:uppercase; letter-spacing:0.5px;">📂 सूची देखें / छिपाएं</button>
+                        <div style="display:flex; gap:8px;">
+                            <button type="button" onclick="toggleMobileCorrectionList_()" style="flex:1 1 auto; min-width:0; height:42px; border:none; border-radius:12px; background:rgba(255,255,255,0.18); color:#fef2f2; font-size:12px; font-weight:900; text-transform:uppercase; letter-spacing:0.5px;">📂 सूची देखें / छिपाएं</button>
+                            <select id="mc-hq-filter" onchange="mcHqFilterChanged_()" style="flex:0 0 120px; width:120px; height:42px; border:none; border-radius:12px; background:rgba(255,255,255,0.18); color:#fef2f2; font-size:11px; font-weight:900; text-transform:uppercase; padding:0 8px; outline:none;">
+                                <option value="">सभी HQ</option>
+                            </select>
+                        </div>
                         <div id="mc-pending-list" style="display:none; margin-top:10px; max-height:400px; overflow-y:auto;"></div>
                     </div>
                 </div>

@@ -75,8 +75,11 @@
             const btn = document.getElementById("mc-flag-btn");
             if (btn) { btn.innerText = "Saving..."; btn.disabled = true; }
             try {
-                const existing = await getMobileCorrectionEntries_();
-                const dup = existing.find((e) => e.ivrs === currentData.ivrs && e.dc_name === (activeDC || "") && e.status === "pending");
+                // Sirf local IndexedDB se dedup check karte hain (shared entries ka
+                // forced network fetch nahi) — isse save turant hota hai, network
+                // slow/Apps Script cold-start ke wait ka intezaar nahi karna padta.
+                const localRows = await idbGetAll_(MC_MODULE);
+                const dup = localRows.find((e) => e.ivrs === currentData.ivrs && e.dc_name === (activeDC || "") && e.status === "pending");
                 if (dup) {
                     showToast("यह IVRS पहले से पेंडिंग सूची में है", false);
                     return;
@@ -157,15 +160,37 @@
             return `border:1px solid #fecaca; padding:6px 8px; font-size:10.5px; font-weight:700; color:#1e293b; white-space:nowrap; ${extra || ""}`;
         }
 
+        // Master consumer list ke HQ + jo bhi HQ flag ki hui entries me hain — dono
+        // milakar dropdown banate hain, taaki bina flag ke HQ bhi chuna ja sake.
+        function mcPopulateHqFilter_(entries) {
+            const select = document.getElementById("mc-hq-filter");
+            if (!select) return;
+            const prevValue = select.value;
+            const hqSet = new Set(Object.keys(mcTotalConsumersByHq_()));
+            (entries || []).forEach((e) => hqSet.add(e.hq || "सामान्य"));
+            const hqNames = Array.from(hqSet).sort();
+            select.innerHTML = `<option value="">सभी HQ</option>` + hqNames.map((hq) => `<option value="${escapeHtml(hq)}">${escapeHtml(hq)}</option>`).join("");
+            if (hqNames.includes(prevValue)) select.value = prevValue;
+        }
+
+        function mcHqFilterChanged_() {
+            const container = document.getElementById("mc-pending-list");
+            if (container && container.style.display === "block") renderMobileCorrectionList_();
+        }
+
         async function renderMobileCorrectionList_() {
             const container = document.getElementById("mc-pending-list");
             if (!container) return;
             const dcFilter = activeDC || "";
             const all = await getMobileCorrectionEntries_();
-            const entries = all.filter((e) => !dcFilter || e.dc_name === dcFilter);
+            const dcEntries = all.filter((e) => !dcFilter || e.dc_name === dcFilter);
+            mcPopulateHqFilter_(dcEntries);
+            const hqFilter = document.getElementById("mc-hq-filter")?.value || "";
+            const entries = dcEntries.filter((e) => !hqFilter || (e.hq || "सामान्य") === hqFilter);
 
             if (!entries.length) {
-                container.innerHTML = `<div style="text-align:center; padding:14px; font-size:12px; font-weight:800; color:#ffffff; background:rgba(0,0,0,0.12); border-radius:12px;">इस DC में अभी कोई flag की हुई entry नहीं है।</div>`;
+                const msg = hqFilter ? "इस HQ में अभी कोई flag की हुई entry नहीं है।" : "इस DC में अभी कोई flag की हुई entry नहीं है।";
+                container.innerHTML = `<div style="text-align:center; padding:14px; font-size:12px; font-weight:800; color:#ffffff; background:rgba(0,0,0,0.12); border-radius:12px;">${msg}</div>`;
                 return;
             }
 

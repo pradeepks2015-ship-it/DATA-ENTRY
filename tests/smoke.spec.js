@@ -727,7 +727,7 @@ test.describe('Employee Login (accountability)', () => {
 });
 
 test.describe('Mobile Correction Tracker (galat mobile number flag + monitor)', () => {
-  const CONSUMER_CSV = 'IVRS NO,NAME,FATHER,OLD MOBILE,ADDRESS,HQ,TARIFF,LOAD\n1234567890,Test Consumer,Test Father,9998887771,"Test Address, Adegaon",ADEGAON HQ,LV1,1\n';
+  const CONSUMER_CSV = 'IVRS NO,NAME,FATHER,OLD MOBILE,ADDRESS,HQ,TARIFF,LOAD\n1234567890,Test Consumer,Test Father,9998887771,"Test Address, Adegaon",ADEGAON HQ,LV1,1\n2345678901,Doosra Consumer,Doosra Father,9998887772,"Doosra Address, Bibi",BIBI HQ,LV1,1\n';
 
   /** @param {import('@playwright/test').Page} page */
   async function mockConsumerCsv(page) {
@@ -846,6 +846,47 @@ test.describe('Mobile Correction Tracker (galat mobile number flag + monitor)', 
     const entries = await page.evaluate(() => getMobileCorrectionEntries_());
     expect(entries[0].status).toBe('corrected');
     expect(entries[0].correct_mobile).toBe('9123456789');
+  });
+
+  test('सूची देखें बटन के बगल में HQ filter dropdown se list HQ ke hisaab se filter hoti hai', async ({ page }) => {
+    await openApp(page, {
+      beforeGoto: async (p) => {
+        await mockConsumerCsv(p);
+        await p.route('**/macros/**', (route) => {
+          route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ status: 'success', entry_id: 'MC1', entries: [] }) });
+        });
+      },
+    });
+    await goToMobileUpdate(page);
+    await page.click('#mc-flag-btn');
+    await page.waitForTimeout(300);
+
+    await page.fill('#search-ivrs', '2345678901');
+    await page.click('#search-btn');
+    await page.waitForFunction(() => document.getElementById('result-box').style.display !== 'none');
+    await page.click('#mc-flag-btn');
+    await page.waitForTimeout(300);
+
+    await page.click('button[onclick="toggleMobileCorrectionList_()"]');
+    await page.waitForFunction(() => document.getElementById('mc-pending-list').innerText.includes('Test Consumer'));
+
+    const hqFilter = page.locator('#mc-hq-filter');
+    await expect(hqFilter.locator('option')).toHaveCount(3); // सभी HQ + ADEGAON HQ + BIBI HQ
+    const list = page.locator('#mc-pending-list');
+    await expect(list).toContainText('Test Consumer');
+    await expect(list).toContainText('Doosra Consumer');
+
+    await hqFilter.selectOption('ADEGAON HQ');
+    await page.waitForFunction(() => !document.getElementById('mc-pending-list').innerText.includes('Doosra Consumer'));
+    await expect(list).toContainText('Test Consumer');
+    await expect(list).toContainText('कुल फ़्लैग: 1');
+
+    await hqFilter.selectOption('BIBI HQ');
+    await page.waitForFunction(() => !document.getElementById('mc-pending-list').innerText.includes('Test Consumer'));
+    await expect(list).toContainText('Doosra Consumer');
+
+    await hqFilter.selectOption('');
+    await page.waitForFunction(() => document.getElementById('mc-pending-list').innerText.includes('Test Consumer') && document.getElementById('mc-pending-list').innerText.includes('Doosra Consumer'));
   });
 
   test('⋮ मेनू me MPEZ Portal aur Excel download milte hain, PDF MIS Report option nahi hai', async ({ page }) => {
