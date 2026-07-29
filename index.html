@@ -196,6 +196,12 @@
                         Download PDF MIS Report
                     </button>
                     <div style="border-top:1px solid #e2e8f0; margin:0 0 12px 0;"></div>
+                    <div style="font-size:11px; font-weight:900; color:#9a3412; text-transform:uppercase; letter-spacing:0.4px; margin-bottom:10px;">⚡ MPEZ Portal</div>
+                    <button id="mpez-redirect-btn" onclick="openMpezSite()" style="width:100%; height:42px; border:none; border-radius:10px; background:linear-gradient(135deg,#ef4444 0%,#b91c1c 100%); color:#ffffff; font-size:11px; font-weight:900; text-transform:uppercase; letter-spacing:0.4px; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:6px; margin-bottom:12px;">
+                        <svg width="14" height="14" fill="none" stroke="white" stroke-width="2.2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
+                        MPEZ Site Par Jaayen
+                    </button>
+                    <div style="border-top:1px solid #e2e8f0; margin:0 0 12px 0;"></div>
                     <div style="font-size:11px; font-weight:900; color:#991b1b; text-transform:uppercase; letter-spacing:0.4px; margin-bottom:10px;">📵 गलत मोबाइल नंबर सूची</div>
                     <button id="mc-excel-btn" onclick="downloadMobileCorrectionExcel_()" style="width:100%; height:42px; border:none; border-radius:10px; background:linear-gradient(135deg, #16a34a 0%, #15803d 100%); color:#ffffff; font-size:11px; font-weight:900; text-transform:uppercase; letter-spacing:0.4px; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:6px;">
                         📥 Excel में Download करें
@@ -209,45 +215,22 @@
                 <button id="search-btn" class="search-btn-custom" onclick="performSearch()">Search Records</button>
 
                 <div id="result-box" class="result-card-custom">
-                    <div class="res-row"><span class="res-label">IVRS NO</span><span id="res-ivrs" class="res-val"></span></div>
-                    <div class="res-row"><span class="res-label">Consumer Name</span><span id="res-name" class="res-val"></span></div>
-                    <div class="res-row"><span class="res-label">HQ</span><span id="res-hq" class="res-val"></span></div>
-                    <div class="res-row"><span class="res-label">Tariff / Load</span><span id="res-tariff" class="res-val"></span></div>
-                    <div class="res-row"><span class="res-label">Old Mobile No</span><span id="res-old" class="res-val"></span></div>
-                    <div class="res-row border-none"><span class="res-label">Address</span><span id="res-addr" class="res-val"></span></div>
-
-                    <!-- MPEZ Site Redirect Button -->
-                    <div style="margin-top:16px; padding:14px; background:linear-gradient(135deg,#fff7ed,#ffedd5); border:1.5px solid #fed7aa; border-radius:14px;">
-                        <div style="font-size:11px; font-weight:900; color:#9a3412; text-transform:uppercase; letter-spacing:0.4px; margin-bottom:10px; text-align:center;">
-                            ⚡ MPEZ Portal par Mobile Update Karein
-                        </div>
-                        <div style="font-size:10.5px; color:#78350f; font-weight:600; text-align:center; margin-bottom:12px; line-height:1.5;">
-                            Neeche button dabayein — MPEZ ki official site khulegi jahan aap seedha mobile no update kar sakte hain.
-                        </div>
-                        <button id="mpez-redirect-btn" onclick="openMpezSite()" style="width:100%; height:50px; border:none; border-radius:14px; background:linear-gradient(135deg,#ef4444 0%,#b91c1c 100%); color:#ffffff; font-size:13px; font-weight:900; text-transform:uppercase; letter-spacing:0.5px; box-shadow:0 8px 18px rgba(185,28,28,0.28); cursor:pointer; display:flex; align-items:center; justify-content:center; gap:8px;">
-                            <svg width="18" height="18" fill="none" stroke="white" stroke-width="2.2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
-                            MPEZ Site Par Jaayen
-                        </button>
-                        <div style="margin-top:10px; padding:8px 10px; background:rgba(255,255,255,0.7); border-radius:10px; font-size:9.5px; color:#92400e; font-weight:700; text-align:center;">
-                            🔒 mpezccc.in — Official MPPKVVCL Portal
-                        </div>
+                    <div class="res-grid">
+                        <div class="res-row"><span class="res-label">IVRS NO</span><span id="res-ivrs" class="res-val"></span></div>
+                        <div class="res-row"><span class="res-label">Consumer Name</span><span id="res-name" class="res-val"></span></div>
+                        <div class="res-row"><span class="res-label">HQ</span><span id="res-hq" class="res-val"></span></div>
+                        <div class="res-row"><span class="res-label">Tariff / Load</span><span id="res-tariff" class="res-val"></span></div>
+                        <div class="res-row"><span class="res-label">Old Mobile No</span><span id="res-old" class="res-val"></span></div>
+                        <div class="res-row res-row-full border-none"><span class="res-label">Address</span><span id="res-addr" class="res-val"></span></div>
                     </div>
 
-                    <!-- Wrong Mobile Number Tracker -->
-                    <div style="margin-top:14px; padding:14px; background:linear-gradient(135deg,#fef2f2,#fee2e2); border:1.5px solid #fca5a5; border-radius:14px;">
-                        <div style="font-size:11px; font-weight:900; color:#991b1b; text-transform:uppercase; letter-spacing:0.4px; margin-bottom:8px; text-align:center;">
-                            📵 इस नंबर पर कॉल गलत जा रही है?
-                        </div>
-                        <div style="font-size:10.5px; color:#7f1d1d; font-weight:600; text-align:center; margin-bottom:10px; line-height:1.5;">
-                            नीचे बटन दबाकर इस IVRS को "गलत नंबर" के रूप में flag करें — नाम/पता/HQ अपने-आप जुड़ जाएगा।
-                        </div>
-                        <button id="mc-flag-btn" onclick="flagWrongMobile_()" style="width:100%; height:46px; border:none; border-radius:12px; background:linear-gradient(135deg,#dc2626 0%,#7f1d1d 100%); color:#ffffff; font-size:12px; font-weight:900; text-transform:uppercase;">❌ यह नंबर गलत है — Flag करें</button>
-                    </div>
+                    <!-- Simple flag tab -->
+                    <button id="mc-flag-btn" onclick="flagWrongMobile_()" style="width:100%; height:46px; margin-top:14px; border:none; border-radius:12px; background:linear-gradient(135deg,#dc2626 0%,#7f1d1d 100%); color:#ffffff; font-size:12px; font-weight:900; text-transform:uppercase; letter-spacing:0.3px; display:flex; align-items:center; justify-content:center; gap:8px;">❌ गलत मोबाइल नंबर मार्क करें</button>
                 </div>
 
                 <!-- Pending Correction List (HQ-wise) -->
-                <div style="width:100%; max-width:340px; margin: 14px auto 0 auto;">
-                    <div style="background: linear-gradient(135deg, #7f1d1d 0%, #450a0a 100%); border-radius: 18px; padding: 16px 18px; box-shadow: 0 8px 20px rgba(127,29,29,0.18);">
+                <div style="width:100%; max-width:100%; margin: 14px auto 0 auto;">
+                    <div style="background: linear-gradient(135deg, #7f1d1d 0%, #450a0a 100%); border-radius: 18px; padding: 16px 14px; box-shadow: 0 8px 20px rgba(127,29,29,0.18);">
                         <div style="font-size:12px; font-weight:900; color:#fecaca; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:10px; text-align:center;">📵 गलत मोबाइल नंबर — पेंडिंग सूची (HQ-wise)</div>
                         <button type="button" onclick="toggleMobileCorrectionList_()" style="width:100%; height:42px; border:none; border-radius:12px; background:rgba(255,255,255,0.18); color:#fef2f2; font-size:12px; font-weight:900; text-transform:uppercase; letter-spacing:0.5px;">📂 सूची देखें / छिपाएं</button>
                         <div id="mc-pending-list" style="display:none; margin-top:10px; max-height:400px; overflow-y:auto;"></div>

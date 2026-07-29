@@ -113,7 +113,7 @@
             } catch (_) {
                 showToast("Save करने में समस्या आई, दोबारा कोशिश करें", false);
             } finally {
-                if (btn) { btn.innerText = "❌ यह नंबर गलत है — Flag करें"; btn.disabled = false; }
+                if (btn) { btn.innerText = "❌ गलत मोबाइल नंबर मार्क करें"; btn.disabled = false; }
             }
         }
 
