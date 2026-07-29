@@ -641,6 +641,39 @@ test.describe('Mobile Correction Tracker (galat mobile number flag + monitor)', 
     });
   });
 
+  test('IVRS number par tap karne se copy hota hai, mobile number par tap karne se Call/SMS/WhatsApp sheet khulti hai', async ({ page }) => {
+    await openApp(page, {
+      beforeGoto: async (p) => {
+        await mockConsumerCsv(p);
+        await p.route('**/macros/**', (route) => {
+          route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ status: 'success', entry_id: 'MC1', entries: [] }) });
+        });
+      },
+    });
+    await goToMobileUpdate(page);
+
+    // navigator.clipboard.writeText headless me permission ke bina fail ho sakta
+    // hai — window par capture karke verify karte hain ki sahi text bheja gaya.
+    await page.evaluate(() => {
+      window.__copiedText = null;
+      navigator.clipboard.writeText = (t) => { window.__copiedText = t; return Promise.resolve(); };
+    });
+
+    await page.click('#res-ivrs');
+    await page.waitForFunction(() => window.__copiedText === '1234567890');
+    await expect(page.locator('#toast-notif')).toContainText(/कॉपी/);
+
+    await page.click('#res-old');
+    const sheet = page.locator('#mc-mobile-actions-overlay');
+    await expect(sheet).toBeVisible();
+    await expect(sheet.locator('a[href^="tel:"]')).toHaveAttribute('href', 'tel:+919998887771');
+    await expect(sheet.locator('a[href^="sms:"]')).toHaveAttribute('href', 'sms:+919998887771');
+    await expect(sheet.locator('a[href*="wa.me"]')).toHaveAttribute('href', 'https://wa.me/919998887771');
+
+    await page.click('#mc-mobile-actions-close-btn');
+    await expect(sheet).toHaveCount(0);
+  });
+
   test('same IVRS दोबारा flag करने पर duplicate pending entry नहीं बनती', async ({ page }) => {
     await openApp(page, {
       beforeGoto: async (p) => {
@@ -693,11 +726,15 @@ test.describe('Mobile Correction Tracker (galat mobile number flag + monitor)', 
     await page.waitForFunction(() => document.getElementById('mc-pending-list').innerText.includes('Test Consumer'));
 
     const list = page.locator('#mc-pending-list');
-    await expect(list).toContainText('ADEGAON HQ');
     await expect(list).toContainText('कुल फ़्लैग: 1');
     await expect(list).toContainText('बाकी: 1');
     await expect(list.locator('table')).toBeVisible();
+    await expect(list.locator('th')).not.toContainText(['HQ']);
+    await expect(list.locator('th')).not.toContainText(['फ़्लैग किया']);
     await expect(list).toContainText('⏳ पेंडिंग');
+    // flagged_date ab "पुराना (गलत) नंबर" cell ke andar niche dikhti hai (alag column nahi)
+    const expectedFlagDate = await page.evaluate(() => getCurrentDateDDMMYYYY());
+    await expect(list).toContainText(expectedFlagDate);
 
     const uid = await page.evaluate(async () => {
       const entries = await getMobileCorrectionEntries_();

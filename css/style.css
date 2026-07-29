@@ -199,6 +199,7 @@
         .res-row.res-row-full { grid-column: 1 / -1; }
         .res-label { font-size: 0.62rem; font-weight: 800; color: #2563eb; text-transform: uppercase; display: block; }
         .res-val { font-size: 0.85rem; font-weight: 900; color: #000000; word-break: break-word; }
+        .mc-tap-copy { cursor: pointer; color: #2563eb !important; text-decoration: underline dotted; text-underline-offset: 3px; }
         .teal-boundary-input { width: 100%; height: 52px; padding: 0 16px; border-radius: 12px; border: 2.5px solid var(--theme-color); font-size: 1rem; font-weight: 900; text-align: center; outline: none; color: #000000; }
         .submit-sync-btn { width: 100%; height: 55px; background: #000000; color: #ffffff !important; border-radius: 15px; font-weight: 900; text-transform: uppercase; margin-top: 10px; margin-bottom: 20px; display: none; }
         .photo-upload-box { margin-top: 14px; border: 2px dashed var(--theme-color); border-radius: 16px; padding: 16px; text-align: center; background: #f8fafc; }
