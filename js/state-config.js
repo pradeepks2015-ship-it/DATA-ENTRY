@@ -28,7 +28,7 @@
                 themeGradient: "linear-gradient(135deg, #f59e0b 0%, #d97706 100%)",
                 showSpecialActions: false,
                 dcs: [
-                    { name: "ADEGAON", csvUrl: "https://docs.google.com/spreadsheets/d/e/2PACX-1vTMkEMNGnfv0_jHM12lAl34sD8kJLWPbLuA8WGhKH_smPfH3aDdmVrwbtyyPJZuD6KK4m6quw-q9MWN/pub?output=csv" }
+                    { name: "ADEGAON", csvUrl: "./data/adegaon-consumers.csv" }
                 ]
             }
         };
@@ -269,14 +269,15 @@
         // localStorage has a tiny ~5-10MB shared limit; IndexedDB allows much larger storage
         // for entries that include base64 photo data.
         const IDB_DB_NAME = "seoni-circle-photo-store";
-        const IDB_DB_VERSION = 4;
-        const IDB_STORES = ["broken_pole", "bijli_chori", "karya_charitra", "sync_queue"];
+        const IDB_DB_VERSION = 5;
+        const IDB_STORES = ["broken_pole", "bijli_chori", "karya_charitra", "mobile_correction", "sync_queue"];
         // Max entries allowed per store (raised from 500 to 2000 - photos are resized small,
         // so 2000 entries comfortably fits within typical IndexedDB quotas on mobile browsers).
         const IDB_STORE_LIMITS = {
             broken_pole: 500,
             bijli_chori: 200,
-            karya_charitra: 1000   // Text-only, no photos — higher limit ok
+            karya_charitra: 1000,  // Text-only, no photos — higher limit ok
+            mobile_correction: 2000 // Text-only, no photos — higher limit ok
         };
         // Note: Cloud (Google Sheet/Drive) has no practical limit for DC-level usage.
         // Local limits above are conservative since cloud sync backs up all entries.
@@ -542,6 +543,71 @@
             } catch (err) { console.error(err); }
         }
 
+        // Generic version of kcUpdateRecord_ — kisi bhi module ki ek existing entry
+        // (jaise mobile_correction ka status "pending" se "corrected" karna) cloud +
+        // local dono jagah update karta hai, offline hone par sync_queue me daal deta hai.
+        async function updateSharedEntry_(module, id, updates) {
+            if (sharedModuleSyncEnabled) {
+                try {
+                    let cloudEntryId = (typeof id === "string" && id.startsWith("E")) ? id : null;
+                    if (!cloudEntryId) {
+                        const all = await idbGetAll_(module);
+                        cloudEntryId = all.find((r) => r.id === id)?.entry_id || null;
+                    }
+                    if (cloudEntryId) {
+                        const payload = new URLSearchParams();
+                        payload.append("module", module);
+                        payload.append("action", "updateEntry");
+                        payload.append("entry_id", cloudEntryId);
+                        payload.append("updates_json", JSON.stringify(updates));
+                        payload.append("auth_token", APPS_SCRIPT_AUTH_TOKEN);
+                        await fetch(sharedModuleSyncScriptUrl, {
+                            method: "POST",
+                            headers: { "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8" },
+                            body: payload.toString()
+                        });
+                        sharedModuleLastFetch[module] = 0;
+                    }
+                } catch (err) {
+                    if (navigator.onLine === false || err instanceof TypeError) {
+                        try {
+                            let cloudEntryId = (typeof id === "string" && id.startsWith("E")) ? id : null;
+                            if (!cloudEntryId) {
+                                const all = await idbGetAll_(module);
+                                cloudEntryId = all.find((r) => r.id === id)?.entry_id || null;
+                            }
+                            if (cloudEntryId) {
+                                await queueOfflineSync_({ kind: "entry_update", module, entryId: cloudEntryId, updates });
+                            }
+                        } catch (_) {}
+                    }
+                }
+            }
+            try {
+                const db = await openPhotoDb_();
+                return await new Promise((resolve) => {
+                    const tx = db.transaction(module, "readwrite");
+                    const store = tx.objectStore(module);
+                    const req = store.get(id);
+                    req.onsuccess = () => {
+                        if (req.result) {
+                            store.put({ ...req.result, ...updates });
+                        } else {
+                            const allReq = store.getAll();
+                            allReq.onsuccess = () => {
+                                const found = (allReq.result || []).find((r) => r.entry_id === id);
+                                if (found) store.put({ ...found, ...updates });
+                            };
+                        }
+                    };
+                    tx.oncomplete = () => resolve(true);
+                    tx.onerror = () => resolve(false);
+                });
+            } catch (_) {
+                return false;
+            }
+        }
+
         async function updateSyncQueueBadge_() {
             try {
                 const badge = document.getElementById("sync-queue-badge");
@@ -592,6 +658,22 @@
                             });
                             if (!response.ok) break;
                             sharedModuleLastFetch["karya_charitra"] = 0;
+                        } else if (item.kind === "entry_update") {
+                            // Generic version of kc_update — kisi bhi module ke liye
+                            // (jaise mobile_correction) offline me hui update ko replay karta hai.
+                            const payload = new URLSearchParams();
+                            payload.append("module", item.module);
+                            payload.append("action", "updateEntry");
+                            payload.append("entry_id", item.entryId);
+                            payload.append("updates_json", JSON.stringify(item.updates));
+                            payload.append("auth_token", APPS_SCRIPT_AUTH_TOKEN);
+                            const response = await fetch(sharedModuleSyncScriptUrl, {
+                                method: "POST",
+                                headers: { "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8" },
+                                body: payload.toString()
+                            });
+                            if (!response.ok) break;
+                            sharedModuleLastFetch[item.module] = 0;
                         }
                         await idbDelete_("sync_queue", item.id);
                         done++;
