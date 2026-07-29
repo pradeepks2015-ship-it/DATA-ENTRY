@@ -787,12 +787,23 @@
             return `local_${entry.id}`;
         }
 
+        // Entry-detail overlay ke liye chhota sa client-side cache — jab list ya Admin
+        // Dashboard entries already fetch kar chuka ho, "View" click par dobara pura
+        // getEntries() (aur uske saath bijli_chori ke saare photos) re-fetch nahi karna
+        // padta. Cache-miss hone par viewEntryDetail_ purani tarah fetch kar leta hai.
+        const entryDetailCache_ = {};
+        function cacheEntriesForDetail_(storeName, entries) {
+            entryDetailCache_[storeName] = entryDetailCache_[storeName] || {};
+            entries.forEach((e) => { entryDetailCache_[storeName][getEntryUid_(e)] = e; });
+        }
+
         async function renderEntriesList_(storeName) {
             const config = ENTRY_STORE_CONFIG[storeName];
             const container = document.getElementById(`entries-list-${storeName}`);
             if (!config || !container) return;
 
             const entries = await config.getEntries();
+            cacheEntriesForDetail_(storeName, entries);
             const sorted = entries.slice().reverse(); // newest first
 
             if (!sorted.length) {
@@ -822,13 +833,30 @@
         async function viewEntryDetail_(storeName, uid) {
             const config = ENTRY_STORE_CONFIG[storeName];
             if (!config) return;
-            const entries = await config.getEntries();
-            const entry = entries.find((e) => getEntryUid_(e) === uid);
-            if (!entry) return showToast("Entry nahi mili", false);
 
+            // Turant loading feedback dikhao — network/IDB fetch me lagne wale samay
+            // me bhi user ko turant pata chale ki click register ho gaya hai.
+            const existingLoader = document.getElementById("entry-detail-overlay");
+            if (existingLoader) existingLoader.remove();
             const overlay = document.createElement("div");
             overlay.id = "entry-detail-overlay";
             overlay.style.cssText = "position:fixed; inset:0; background:rgba(0,0,0,0.55); z-index:9999; display:flex; align-items:center; justify-content:center; padding:16px;";
+            overlay.innerHTML = `<div style="background:#ffffff; border-radius:16px; padding:20px 28px; font-size:12px; font-weight:900; color:#1e293b;">लोड हो रहा है...</div>`;
+            overlay.addEventListener("click", (e) => { if (e.target === overlay) overlay.remove(); });
+            document.body.appendChild(overlay);
+
+            let entry = entryDetailCache_[storeName]?.[uid];
+            if (!entry) {
+                const entries = await config.getEntries();
+                cacheEntriesForDetail_(storeName, entries);
+                entry = entries.find((e) => getEntryUid_(e) === uid);
+            }
+            if (!document.getElementById("entry-detail-overlay")) return; // is beech user ne loader band kar diya
+            if (!entry) {
+                overlay.remove();
+                return showToast("Entry nahi mili", false);
+            }
+            overlay.innerHTML = "";
 
             let bodyHtml = "";
             if (storeName === "broken_pole") {
@@ -867,8 +895,6 @@
                 <button onclick="document.getElementById('entry-detail-overlay').remove()" style="width:100%; height:44px; border:none; border-radius:12px; background:#e2e8f0; color:#1e293b; font-size:13px; font-weight:900; text-transform:uppercase; margin-top:12px;">Band Karein</button>
             `;
             overlay.appendChild(card);
-            overlay.addEventListener("click", (e) => { if (e.target === overlay) overlay.remove(); });
-            document.body.appendChild(overlay);
         }
 
         function deleteEntryConfirm_(storeName, uid) {

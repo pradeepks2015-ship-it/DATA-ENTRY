@@ -49,6 +49,15 @@
         /* Touch/mouse click par outline nahi chahiye (upar wala rule) — lekin keyboard se
            navigate karne walon ke liye focus ring wapas dikhna zaroori hai. */
         :focus-visible { outline: 2px solid #2f74ad; outline-offset: 2px; }
+        /* -webkit-tap-highlight-color: transparent (upar) mobile ka default tap-flash
+           poori app me band kar deta hai — bina iske kisi bhi button/click-able area par
+           "dabaya gaya" jaisa ehsaas nahi hota. Yeh apna halka sa press-feedback deta hai. */
+        button:active, .dashboard-btn:active, .list-item:active, .option-item:active,
+        [role="button"]:active, [onclick]:active {
+            transform: scale(0.96);
+            opacity: 0.8;
+            transition: transform 0.08s ease, opacity 0.08s ease;
+        }
         :root {
             --theme-color: #6cb1e1;
             --theme-grad: linear-gradient(135deg, #6cb1e1 0%, #2f74ad 100%);
