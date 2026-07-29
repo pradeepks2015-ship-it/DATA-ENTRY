@@ -1,3 +1,7 @@
+        // Yeh DCs abhi taiyar nahi hain — list me dikhte hain (context ke liye) par
+        // "Coming Soon" ke saath disabled rehte hain jab tak inka data ready na ho.
+        const COMING_SOON_DCS = ["BADALPAR", "BANDOL"];
+
         function showDivision(name, colorClass) {
             activeDiv = name.trim().toUpperCase();
             resetForm();
@@ -9,16 +13,23 @@
             const menu = document.getElementById("dc-menu");
             menu.innerHTML = "";
             getDivisionDcNames(activeDiv).forEach((dc) => {
+                const isComingSoon = COMING_SOON_DCS.includes(dc.toUpperCase());
                 const item = document.createElement("div");
                 item.className = "option-item";
-                item.innerText = dc;
-                item.onclick = () => {
-                    activeDC = normalizeDcName(dc);
-                    ensureDcDataLoaded(activeDC);
-                    document.getElementById("selected-dc-label").innerText = dc;
-                    toggleDropdown();
-                    switchView("dc-dashboard");
-                };
+                if (isComingSoon) {
+                    item.style.cssText = "display:flex; align-items:center; justify-content:space-between; gap:8px; cursor:default;";
+                    item.innerHTML = `<span>${escapeHtml(dc)}</span><span style="color:#94a3b8; font-weight:700; font-size:11px; text-transform:uppercase; letter-spacing:0.3px;">Coming Soon</span>`;
+                    item.onclick = () => showToast("यह DC जल्द उपलब्ध होगा", false);
+                } else {
+                    item.innerText = dc;
+                    item.onclick = () => {
+                        activeDC = normalizeDcName(dc);
+                        ensureDcDataLoaded(activeDC);
+                        document.getElementById("selected-dc-label").innerText = dc;
+                        toggleDropdown();
+                        switchView("dc-dashboard");
+                    };
+                }
                 menu.appendChild(item);
             });
         }
