@@ -1,9 +1,7 @@
         function resetForm(keepDc = false) {
             currentData = null;
             document.getElementById("search-ivrs").value = "";
-            document.getElementById("new-mobile").value = "";
             document.getElementById("result-box").style.display = "none";
-            document.getElementById("submit-btn").style.display = "none";
             if (!keepDc) {
                 activeDC = "";
                 const label = document.getElementById("selected-dc-label");
