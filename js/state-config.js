@@ -779,11 +779,6 @@
 
             const today = localTodayIso_();
             document.getElementById("report-date").value = today;
-            // Default MIS date range: 1st of current month to today
-            const now = new Date();
-            const firstOfMonth = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,"0")}-01`;
-            if (document.getElementById("mis-from-date")) document.getElementById("mis-from-date").value = firstOfMonth;
-            if (document.getElementById("mis-to-date")) document.getElementById("mis-to-date").value = today;
             getAllDcConfigs().forEach(async ({ name, csvUrl }) => {
                 if (!csvUrl) return;
                 try {
