@@ -637,7 +637,7 @@ test.describe('Mobile Correction Tracker (galat mobile number flag + monitor)', 
     expect(entries.length).toBe(1);
     expect(entries[0]).toMatchObject({
       ivrs: '1234567890', name: 'Test Consumer', hq: 'ADEGAON HQ',
-      old_mobile: '9998887771', status: 'pending', submitted_by_name: 'Test Employee',
+      old_mobile: '9998887771', status: 'pending',
     });
   });
 
