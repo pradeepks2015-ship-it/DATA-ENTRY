@@ -193,9 +193,11 @@
         .ivrs-input { width: 100%; height: 52px; padding: 0 10px; border-radius: 12px; border: 2.5px solid var(--theme-color); font-size: 1rem; font-weight: 900; color: #000000; text-align: center; outline: none; }
         .search-btn-custom { width: auto; min-width: 200px; padding: 0 30px; height: 48px; background: var(--theme-grad); color: white !important; border-radius: 99px; font-weight: 800; margin-top: 25px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); text-transform: uppercase; transition: background 0.3s; }
         .result-card-custom { width: 100%; background: #f8fafc; border: 1.5px solid #e2e8f0; border-radius: 16px; padding: 16px; text-align: left; margin-top: 20px; display: none; }
-        .res-row { margin-bottom: 8px; padding-bottom: 4px; border-bottom: 1px dashed #cbd5e1; }
-        .res-label { font-size: 0.65rem; font-weight: 800; color: #2563eb; text-transform: uppercase; display: block; }
-        .res-val { font-size: 0.95rem; font-weight: 900; color: #000000; }
+        .res-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 16px; }
+        .res-row { padding-bottom: 8px; border-bottom: 1px dashed #cbd5e1; display: flex; flex-direction: column; gap: 3px; margin-bottom: 0; }
+        .res-row.res-row-full { grid-column: 1 / -1; }
+        .res-label { font-size: 0.62rem; font-weight: 800; color: #2563eb; text-transform: uppercase; display: block; }
+        .res-val { font-size: 0.85rem; font-weight: 900; color: #000000; word-break: break-word; }
         .teal-boundary-input { width: 100%; height: 52px; padding: 0 16px; border-radius: 12px; border: 2.5px solid var(--theme-color); font-size: 1rem; font-weight: 900; text-align: center; outline: none; color: #000000; }
         .submit-sync-btn { width: 100%; height: 55px; background: #000000; color: #ffffff !important; border-radius: 15px; font-weight: 900; text-transform: uppercase; margin-top: 10px; margin-bottom: 20px; display: none; }
         .photo-upload-box { margin-top: 14px; border: 2px dashed var(--theme-color); border-radius: 16px; padding: 16px; text-align: center; background: #f8fafc; }
