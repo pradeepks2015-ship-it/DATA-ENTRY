@@ -256,7 +256,6 @@
         let activeFeederOperator = null;
         let summaryRefreshToken = 0;
         let chhaparaFeederEntries = [];
-        const mobileUpdateStorageKey = "seoni-circle-mobile-updated";
         const dcCsvCacheStoragePrefix = "seoni-circle-dc-csv-";
         const chhaparaFeederStorageKey = "seoni-circle-chhapara-feeder-output";
         const feederRecentSubmittedStorageKey = "seoni-circle-feeder-recent-submitted";
@@ -767,7 +766,6 @@
         }
 
 
-        let mobileSubmittedSheetMap = {};
         let feederRecentSubmittedEntries = [];
 
         document.addEventListener("DOMContentLoaded", () => {
