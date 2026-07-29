@@ -104,6 +104,10 @@
             return counts;
         }
 
+        function mcTableCellStyle_(extra) {
+            return `border:1px solid #fecaca; padding:6px 8px; font-size:10.5px; font-weight:700; color:#1e293b; white-space:nowrap; ${extra || ""}`;
+        }
+
         async function renderMobileCorrectionList_() {
             const container = document.getElementById("mc-pending-list");
             if (!container) return;
@@ -119,44 +123,72 @@
             const groups = mcGroupByHq_(entries);
             const hqNames = Object.keys(groups).sort();
             const totalConsumersByHq = mcTotalConsumersByHq_();
+            const totalFlagged = entries.length;
+            const totalCorrected = entries.filter((e) => e.status === "corrected").length;
 
-            container.innerHTML = hqNames.map((hq) => {
-                const rows = groups[hq];
-                const corrected = rows.filter((r) => r.status === "corrected").length;
-                const hqTotal = totalConsumersByHq[hq];
-                const rowsHtml = rows.slice().reverse().map((e) => {
+            const summaryHtml = `
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; padding:0 2px;">
+                    <div style="font-size:11px; font-weight:900; color:#fef3c7;">कुल फ़्लैग: ${totalFlagged}</div>
+                    <div style="font-size:11px; font-weight:900; color:#bbf7d0;">ठीक हुए: ${totalCorrected}</div>
+                    <div style="font-size:11px; font-weight:900; color:#fecaca;">बाकी: ${totalFlagged - totalCorrected}</div>
+                </div>
+            `;
+
+            const thStyle = "border:1px solid #7f1d1d; background:#991b1b; color:#ffffff; padding:7px 8px; font-size:10px; font-weight:900; text-transform:uppercase; white-space:nowrap; position:sticky; top:0;";
+            const theadHtml = `<tr>
+                <th style="${thStyle}">क्र</th>
+                <th style="${thStyle}">IVRS No</th>
+                <th style="${thStyle}">नाम</th>
+                <th style="${thStyle}">पिता का नाम</th>
+                <th style="${thStyle}">पता</th>
+                <th style="${thStyle}">HQ</th>
+                <th style="${thStyle}">टैरिफ / लोड</th>
+                <th style="${thStyle}">पुराना (गलत) नंबर</th>
+                <th style="${thStyle}">स्थिति</th>
+                <th style="${thStyle}">सही मोबाइल नंबर</th>
+                <th style="${thStyle}">फ़्लैग किया</th>
+            </tr>`;
+
+            let sNo = 0;
+            const bodyHtml = hqNames.map((hq) => {
+                const rows = groups[hq].slice().reverse();
+                return rows.map((e) => {
+                    sNo++;
                     const uid = getEntryUid_(e);
                     const isPending = e.status !== "corrected";
-                    return `
-                        <div style="padding:10px; border-radius:10px; margin-bottom:8px; background:${isPending ? "#fee2e2" : "#f0fdf4"}; border:1.5px solid ${isPending ? "#fca5a5" : "#bbf7d0"};">
-                            <div style="font-size:11.5px; font-weight:900; color:#1e293b;">${escapeHtml(e.name || "नाम अनुपलब्ध")} <span style="color:#64748b; font-weight:700;">(${escapeHtml(e.ivrs || "")})</span></div>
-                            <div style="font-size:10px; font-weight:700; color:#64748b; margin-top:2px;">पिता: ${escapeHtml(e.father || "-")} | ${escapeHtml(e.address || "-")}</div>
-                            <div style="font-size:10px; font-weight:700; color:#991b1b; margin-top:4px;">पुराना (गलत) नंबर: ${escapeHtml(e.old_mobile || "N/A")}</div>
+                    const rowBg = isPending ? "#fee2e2" : "#f0fdf4";
+                    return `<tr style="background:${rowBg};">
+                        <td style="${mcTableCellStyle_()}">${sNo}</td>
+                        <td style="${mcTableCellStyle_("font-weight:900;")}">${escapeHtml(e.ivrs || "")}</td>
+                        <td style="${mcTableCellStyle_("text-align:left;")}">${escapeHtml(e.name || "-")}</td>
+                        <td style="${mcTableCellStyle_("text-align:left;")}">${escapeHtml(e.father || "-")}</td>
+                        <td style="${mcTableCellStyle_("text-align:left; white-space:normal; min-width:120px;")}">${escapeHtml(e.address || "-")}</td>
+                        <td style="${mcTableCellStyle_()}">${escapeHtml(e.hq || hq)}</td>
+                        <td style="${mcTableCellStyle_()}">${escapeHtml([e.tariff, e.load].filter(Boolean).join(" / ") || "-")}</td>
+                        <td style="${mcTableCellStyle_("color:#991b1b; font-weight:900;")}">${escapeHtml(e.old_mobile || "N/A")}</td>
+                        <td style="${mcTableCellStyle_(isPending ? "color:#b91c1c; font-weight:900;" : "color:#15803d; font-weight:900;")}">${isPending ? "⏳ पेंडिंग" : "✅ ठीक हुआ"}</td>
+                        <td style="${mcTableCellStyle_()}">
                             ${isPending ? `
-                                <div style="display:flex; gap:6px; margin-top:8px;">
-                                    <input type="tel" id="mc-correct-${uid}" placeholder="सही मोबाइल नंबर (10 अंक)" oninput="this.value=this.value.replace(/[^0-9]/g,'').slice(0,10)" style="flex:1; height:36px; border-radius:8px; border:1.5px solid #fca5a5; padding:0 8px; font-size:11px; font-weight:700; box-sizing:border-box;">
-                                    <button onclick="saveCorrectMobile_('${uid}')" style="border:none; background:#16a34a; color:#ffffff; border-radius:8px; padding:0 12px; font-size:10px; font-weight:900; text-transform:uppercase; flex-shrink:0;">सेव करें</button>
+                                <div style="display:flex; gap:4px; align-items:center;">
+                                    <input type="tel" id="mc-correct-${uid}" placeholder="10 अंक" oninput="this.value=this.value.replace(/[^0-9]/g,'').slice(0,10)" style="width:90px; height:30px; border-radius:6px; border:1.5px solid #fca5a5; padding:0 6px; font-size:10.5px; font-weight:700; box-sizing:border-box;">
+                                    <button onclick="saveCorrectMobile_('${uid}')" style="border:none; background:#16a34a; color:#ffffff; border-radius:6px; padding:0 8px; height:30px; font-size:9.5px; font-weight:900; text-transform:uppercase; flex-shrink:0;">सेव</button>
                                 </div>
-                            ` : `
-                                <div style="font-size:11px; font-weight:900; color:#15803d; margin-top:6px;">✅ सही नंबर: ${escapeHtml(e.correct_mobile || "")} (${escapeHtml(e.corrected_date || "")})</div>
-                            `}
-                        </div>
-                    `;
+                            ` : `<span style="color:#15803d; font-weight:900;">${escapeHtml(e.correct_mobile || "")}</span> <span style="color:#64748b; font-weight:700;">(${escapeHtml(e.corrected_date || "")})</span>`}
+                        </td>
+                        <td style="${mcTableCellStyle_()}">${escapeHtml(e.flagged_date || "")}${e.submitted_by_name ? `<br><span style="color:#64748b; font-weight:700;">${escapeHtml(e.submitted_by_name)}</span>` : ""}</td>
+                    </tr>`;
                 }).join("");
-
-                return `
-                    <div style="margin-bottom:14px;">
-                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
-                            <div style="font-size:12px; font-weight:900; color:#ffffff;">📍 ${escapeHtml(hq)}</div>
-                            <div style="font-size:10px; font-weight:900; color:#fef3c7; text-align:right;">
-                                ${corrected}/${rows.length} ठीक हुए
-                                ${hqTotal ? `<div style="font-size:9px; font-weight:700; color:#fecaca;">कुल ${hqTotal} उपभोक्ता में से ${corrected} सही (${((corrected / hqTotal) * 100).toFixed(1)}%)</div>` : ""}
-                            </div>
-                        </div>
-                        <div>${rowsHtml}</div>
-                    </div>
-                `;
             }).join("");
+
+            container.innerHTML = `
+                ${summaryHtml}
+                <div style="overflow-x:auto; border-radius:10px; background:#ffffff;">
+                    <table style="border-collapse:collapse; width:100%;">
+                        <thead>${theadHtml}</thead>
+                        <tbody>${bodyHtml}</tbody>
+                    </table>
+                </div>
+            `;
         }
 
         async function saveCorrectMobile_(uid) {
