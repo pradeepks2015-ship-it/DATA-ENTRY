@@ -53,10 +53,20 @@
 
         function mcShowMobileActionsField_() {
             const val = document.getElementById("res-old")?.innerText?.trim();
-            if (val && val !== "N/A") mcShowMobileActions_(val);
+            if (val && val !== "N/A") mcShowMobileActions_(val, currentData?.name, currentData?.father);
         }
 
-        function mcShowMobileActions_(mobile) {
+        function mcActionCardHtml_(href, target, iconBg, icon, title, subtitle) {
+            return `<a href="${href}"${target ? ` target="${target}" rel="noopener"` : ""} style="display:flex; align-items:center; gap:14px; width:100%; padding:14px; border:1.5px solid ${iconBg.border}; border-radius:16px; background:#ffffff; text-decoration:none; margin-bottom:12px; box-sizing:border-box;">
+                <span style="width:46px; height:46px; border-radius:14px; background:${iconBg.bg}; display:flex; align-items:center; justify-content:center; font-size:20px; flex-shrink:0;">${icon}</span>
+                <span>
+                    <div style="font-size:14px; font-weight:900; color:#1e293b;">${title}</div>
+                    <div style="font-size:11px; font-weight:600; color:#64748b; margin-top:2px;">${subtitle}</div>
+                </span>
+            </a>`;
+        }
+
+        function mcShowMobileActions_(mobile, name, father) {
             const digits = String(mobile || "").replace(/\D/g, "");
             if (digits.length !== 10) return showToast("मोबाइल नंबर उपलब्ध नहीं है", false);
             const existing = document.getElementById("mc-mobile-actions-overlay");
@@ -68,14 +78,15 @@
             overlay.addEventListener("click", (e) => { if (e.target === overlay) overlay.remove(); });
 
             const sheet = document.createElement("div");
-            sheet.style.cssText = "background:#ffffff; border-radius:20px 20px 0 0; padding:18px; width:100%; max-width:420px; box-shadow:0 -12px 30px rgba(0,0,0,0.25);";
+            sheet.style.cssText = "background:#ffffff; border-radius:24px 24px 0 0; padding:20px; width:100%; max-width:420px; box-shadow:0 -12px 30px rgba(0,0,0,0.25); box-sizing:border-box;";
             sheet.innerHTML = `
-                <div style="font-size:14px; font-weight:900; color:#1e293b; text-align:center; margin-bottom:4px;">📱 ${escapeHtml(digits)}</div>
-                <div style="font-size:11px; font-weight:700; color:#64748b; text-align:center; margin-bottom:14px;">क्या करना चाहते हैं?</div>
-                <a href="tel:+91${digits}" style="display:flex; align-items:center; justify-content:center; gap:8px; width:100%; height:48px; border-radius:12px; background:linear-gradient(135deg,#16a34a,#15803d); color:#fff; font-size:13px; font-weight:900; text-decoration:none; margin-bottom:10px;">📞 कॉल करें</a>
-                <a href="sms:+91${digits}" style="display:flex; align-items:center; justify-content:center; gap:8px; width:100%; height:48px; border-radius:12px; background:linear-gradient(135deg,#3b82f6,#1d4ed8); color:#fff; font-size:13px; font-weight:900; text-decoration:none; margin-bottom:10px;">💬 SMS करें</a>
-                <a href="https://wa.me/91${digits}" target="_blank" rel="noopener" style="display:flex; align-items:center; justify-content:center; gap:8px; width:100%; height:48px; border-radius:12px; background:linear-gradient(135deg,#25D366,#128C7E); color:#fff; font-size:13px; font-weight:900; text-decoration:none; margin-bottom:10px;">🟢 WhatsApp करें</a>
-                <button id="mc-mobile-actions-close-btn" style="width:100%; height:42px; border:none; border-radius:12px; background:#e2e8f0; color:#1e293b; font-size:12px; font-weight:900; text-transform:uppercase;">बंद करें</button>
+                <div style="width:36px; height:4px; background:#cbd5e1; border-radius:99px; margin:0 auto 16px auto;"></div>
+                ${name ? `<div style="font-size:15px; font-weight:900; color:#1e3a5f;">${escapeHtml(name)}${father ? ` <span style="font-weight:700; color:#64748b;">(पिता/पति: ${escapeHtml(father)})</span>` : ""}</div>` : ""}
+                <div style="display:flex; align-items:center; gap:6px; font-size:14px; font-weight:700; color:#334155; margin:4px 0 18px 0;">📞 ${escapeHtml(digits)}</div>
+                ${mcActionCardHtml_(`tel:+91${digits}`, "", { bg: "#d1fae5", border: "#a7f3d0" }, "📞", "कॉल करें", "सीधे फोन लगाएं")}
+                ${mcActionCardHtml_(`sms:+91${digits}`, "", { bg: "#dbeafe", border: "#bfdbfe" }, "💬", "SMS भेजें", "Text Message भेजें")}
+                ${mcActionCardHtml_(`https://wa.me/91${digits}`, "_blank", { bg: "#dcfce7", border: "#bbf7d0" }, "🟢", "WhatsApp करें", "WhatsApp Message भेजें")}
+                <button id="mc-mobile-actions-close-btn" style="width:100%; height:52px; border:1.5px solid #e2e8f0; border-radius:16px; background:#ffffff; color:#1e293b; font-size:14px; font-weight:900;">रद्द करें</button>
             `;
             overlay.appendChild(sheet);
             document.body.appendChild(overlay);
@@ -296,6 +307,8 @@
                     const ivrsJs = mcJsEscape_(e.ivrs || "");
                     const oldMobileJs = mcJsEscape_(e.old_mobile || "");
                     const correctMobileJs = mcJsEscape_(e.correct_mobile || "");
+                    const nameJs = mcJsEscape_(e.name || "");
+                    const fatherJs = mcJsEscape_(e.father || "");
                     return `<tr style="background:${rowBg};">
                         <td style="${mcTableCellStyle_()}">${sNo}</td>
                         <td style="${mcTableCellStyle_("font-weight:900;")}" class="mc-tap-copy" onclick="mcCopyText_('${ivrsJs}','IVRS नंबर')">${escapeHtml(e.ivrs || "")}</td>
@@ -303,7 +316,7 @@
                         <td style="${mcTableCellStyle_("text-align:left;")}">${escapeHtml(e.father || "-")}</td>
                         <td style="${mcTableCellStyle_("text-align:left; white-space:normal; min-width:120px;")}">${escapeHtml(e.address || "-")}</td>
                         <td style="${mcTableCellStyle_()}">${escapeHtml([e.tariff, e.load].filter(Boolean).join(" / ") || "-")}</td>
-                        <td style="${mcTableCellStyle_("color:#991b1b; font-weight:900;")}"${e.old_mobile ? ` class="mc-tap-copy" onclick="mcShowMobileActions_('${oldMobileJs}')"` : ""}>${escapeHtml(e.old_mobile || "N/A")}${e.flagged_date ? `<br><span style="color:#64748b; font-weight:700; text-decoration:none;">${escapeHtml(e.flagged_date)}</span>` : ""}</td>
+                        <td style="${mcTableCellStyle_("color:#991b1b; font-weight:900;")}"${e.old_mobile ? ` class="mc-tap-copy" onclick="mcShowMobileActions_('${oldMobileJs}','${nameJs}','${fatherJs}')"` : ""}>${escapeHtml(e.old_mobile || "N/A")}${e.flagged_date ? `<br><span style="color:#64748b; font-weight:700; text-decoration:none;">${escapeHtml(e.flagged_date)}</span>` : ""}</td>
                         <td style="${mcTableCellStyle_(isPending ? "color:#b91c1c; font-weight:900;" : "color:#15803d; font-weight:900;")}">${isPending ? "⏳ पेंडिंग" : "✅ ठीक हुआ"}</td>
                         <td style="${mcTableCellStyle_()}">
                             ${isPending ? `
@@ -311,7 +324,7 @@
                                     <input type="tel" id="mc-correct-${uid}" placeholder="10 अंक" oninput="this.value=this.value.replace(/[^0-9]/g,'').slice(0,10)" style="width:90px; height:30px; border-radius:6px; border:1.5px solid #fca5a5; padding:0 6px; font-size:10.5px; font-weight:700; box-sizing:border-box;">
                                     <button onclick="saveCorrectMobile_('${uid}')" style="border:none; background:#16a34a; color:#ffffff; border-radius:6px; padding:0 8px; height:30px; font-size:9.5px; font-weight:900; text-transform:uppercase; flex-shrink:0;">सेव</button>
                                 </div>
-                            ` : `<span class="mc-tap-copy" onclick="mcShowMobileActions_('${correctMobileJs}')" style="color:#15803d; font-weight:900;">${escapeHtml(e.correct_mobile || "")}</span> <span style="color:#64748b; font-weight:700;">(${escapeHtml(e.corrected_date || "")})</span>`}
+                            ` : `<span class="mc-tap-copy" onclick="mcShowMobileActions_('${correctMobileJs}','${nameJs}','${fatherJs}')" style="color:#15803d; font-weight:900;">${escapeHtml(e.correct_mobile || "")}</span> <span style="color:#64748b; font-weight:700;">(${escapeHtml(e.corrected_date || "")})</span>`}
                         </td>
                     </tr>`;
                 }).join("");
@@ -350,4 +363,134 @@
             if (!ok) return showToast("Save करने में समस्या आई", false);
             showToast("सही नंबर सेव हो गया ✅", true);
             await renderMobileCorrectionList_();
+        }
+
+        // ===== मुख्यालय वार मोबाइल नंबर करेक्शन स्कोरकार्ड (⋮ मेनू) =====
+        // flagged_date "DD-MM-YYYY" format me store hoti hai (getCurrentDateDDMMYYYY se) —
+        // isi ko time-period filter ke liye Date object me parse karte hain.
+        function mcParseFlaggedDate_(str) {
+            if (!str) return null;
+            const parts = String(str).split("-");
+            if (parts.length !== 3) return null;
+            const [d, m, y] = parts;
+            const dt = new Date(`${y}-${m}-${d}`);
+            return isNaN(dt.getTime()) ? null : dt;
+        }
+
+        function mcOpenScorecard_() {
+            const menu = document.getElementById("mu-menu-dropdown");
+            if (menu) menu.style.display = "none";
+            const existing = document.getElementById("mc-scorecard-overlay");
+            if (existing) existing.remove();
+
+            const today = localTodayIso_();
+            const now = new Date();
+            const firstOfMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-01`;
+
+            const overlay = document.createElement("div");
+            overlay.id = "mc-scorecard-overlay";
+            overlay.style.cssText = "position:fixed; inset:0; background:rgba(0,0,0,0.55); z-index:9999; display:flex; align-items:flex-end; justify-content:center;";
+            overlay.addEventListener("click", (e) => { if (e.target === overlay) overlay.remove(); });
+
+            const sheet = document.createElement("div");
+            sheet.style.cssText = "background:#ffffff; border-radius:20px 20px 0 0; padding:18px; width:100%; max-width:480px; max-height:82vh; overflow-y:auto; box-shadow:0 -12px 30px rgba(0,0,0,0.25);";
+            sheet.innerHTML = `
+                <div style="font-size:14px; font-weight:900; color:#1e293b; text-align:center; text-transform:uppercase; margin-bottom:2px;">📊 मुख्यालय वार मोबाइल नंबर करेक्शन स्कोरकार्ड</div>
+                <div style="font-size:10.5px; font-weight:700; color:#64748b; text-align:center; margin-bottom:14px;">${escapeHtml(activeDC || "")}</div>
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:14px;">
+                    <div>
+                        <div style="font-size:10px; font-weight:800; color:#64748b; text-transform:uppercase; margin-bottom:4px;">From Date</div>
+                        <input type="date" id="mc-sc-from" value="${firstOfMonth}" style="width:100%; height:38px; border-radius:10px; border:1.5px solid #cbd5e1; padding:0 6px; font-size:0.75rem; font-weight:700; color:#1e3a5f; background:#eff6ff; outline:none; box-sizing:border-box;">
+                    </div>
+                    <div>
+                        <div style="font-size:10px; font-weight:800; color:#64748b; text-transform:uppercase; margin-bottom:4px;">To Date</div>
+                        <input type="date" id="mc-sc-to" value="${today}" style="width:100%; height:38px; border-radius:10px; border:1.5px solid #cbd5e1; padding:0 6px; font-size:0.75rem; font-weight:700; color:#1e3a5f; background:#eff6ff; outline:none; box-sizing:border-box;">
+                    </div>
+                </div>
+                <div id="mc-scorecard-body"><div style="text-align:center; padding:14px; font-size:12px; font-weight:800; color:#64748b;">लोड हो रहा है...</div></div>
+                <button id="mc-scorecard-close-btn" style="width:100%; height:42px; border:none; border-radius:12px; background:#e2e8f0; color:#1e293b; font-size:12px; font-weight:900; text-transform:uppercase; margin-top:14px;">बंद करें</button>
+            `;
+            overlay.appendChild(sheet);
+            document.body.appendChild(overlay);
+
+            document.getElementById("mc-scorecard-close-btn").onclick = () => overlay.remove();
+            document.getElementById("mc-sc-from").onchange = mcRefreshScorecard_;
+            document.getElementById("mc-sc-to").onchange = mcRefreshScorecard_;
+            mcRefreshScorecard_();
+        }
+
+        async function mcRefreshScorecard_() {
+            const body = document.getElementById("mc-scorecard-body");
+            if (!body) return;
+            const fromDate = document.getElementById("mc-sc-from")?.value || "";
+            const toDate = document.getElementById("mc-sc-to")?.value || "";
+            if (fromDate && toDate && fromDate > toDate) {
+                body.innerHTML = `<div style="text-align:center; padding:14px; font-size:12px; font-weight:800; color:#b91c1c;">From date, To date से पहले होनी चाहिए</div>`;
+                return;
+            }
+
+            const fromTs = fromDate ? new Date(fromDate) : null;
+            const toTs = toDate ? new Date(toDate) : null;
+            if (toTs) toTs.setHours(23, 59, 59, 999);
+
+            const dcFilter = activeDC || "";
+            const all = await getMobileCorrectionEntries_();
+            const entries = all.filter((e) => {
+                if (dcFilter && e.dc_name !== dcFilter) return false;
+                if (!fromTs && !toTs) return true;
+                const d = mcParseFlaggedDate_(e.flagged_date);
+                if (!d) return false;
+                if (fromTs && d < fromTs) return false;
+                if (toTs && d > toTs) return false;
+                return true;
+            });
+
+            if (!entries.length) {
+                body.innerHTML = `<div style="text-align:center; padding:14px; font-size:12px; font-weight:800; color:#64748b; background:#f8fafc; border-radius:12px;">इस अवधि में इस DC में कोई flag की हुई entry नहीं है।</div>`;
+                return;
+            }
+
+            const groups = mcGroupByHq_(entries);
+            const hqNames = Object.keys(groups).sort();
+
+            const thStyle = "border:1px solid #1e3a5f; background:#1e3a5f; color:#ffffff; padding:7px 8px; font-size:10px; font-weight:900; text-transform:uppercase; white-space:nowrap;";
+            const tdStyle = "border:1px solid #cbd5e1; padding:6px 8px; font-size:11px; font-weight:700; color:#1e293b; white-space:nowrap; text-align:center;";
+
+            let totalFlagged = 0, totalCorrected = 0;
+            const rowsHtml = hqNames.map((hq) => {
+                const rows = groups[hq];
+                const flagged = rows.length;
+                const corrected = rows.filter((e) => e.status === "corrected").length;
+                const pending = flagged - corrected;
+                totalFlagged += flagged;
+                totalCorrected += corrected;
+                return `<tr>
+                    <td style="${tdStyle} text-align:left; font-weight:900;">${escapeHtml(hq)}</td>
+                    <td style="${tdStyle}">${flagged}</td>
+                    <td style="${tdStyle} color:#15803d; font-weight:900;">${corrected}</td>
+                    <td style="${tdStyle} color:#b91c1c; font-weight:900;">${pending}</td>
+                </tr>`;
+            }).join("");
+
+            const totalPending = totalFlagged - totalCorrected;
+            const totalsRow = `<tr style="background:#eff6ff;">
+                <td style="${tdStyle} text-align:left; font-weight:900;">कुल योग</td>
+                <td style="${tdStyle} font-weight:900;">${totalFlagged}</td>
+                <td style="${tdStyle} color:#15803d; font-weight:900;">${totalCorrected}</td>
+                <td style="${tdStyle} color:#b91c1c; font-weight:900;">${totalPending}</td>
+            </tr>`;
+
+            body.innerHTML = `
+                <div style="overflow-x:auto; border-radius:10px;">
+                    <table style="border-collapse:collapse; width:100%;">
+                        <thead><tr>
+                            <th style="${thStyle} text-align:left;">मुख्यालय</th>
+                            <th style="${thStyle}">किये गये wrong mb. no. फ्लैग</th>
+                            <th style="${thStyle}">सही किए गए मोबाइल नंबर</th>
+                            <th style="${thStyle}">पेंडिंग</th>
+                        </tr></thead>
+                        <tbody>${rowsHtml}${totalsRow}</tbody>
+                    </table>
+                </div>
+            `;
         }
