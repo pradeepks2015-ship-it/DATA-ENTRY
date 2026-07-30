@@ -885,6 +885,56 @@ test.describe('Mobile Correction Tracker (galat mobile number flag + monitor)', 
     expect(entries[0].correct_mobile).toBe('9123456789');
   });
 
+  test('Galti se flag hui IVRS entry ko confirm karke list se hataya ja sakta hai (cloud se bhi)', async ({ page }) => {
+    let deleteCalled = false;
+    await openApp(page, {
+      beforeGoto: async (p) => {
+        await mockConsumerCsv(p);
+        await p.route('**/macros/**', (route) => {
+          const req = route.request();
+          if (req.method() === 'POST') {
+            const params = new URLSearchParams(req.postData() || '');
+            if (params.get('action') === 'deleteEntry') {
+              deleteCalled = true;
+              expect(params.get('entry_id')).toBe('MC1');
+              return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ status: 'success' }) });
+            }
+            return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ status: 'success', entry_id: 'MC1' }) });
+          }
+          return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ status: 'success', entries: [] }) });
+        });
+      },
+    });
+    await goToMobileUpdate(page);
+    await page.click('#mc-flag-btn');
+    await page.waitForTimeout(300);
+
+    await page.click('button[onclick="toggleMobileCorrectionList_()"]');
+    await page.waitForFunction(() => document.getElementById('mc-pending-list').innerText.includes('Test Consumer'));
+
+    const list = page.locator('#mc-pending-list');
+    await expect(list).toContainText('कुल फ़्लैग: 1');
+
+    await page.click("button[onclick*=\"mcDeleteEntryConfirm_\"]");
+    const overlay = page.locator('#mc-delete-overlay');
+    await expect(overlay).toBeVisible();
+    await expect(overlay).toContainText('यह entry हटाएं?');
+
+    // Cancel se overlay band ho, entry list me bani rahe
+    await page.click('#mc-delete-cancel-btn');
+    await expect(overlay).toHaveCount(0);
+    await expect(list).toContainText('Test Consumer');
+
+    // Ab confirm karke delete karte hain
+    await page.click("button[onclick*=\"mcDeleteEntryConfirm_\"]");
+    await page.click('#mc-delete-confirm-btn');
+    await page.waitForFunction(() => document.getElementById('mc-pending-list').innerText.includes('कोई flag की हुई entry नहीं है'));
+
+    expect(deleteCalled).toBe(true);
+    const entries = await page.evaluate(() => getMobileCorrectionEntries_());
+    expect(entries.length).toBe(0);
+  });
+
   test('सूची देखें बटन के बगल में HQ filter dropdown se list HQ ke hisaab se filter hoti hai', async ({ page }) => {
     await openApp(page, {
       beforeGoto: async (p) => {
