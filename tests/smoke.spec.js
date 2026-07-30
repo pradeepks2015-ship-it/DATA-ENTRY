@@ -1000,11 +1000,12 @@ test.describe('Mobile Correction Tracker (galat mobile number flag + monitor)', 
     await page.waitForTimeout(300);
 
     const aoa = await page.evaluate(() => window.__aoaCaptured);
-    expect(aoa[0]).toEqual(['क्र', 'IVRS No', 'नाम', 'पता', 'टैरिफ / लोड', 'पुराना (गलत) नंबर', 'स्थिति', 'सही मोबाइल नंबर']);
+    expect(aoa[0]).toEqual(['क्र', 'IVRS No', 'नाम', 'पता', 'पुराना (गलत) नंबर', 'स्थिति', 'सही मोबाइल नंबर']);
     expect(aoa.length).toBe(2); // header + sirf ADEGAON HQ ki 1 entry, BIBI HQ nahi
     expect(aoa[1][1]).toBe('1234567890');
     expect(aoa[1][2]).toBe('Test Consumer / Test Father');
-    expect(aoa[1][5]).toContain('9998887771');
+    expect(aoa[1][3]).toContain('LV1'); // address (tariff/load usi cell me faded)
+    expect(aoa[1][4]).toContain('9998887771');
   });
 
   test('⋮ मेनू का HQ-wise scorecard flagged/corrected/pending counts sahi dikhata hai aur date filter kaam karta hai', async ({ page }) => {
