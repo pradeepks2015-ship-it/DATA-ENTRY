@@ -288,7 +288,6 @@
                 <th style="${thStyle}">क्र</th>
                 <th style="${thStyle}">IVRS No</th>
                 <th style="${thStyle}">नाम</th>
-                <th style="${thStyle}">पिता का नाम</th>
                 <th style="${thStyle}">पता</th>
                 <th style="${thStyle}">टैरिफ / लोड</th>
                 <th style="${thStyle}">पुराना (गलत) नंबर</th>
@@ -312,8 +311,7 @@
                     return `<tr style="background:${rowBg};">
                         <td style="${mcTableCellStyle_()}">${sNo}</td>
                         <td style="${mcTableCellStyle_("font-weight:900;")}" class="mc-tap-copy" onclick="mcCopyText_('${ivrsJs}','IVRS नंबर')">${escapeHtml(e.ivrs || "")}</td>
-                        <td style="${mcTableCellStyle_("text-align:left;")}">${escapeHtml(e.name || "-")}</td>
-                        <td style="${mcTableCellStyle_("text-align:left;")}">${escapeHtml(e.father || "-")}</td>
+                        <td style="${mcTableCellStyle_("text-align:left;")}">${escapeHtml(e.name || "-")}${e.father ? `<br><span style="color:#94a3b8; font-weight:600;">/ ${escapeHtml(e.father)}</span>` : ""}</td>
                         <td style="${mcTableCellStyle_("text-align:left; white-space:normal; min-width:120px;")}">${escapeHtml(e.address || "-")}</td>
                         <td style="${mcTableCellStyle_()}">${escapeHtml([e.tariff, e.load].filter(Boolean).join(" / ") || "-")}</td>
                         <td style="${mcTableCellStyle_("color:#991b1b; font-weight:900;")}"${e.old_mobile ? ` class="mc-tap-copy" onclick="mcShowMobileActions_('${oldMobileJs}','${nameJs}','${fatherJs}')"` : ""}>${escapeHtml(e.old_mobile || "N/A")}${e.flagged_date ? `<br><span style="color:#64748b; font-weight:700; text-decoration:none;">${escapeHtml(e.flagged_date)}</span>` : ""}</td>
@@ -324,7 +322,7 @@
                                     <input type="tel" id="mc-correct-${uid}" placeholder="10 अंक" oninput="this.value=this.value.replace(/[^0-9]/g,'').slice(0,10)" style="width:90px; height:30px; border-radius:6px; border:1.5px solid #fca5a5; padding:0 6px; font-size:10.5px; font-weight:700; box-sizing:border-box;">
                                     <button onclick="saveCorrectMobile_('${uid}')" style="border:none; background:#16a34a; color:#ffffff; border-radius:6px; padding:0 8px; height:30px; font-size:9.5px; font-weight:900; text-transform:uppercase; flex-shrink:0;">सेव</button>
                                 </div>
-                            ` : `<span class="mc-tap-copy" onclick="mcShowMobileActions_('${correctMobileJs}','${nameJs}','${fatherJs}')" style="color:#15803d; font-weight:900;">${escapeHtml(e.correct_mobile || "")}</span> <span style="color:#64748b; font-weight:700;">(${escapeHtml(e.corrected_date || "")})</span>`}
+                            ` : `<span class="mc-tap-copy" onclick="mcShowMobileActions_('${correctMobileJs}','${nameJs}','${fatherJs}')" style="color:#15803d; font-weight:900;">${escapeHtml(e.correct_mobile || "")}</span>${e.corrected_date ? `<br><span style="color:#94a3b8; font-weight:600; text-decoration:none;">${escapeHtml(e.corrected_date)}</span>` : ""}`}
                         </td>
                     </tr>`;
                 }).join("");
