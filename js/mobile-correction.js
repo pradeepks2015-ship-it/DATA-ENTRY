@@ -371,7 +371,8 @@
             const hqSet = new Set(Object.keys(mcTotalConsumersByHq_()));
             (entries || []).forEach((e) => hqSet.add(e.hq || "सामान्य"));
             const hqNames = Array.from(hqSet).sort();
-            select.innerHTML = `<option value="">सभी HQ</option>` + hqNames.map((hq) => `<option value="${escapeHtml(hq)}">${escapeHtml(hq)}</option>`).join("");
+            const optStyle = `color:#1e293b; background:#ffffff;`;
+            select.innerHTML = `<option value="" style="${optStyle}">सभी HQ</option>` + hqNames.map((hq) => `<option value="${escapeHtml(hq)}" style="${optStyle}">${escapeHtml(hq)}</option>`).join("");
             if (hqNames.includes(prevValue)) select.value = prevValue;
         }
 
