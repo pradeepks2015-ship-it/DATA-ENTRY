@@ -119,7 +119,7 @@
 
                 // Screen par jo columns dikhte hain (mobile-correction table), Excel
                 // bhi bilkul usi format me — naam+pita aur mobile+date ek hi cell me.
-                const headers = ["क्र", "IVRS No", "नाम", "पता", "पुराना (गलत) नंबर", "स्थिति", "सही मोबाइल नंबर"];
+                const headers = ["क्र", "IVRS No", "नाम", "पता / टैरिफ / लोड", "पुराना (गलत) नंबर", "स्थिति", "सही मोबाइल नंबर"];
                 const rows = entries.map((e, i) => {
                     const tariffLoad = [e.tariff, e.load].filter(Boolean).join(" / ");
                     return [
@@ -299,7 +299,7 @@
                 <th style="${thStyle}">क्र</th>
                 <th style="${thStyle}">IVRS No</th>
                 <th style="${thStyle}">नाम</th>
-                <th style="${thStyle}">पता</th>
+                <th style="${thStyle}">पता / टैरिफ / लोड</th>
                 <th style="${thStyle}">पुराना (गलत) नंबर</th>
                 <th style="${thStyle}">स्थिति</th>
                 <th style="${thStyle}">सही मोबाइल नंबर</th>
