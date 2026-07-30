@@ -823,6 +823,57 @@ test.describe('Mobile Correction Tracker (galat mobile number flag + monitor)', 
     expect(errors).toEqual([]);
   });
 
+  test('मुख्यालय-वार Excel download sirf select ki hui HQ ki list deta hai, on-screen jaisa format', async ({ page }) => {
+    await openApp(page, {
+      beforeGoto: async (p) => {
+        await mockConsumerCsv(p);
+        await p.route('**/macros/**', (route) => {
+          route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ status: 'success', entry_id: 'MC1', entries: [] }) });
+        });
+      },
+    });
+    await goToMobileUpdate(page);
+    await page.click('#mc-flag-btn'); // ADEGAON HQ (IVRS 1234567890) flag
+    await page.waitForTimeout(300);
+
+    await page.fill('#search-ivrs', '2345678901');
+    await page.click('#search-btn');
+    await page.waitForFunction(() => document.getElementById('result-box').style.display !== 'none');
+    await page.click('#mc-flag-btn'); // BIBI HQ (IVRS 2345678901) flag
+    await page.waitForTimeout(300);
+
+    await page.click('button[onclick="toggleMobileCorrectionList_()"]');
+    await page.waitForFunction(() => document.getElementById('mc-pending-list').innerText.includes('Test Consumer'));
+
+    // XLSX library CDN se aati hai jo test me blockExternal se block hoti hai —
+    // isliye ek chhota stub set karte hain taaki downloadMobileCorrectionExcel_
+    // "library load nahi hui" wala early-return na le, aur aoa data capture ho sake.
+    await page.evaluate(() => {
+      window.__aoaCaptured = null;
+      window.XLSX = {
+        utils: {
+          aoa_to_sheet: (data) => { window.__aoaCaptured = data; return {}; },
+          book_new: () => ({}),
+          book_append_sheet: () => {},
+        },
+        writeFile: () => {},
+      };
+    });
+
+    await page.locator('#mc-hq-filter').selectOption('ADEGAON HQ');
+    await page.click('#mu-menu-btn');
+    await expect(page.locator('#mc-excel-btn')).toContainText('मुख्यालय-वार Excel में Download करें');
+    await page.click('#mc-excel-btn');
+    await page.waitForTimeout(300);
+
+    const aoa = await page.evaluate(() => window.__aoaCaptured);
+    expect(aoa[0]).toEqual(['क्र', 'IVRS No', 'नाम', 'पता', 'टैरिफ / लोड', 'पुराना (गलत) नंबर', 'स्थिति', 'सही मोबाइल नंबर']);
+    expect(aoa.length).toBe(2); // header + sirf ADEGAON HQ ki 1 entry, BIBI HQ nahi
+    expect(aoa[1][1]).toBe('1234567890');
+    expect(aoa[1][2]).toBe('Test Consumer / Test Father');
+    expect(aoa[1][5]).toContain('9998887771');
+  });
+
   test('⋮ मेनू का HQ-wise scorecard flagged/corrected/pending counts sahi dikhata hai aur date filter kaam karta hai', async ({ page }) => {
     const errors = [];
     page.on('pageerror', (e) => errors.push(e.message));
