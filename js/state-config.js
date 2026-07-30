@@ -412,9 +412,25 @@
         // Sends a single entry (with photo(s) as base64 data URLs) to the shared backend.
         // Returns the entry_id assigned by the server, or "" on failure (caller should
         // continue working with local-only storage in that case).
+        // Backend/config error hone par bhi entry queue me daal dete hain (network
+        // error jaisa hi) — taaki koi bhi failure "silently local-only" na reh
+        // jaaye. Caller __lastSyncErrorReason ("network"/"backend"/"disabled") aur
+        // __lastSyncErrorMessage dekh kar sahi toast dikha sakta hai (galat "internet
+        // nahi hai" na bole jab asal me backend/server error ho).
+        async function mcQueueSyncFailure_(module, entry, isReplay) {
+            if (isReplay) return;
+            try {
+                if (!entry.client_id) entry.client_id = genClientId_();
+                await queueOfflineSync_({ kind: "shared_entry", module, entry: JSON.parse(JSON.stringify(entry)) });
+                window.__lastSyncQueued = true;
+            } catch (qErr) { console.error(qErr); }
+        }
+
         async function syncEntryToCloud_(module, entry, isReplay = false) {
             window.__lastSyncQueued = false;
-            if (!sharedModuleSyncEnabled) return "";
+            window.__lastSyncErrorReason = "";
+            window.__lastSyncErrorMessage = "";
+            if (!sharedModuleSyncEnabled) { window.__lastSyncErrorReason = "disabled"; return ""; }
             try {
                 // Step 1: Send entry metadata only (no photo_data) to get entry_id
                 const entryToSync = JSON.parse(JSON.stringify(entry));
@@ -435,10 +451,24 @@
                     headers: { "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8" },
                     body: payload.toString()
                 });
-                const parsed = JSON.parse((await response.text()) || "{}");
-                if (!parsed || parsed.status !== "success") return "";
+                const responseText = await response.text();
+                let parsed = null;
+                try { parsed = JSON.parse(responseText || "{}"); } catch (_) {}
+                if (!parsed || parsed.status !== "success") {
+                    window.__lastSyncErrorReason = "backend";
+                    window.__lastSyncErrorMessage = (parsed && parsed.message) || `Server ne HTTP ${response.status} diya`;
+                    logErr_(`sync-${module}`, null, window.__lastSyncErrorMessage);
+                    await mcQueueSyncFailure_(module, entry, isReplay);
+                    return "";
+                }
                 const entryId = parsed.entry_id || "";
-                if (!entryId) return "";
+                if (!entryId) {
+                    window.__lastSyncErrorReason = "backend";
+                    window.__lastSyncErrorMessage = "Server se entry_id नहीं मिला";
+                    logErr_(`sync-${module}`, null, window.__lastSyncErrorMessage);
+                    await mcQueueSyncFailure_(module, entry, isReplay);
+                    return "";
+                }
 
                 // Step 2: Upload each photo — AWAIT each one so they actually save to Drive
                 // before we return. This makes submit slightly slower but ensures photos
@@ -490,17 +520,18 @@
 
                 return entryId;
             } catch (err) {
-                // Network error (offline)? Queue me daal do — internet aane par
-                // processSyncQueue_ ise apne aap cloud me bhej degi (photos samet).
-                if (!isReplay && (navigator.onLine === false || err instanceof TypeError)) {
-                    try {
-                        if (!entry.client_id) entry.client_id = genClientId_();
-                        await queueOfflineSync_({ kind: "shared_entry", module, entry: JSON.parse(JSON.stringify(entry)) });
-                        window.__lastSyncQueued = true;
-                    } catch (qErr) { console.error(qErr); }
-                } else {
-                    console.error(err);
+                // Network error (offline) ho ya koi aur unexpected error — dono cases
+                // me queue me daal dete hain (internet aane/retry hone par apne aap
+                // cloud me bhej degi), sirf reason/message alag hota hai taaki caller
+                // sahi toast dikha sake (galat "internet nahi hai" na bole).
+                const isNetworkErr = navigator.onLine === false || err instanceof TypeError;
+                window.__lastSyncErrorReason = isNetworkErr ? "network" : "backend";
+                if (!isNetworkErr) {
+                    window.__lastSyncErrorMessage = err && err.message ? err.message : String(err);
+                    logErr_(`sync-${module}`, err);
                 }
+                console.error(err);
+                await mcQueueSyncFailure_(module, entry, isReplay);
                 return "";
             }
         }
@@ -546,40 +577,56 @@
         // (jaise mobile_correction ka status "pending" se "corrected" karna) cloud +
         // local dono jagah update karta hai, offline hone par sync_queue me daal deta hai.
         async function updateSharedEntry_(module, id, updates) {
+            window.__lastSyncErrorReason = "";
+            window.__lastSyncErrorMessage = "";
             if (sharedModuleSyncEnabled) {
-                try {
-                    let cloudEntryId = (typeof id === "string" && id.startsWith("E")) ? id : null;
-                    if (!cloudEntryId) {
-                        const all = await idbGetAll_(module);
-                        cloudEntryId = all.find((r) => r.id === id)?.entry_id || null;
-                    }
-                    if (cloudEntryId) {
+                let cloudEntryId = (typeof id === "string" && id.startsWith("E")) ? id : null;
+                if (!cloudEntryId) {
+                    const all = await idbGetAll_(module);
+                    cloudEntryId = all.find((r) => r.id === id)?.entry_id || null;
+                }
+                if (cloudEntryId) {
+                    try {
                         const payload = new URLSearchParams();
                         payload.append("module", module);
                         payload.append("action", "updateEntry");
                         payload.append("entry_id", cloudEntryId);
                         payload.append("updates_json", JSON.stringify(updates));
                         payload.append("auth_token", APPS_SCRIPT_AUTH_TOKEN);
-                        await fetch(sharedModuleSyncScriptUrl, {
+                        const response = await fetch(sharedModuleSyncScriptUrl, {
                             method: "POST",
                             headers: { "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8" },
                             body: payload.toString()
                         });
-                        sharedModuleLastFetch[module] = 0;
-                    }
-                } catch (err) {
-                    if (navigator.onLine === false || err instanceof TypeError) {
+                        const responseText = await response.text();
+                        let parsed = null;
+                        try { parsed = JSON.parse(responseText || "{}"); } catch (_) {}
+                        if (!response.ok || !parsed || parsed.status !== "success") {
+                            window.__lastSyncErrorReason = "backend";
+                            window.__lastSyncErrorMessage = (parsed && parsed.message) || `Server ne HTTP ${response.status} diya`;
+                            logErr_(`update-${module}`, null, window.__lastSyncErrorMessage);
+                            await queueOfflineSync_({ kind: "entry_update", module, entryId: cloudEntryId, updates });
+                        } else {
+                            sharedModuleLastFetch[module] = 0;
+                        }
+                    } catch (err) {
+                        const isNetworkErr = navigator.onLine === false || err instanceof TypeError;
+                        window.__lastSyncErrorReason = isNetworkErr ? "network" : "backend";
+                        if (!isNetworkErr) {
+                            window.__lastSyncErrorMessage = err && err.message ? err.message : String(err);
+                            logErr_(`update-${module}`, err);
+                        }
                         try {
-                            let cloudEntryId = (typeof id === "string" && id.startsWith("E")) ? id : null;
-                            if (!cloudEntryId) {
-                                const all = await idbGetAll_(module);
-                                cloudEntryId = all.find((r) => r.id === id)?.entry_id || null;
-                            }
-                            if (cloudEntryId) {
-                                await queueOfflineSync_({ kind: "entry_update", module, entryId: cloudEntryId, updates });
-                            }
+                            await queueOfflineSync_({ kind: "entry_update", module, entryId: cloudEntryId, updates });
                         } catch (_) {}
                     }
+                } else {
+                    // Original entry khud abhi tak cloud par sync nahi hui (uska
+                    // apna sync_queue item pending hai) — isliye update bhejne ke
+                    // liye koi cloud entry_id nahi hai. Jab wo original entry sync
+                    // ho jaayegi, tab tak yeh correction sirf local rahega.
+                    window.__lastSyncErrorReason = "pending_original";
+                    window.__lastSyncErrorMessage = "मूल entry अभी cloud पर sync नहीं हुई";
                 }
             }
             try {

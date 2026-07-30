@@ -978,34 +978,88 @@ test.describe('Mobile Correction Tracker (galat mobile number flag + monitor)', 
     await page.click('button[onclick="toggleMobileCorrectionList_()"]');
     await page.waitForFunction(() => document.getElementById('mc-pending-list').innerText.includes('Test Consumer'));
 
-    // XLSX library CDN se aati hai jo test me blockExternal se block hoti hai —
-    // isliye ek chhota stub set karte hain taaki downloadMobileCorrectionExcel_
-    // "library load nahi hui" wala early-return na le, aur aoa data capture ho sake.
+    // ExcelJS (js/vendor/exceljs.min.js, local file — koi CDN nahi) button click
+    // par lazy-load hoti hai. Actual browser download trigger avoid karne ke liye
+    // URL.createObjectURL ko intercept karke Blob capture karte hain, phir usi
+    // ExcelJS se wapas parse karke cell values/colors verify karte hain.
     await page.evaluate(() => {
-      window.__aoaCaptured = null;
-      window.XLSX = {
-        utils: {
-          aoa_to_sheet: (data) => { window.__aoaCaptured = data; return {}; },
-          book_new: () => ({}),
-          book_append_sheet: () => {},
-        },
-        writeFile: () => {},
-      };
+      window.__lastExcelBlob = null;
+      const origCreateObjectURL = URL.createObjectURL.bind(URL);
+      URL.createObjectURL = (blob) => { window.__lastExcelBlob = blob; return origCreateObjectURL(blob); };
     });
 
     await page.locator('#mc-hq-filter').selectOption('ADEGAON HQ');
     await page.click('#mu-menu-btn');
     await expect(page.locator('#mc-excel-btn')).toContainText('मुख्यालय-वार Excel में Download करें');
     await page.click('#mc-excel-btn');
-    await page.waitForTimeout(300);
+    await page.waitForFunction(() => window.__lastExcelBlob !== null, null, { timeout: 15000 });
 
-    const aoa = await page.evaluate(() => window.__aoaCaptured);
-    expect(aoa[0]).toEqual(['क्र', 'IVRS No', 'नाम', 'पता / टैरिफ / लोड', 'पुराना (गलत) नंबर', 'स्थिति', 'सही मोबाइल नंबर']);
-    expect(aoa.length).toBe(2); // header + sirf ADEGAON HQ ki 1 entry, BIBI HQ nahi
-    expect(aoa[1][1]).toBe('1234567890');
-    expect(aoa[1][2]).toBe('Test Consumer / Test Father');
-    expect(aoa[1][3]).toContain('LV1'); // address (tariff/load usi cell me faded)
-    expect(aoa[1][4]).toContain('9998887771');
+    const parsed = await page.evaluate(async () => {
+      const buffer = await window.__lastExcelBlob.arrayBuffer();
+      const wb = new ExcelJS.Workbook();
+      await wb.xlsx.load(buffer);
+      const ws = wb.worksheets[0];
+      const headerRow = ws.getRow(1);
+      const dataRow = ws.getRow(2);
+      return {
+        rowCount: ws.rowCount,
+        headers: headerRow.values.slice(1),
+        headerFill: headerRow.getCell(1).fill?.fgColor?.argb,
+        headerFont: headerRow.getCell(1).font?.color?.argb,
+        ivrs: dataRow.getCell(2).value,
+        ivrsFont: dataRow.getCell(2).font?.color?.argb,
+        nameRich: dataRow.getCell(3).value?.richText?.map((r) => r.text).join(''),
+        addrRich: dataRow.getCell(4).value?.richText?.map((r) => r.text).join(''),
+        rowFill: dataRow.getCell(1).fill?.fgColor?.argb,
+      };
+    });
+
+    expect(parsed.rowCount).toBe(2); // header + sirf ADEGAON HQ ki 1 entry, BIBI HQ nahi
+    expect(parsed.headers).toEqual(['क्र', 'IVRS No', 'नाम', 'पता / टैरिफ / लोड', 'पुराना (गलत) नंबर', 'स्थिति', 'सही मोबाइल नंबर']);
+    expect(parsed.headerFill).toBe('FF991B1B'); // dark red header (screen jaisa)
+    expect(parsed.headerFont).toBe('FFFFFFFF');
+    expect(parsed.ivrs).toBe('1234567890');
+    expect(parsed.ivrsFont).toBe('FF2563EB'); // blue, screen jaisa
+    expect(parsed.nameRich).toBe('Test Consumer\n/ Test Father');
+    expect(parsed.addrRich).toContain('LV1');
+    expect(parsed.rowFill).toBe('FFFEE2E2'); // pending row ka halka pink background
+  });
+
+  test('Backend error (network nahi) ho to galat "internet nahi hai" nahi bolta, aur retry ke liye queue ho jaata hai', async ({ page }) => {
+    const errors = [];
+    page.on('pageerror', (e) => errors.push(e.message));
+    await openApp(page, {
+      beforeGoto: async (p) => {
+        await mockConsumerCsv(p);
+        // Backend/Apps Script se ek asli response aata hai (internet chalu hai,
+        // request pahunchi) — lekin status "error" hai (jaise sheet quota/bug).
+        // Yeh network failure NAHI hai, isliye "internet nahi hai" nahi bolna chahiye.
+        await p.route('**/macros/**', (route) => {
+          route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ status: 'error', message: 'Sheet quota exceeded' }) });
+        });
+      },
+    });
+    await goToMobileUpdate(page);
+    await page.click('#mc-flag-btn');
+    await page.waitForFunction(() => document.getElementById('mc-flag-btn').innerText.includes('मार्क करें'));
+
+    // Toast me "internet nahi hai" nahi, balki asli server error dikhna chahiye
+    await expect(page.locator('#toast-notif')).not.toContainText('Internet नहीं है');
+    await expect(page.locator('#toast-notif')).toContainText('Sheet quota exceeded');
+
+    // Entry phir bhi local IndexedDB me save honi chahiye
+    const entries = await page.evaluate(() => getMobileCorrectionEntries_());
+    expect(entries.length).toBe(1);
+    expect(entries[0].status).toBe('pending');
+
+    // Aur retry ke liye sync_queue me bhi jaani chahiye (pehle yeh sirf network
+    // errors ke liye hota tha — backend errors silently kho jaate the)
+    const queueLen = await page.evaluate(async () => (await idbGetAll_('sync_queue')).length);
+    expect(queueLen).toBe(1);
+
+    await page.waitForFunction(() => document.getElementById('sync-queue-badge')?.style.display === 'inline-flex');
+    await expect(page.locator('#sync-queue-badge')).toContainText('1 pending');
+    expect(errors).toEqual([]);
   });
 
   test('⋮ मेनू का HQ-wise scorecard flagged/corrected/pending counts sahi dikhata hai aur date filter kaam karta hai', async ({ page }) => {
