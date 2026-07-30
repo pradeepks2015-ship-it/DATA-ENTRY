@@ -119,17 +119,19 @@
 
                 // Screen par jo columns dikhte hain (mobile-correction table), Excel
                 // bhi bilkul usi format me — naam+pita aur mobile+date ek hi cell me.
-                const headers = ["क्र", "IVRS No", "नाम", "पता", "टैरिफ / लोड", "पुराना (गलत) नंबर", "स्थिति", "सही मोबाइल नंबर"];
-                const rows = entries.map((e, i) => [
-                    i + 1,
-                    e.ivrs || "",
-                    e.name ? `${e.name}${e.father ? ` / ${e.father}` : ""}` : "",
-                    e.address || "",
-                    [e.tariff, e.load].filter(Boolean).join(" / "),
-                    `${e.old_mobile || "N/A"}${e.flagged_date ? ` (${e.flagged_date})` : ""}`,
-                    e.status === "corrected" ? "ठीक हुआ" : "पेंडिंग",
-                    e.correct_mobile ? `${e.correct_mobile}${e.corrected_date ? ` (${e.corrected_date})` : ""}` : ""
-                ]);
+                const headers = ["क्र", "IVRS No", "नाम", "पता", "पुराना (गलत) नंबर", "स्थिति", "सही मोबाइल नंबर"];
+                const rows = entries.map((e, i) => {
+                    const tariffLoad = [e.tariff, e.load].filter(Boolean).join(" / ");
+                    return [
+                        i + 1,
+                        e.ivrs || "",
+                        e.name ? `${e.name}${e.father ? ` / ${e.father}` : ""}` : "",
+                        `${e.address || ""}${tariffLoad ? ` (${tariffLoad})` : ""}`,
+                        `${e.old_mobile || "N/A"}${e.flagged_date ? ` (${e.flagged_date})` : ""}`,
+                        e.status === "corrected" ? "ठीक हुआ" : "पेंडिंग",
+                        e.correct_mobile ? `${e.correct_mobile}${e.corrected_date ? ` (${e.corrected_date})` : ""}` : ""
+                    ];
+                });
 
                 const ws = XLSX.utils.aoa_to_sheet([headers, ...rows]);
                 const wb = XLSX.utils.book_new();
@@ -298,7 +300,6 @@
                 <th style="${thStyle}">IVRS No</th>
                 <th style="${thStyle}">नाम</th>
                 <th style="${thStyle}">पता</th>
-                <th style="${thStyle}">टैरिफ / लोड</th>
                 <th style="${thStyle}">पुराना (गलत) नंबर</th>
                 <th style="${thStyle}">स्थिति</th>
                 <th style="${thStyle}">सही मोबाइल नंबर</th>
@@ -321,8 +322,7 @@
                         <td style="${mcTableCellStyle_()}">${sNo}</td>
                         <td style="${mcTableCellStyle_("font-weight:900;")}" class="mc-tap-copy" onclick="mcCopyText_('${ivrsJs}','IVRS नंबर')">${escapeHtml(e.ivrs || "")}</td>
                         <td style="${mcTableCellStyle_("text-align:left;")}">${escapeHtml(e.name || "-")}${e.father ? `<br><span style="color:#94a3b8; font-weight:600;">/ ${escapeHtml(e.father)}</span>` : ""}</td>
-                        <td style="${mcTableCellStyle_("text-align:left; white-space:normal; min-width:120px;")}">${escapeHtml(e.address || "-")}</td>
-                        <td style="${mcTableCellStyle_()}">${escapeHtml([e.tariff, e.load].filter(Boolean).join(" / ") || "-")}</td>
+                        <td style="${mcTableCellStyle_("text-align:left; white-space:normal; min-width:120px;")}">${escapeHtml(e.address || "-")}${[e.tariff, e.load].filter(Boolean).length ? `<br><span style="color:#94a3b8; font-weight:600; text-decoration:none;">${escapeHtml([e.tariff, e.load].filter(Boolean).join(" / "))}</span>` : ""}</td>
                         <td style="${mcTableCellStyle_("color:#991b1b; font-weight:900;")}"${e.old_mobile ? ` class="mc-tap-copy" onclick="mcShowMobileActions_('${oldMobileJs}','${nameJs}','${fatherJs}')"` : ""}>${escapeHtml(e.old_mobile || "N/A")}${e.flagged_date ? `<br><span style="color:#64748b; font-weight:700; text-decoration:none;">${escapeHtml(e.flagged_date)}</span>` : ""}</td>
                         <td style="${mcTableCellStyle_(isPending ? "color:#b91c1c; font-weight:900;" : "color:#15803d; font-weight:900;")}">${isPending ? "⏳ पेंडिंग" : "✅ ठीक हुआ"}</td>
                         <td style="${mcTableCellStyle_()}">
