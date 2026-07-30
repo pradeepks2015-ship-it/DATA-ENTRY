@@ -107,32 +107,41 @@
             if (btn) { btn.innerText = "बन रहा है..."; btn.disabled = true; }
             try {
                 const dcFilter = activeDC || "";
+                // Jo HQ pending-list dropdown me currently select hai, sirf usi ki
+                // list download hoti hai — "सभी HQ" select ho to poore DC ki.
+                const hqFilter = document.getElementById("mc-hq-filter")?.value || "";
                 const all = await getMobileCorrectionEntries_();
-                const entries = all.filter((e) => !dcFilter || e.dc_name === dcFilter);
+                const entries = all.filter((e) => (!dcFilter || e.dc_name === dcFilter) && (!hqFilter || (e.hq || "सामान्य") === hqFilter));
                 if (!entries.length) {
-                    showToast("इस DC में अभी कोई flag की हुई entry नहीं है", false);
+                    showToast(hqFilter ? `${hqFilter} में अभी कोई flag की हुई entry नहीं है` : "इस DC में अभी कोई flag की हुई entry नहीं है", false);
                     return;
                 }
 
-                const headers = ["क्र", "IVRS No", "नाम", "पिता का नाम", "पता", "HQ", "टैरिफ", "लोड", "पुराना (गलत) नंबर", "स्थिति", "सही मोबाइल नंबर", "फ़्लैग किया (तारीख)", "फ़्लैग करने वाला", "ठीक हुआ (तारीख)", "ठीक करने वाला"];
+                // Screen par jo columns dikhte hain (mobile-correction table), Excel
+                // bhi bilkul usi format me — naam+pita aur mobile+date ek hi cell me.
+                const headers = ["क्र", "IVRS No", "नाम", "पता", "टैरिफ / लोड", "पुराना (गलत) नंबर", "स्थिति", "सही मोबाइल नंबर"];
                 const rows = entries.map((e, i) => [
-                    i + 1, e.ivrs || "", e.name || "", e.father || "", e.address || "", e.hq || "",
-                    e.tariff || "", e.load || "", e.old_mobile || "",
+                    i + 1,
+                    e.ivrs || "",
+                    e.name ? `${e.name}${e.father ? ` / ${e.father}` : ""}` : "",
+                    e.address || "",
+                    [e.tariff, e.load].filter(Boolean).join(" / "),
+                    `${e.old_mobile || "N/A"}${e.flagged_date ? ` (${e.flagged_date})` : ""}`,
                     e.status === "corrected" ? "ठीक हुआ" : "पेंडिंग",
-                    e.correct_mobile || "", e.flagged_date || "", e.submitted_by_name || "",
-                    e.corrected_date || "", e.corrected_by_name || ""
+                    e.correct_mobile ? `${e.correct_mobile}${e.corrected_date ? ` (${e.corrected_date})` : ""}` : ""
                 ]);
 
                 const ws = XLSX.utils.aoa_to_sheet([headers, ...rows]);
                 const wb = XLSX.utils.book_new();
                 XLSX.utils.book_append_sheet(wb, ws, "Mobile Correction");
-                const filename = `Mobile_Correction_${dcFilter || "all"}_${localTodayIso_().replace(/-/g, "")}.xlsx`;
+                const filenameHq = (hqFilter || dcFilter || "all").replace(/[^a-zA-Z0-9]+/g, "_");
+                const filename = `Mobile_Correction_${filenameHq}_${localTodayIso_().replace(/-/g, "")}.xlsx`;
                 XLSX.writeFile(wb, filename);
                 showToast("Excel Downloaded!", true);
             } catch (_) {
                 showToast("Excel generate करने में error आया", false);
             } finally {
-                if (btn) { btn.innerText = "📥 Excel में Download करें"; btn.disabled = false; }
+                if (btn) { btn.innerText = "📥 मुख्यालय-वार Excel में Download करें"; btn.disabled = false; }
             }
         }
 
