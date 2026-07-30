@@ -409,7 +409,10 @@
                         <td style="${mcTableCellStyle_("text-align:left;")}">${escapeHtml(e.name || "-")}${e.father ? `<br><span style="color:#94a3b8; font-weight:600;">/ ${escapeHtml(e.father)}</span>` : ""}</td>
                         <td style="${mcTableCellStyle_("text-align:left; white-space:normal; min-width:120px;")}">${escapeHtml(e.address || "-")}${[e.tariff, e.load].filter(Boolean).length ? `<br><span style="color:#94a3b8; font-weight:600; text-decoration:none;">${escapeHtml([e.tariff, e.load].filter(Boolean).join(" / "))}</span>` : ""}</td>
                         <td style="${mcTableCellStyle_("color:#991b1b; font-weight:900;")}"${e.old_mobile ? ` class="mc-tap-copy" onclick="mcShowMobileActions_('${oldMobileJs}','${nameJs}','${fatherJs}')"` : ""}>${escapeHtml(e.old_mobile || "N/A")}${e.flagged_date ? `<br><span style="color:#64748b; font-weight:700; text-decoration:none;">${escapeHtml(e.flagged_date)}</span>` : ""}</td>
-                        <td style="${mcTableCellStyle_(isPending ? "color:#b91c1c; font-weight:900;" : "color:#15803d; font-weight:900;")}">${isPending ? "⏳ पेंडिंग" : "✅ ठीक हुआ"}</td>
+                        <td style="${mcTableCellStyle_(isPending ? "color:#b91c1c; font-weight:900;" : "color:#15803d; font-weight:900;")}">
+                            ${isPending ? "⏳ पेंडिंग" : "✅ ठीक हुआ"}
+                            <br><button onclick="mcDeleteEntryConfirm_('${uid}')" style="margin-top:4px; border:none; background:#7f1d1d; color:#fecaca; border-radius:6px; padding:2px 8px; font-size:9px; font-weight:900; text-transform:uppercase; cursor:pointer;">🗑️ हटाएं</button>
+                        </td>
                         <td style="${mcTableCellStyle_()}">
                             ${isPending ? `
                                 <div style="display:flex; gap:4px; align-items:center;">
@@ -431,6 +434,60 @@
                     </table>
                 </div>
             `;
+        }
+
+        // Galti se flag ho gaya IVRS ho ya sahi ho jaane ke baad bhi list se hataana
+        // ho — dono cases ke liye ek confirm-karke-delete karne wala flow.
+        function mcDeleteEntryConfirm_(uid) {
+            const existing = document.getElementById("mc-delete-overlay");
+            if (existing) existing.remove();
+
+            const overlay = document.createElement("div");
+            overlay.id = "mc-delete-overlay";
+            overlay.style.cssText = "position:fixed; inset:0; background:rgba(0,0,0,0.55); z-index:9999; display:flex; align-items:center; justify-content:center; padding:20px;";
+            overlay.addEventListener("click", (e) => { if (e.target === overlay) overlay.remove(); });
+
+            const card = document.createElement("div");
+            card.style.cssText = "background:#ffffff; border-radius:18px; padding:18px; width:100%; max-width:300px; box-shadow:0 12px 30px rgba(0,0,0,0.25); text-align:center;";
+            card.innerHTML = `
+                <div style="font-size:14px; font-weight:900; color:#b91c1c; text-transform:uppercase; margin-bottom:10px;">यह entry हटाएं?</div>
+                <div style="font-size:12px; font-weight:700; color:#475569; margin-bottom:16px;">यह entry पूरी तरह हट जाएगी (सभी users के लिए) — अगर IVRS गलती से फ़्लैग हो गया था तो यहाँ से हटा सकते हैं।</div>
+                <div style="display:flex; gap:10px;">
+                    <button id="mc-delete-cancel-btn" style="flex:1; height:44px; border:none; border-radius:12px; background:#e2e8f0; color:#1e293b; font-size:12px; font-weight:900; text-transform:uppercase;">रद्द करें</button>
+                    <button id="mc-delete-confirm-btn" style="flex:1; height:44px; border:none; border-radius:12px; background:#ef4444; color:#fff; font-size:12px; font-weight:900; text-transform:uppercase;">हटाएं</button>
+                </div>
+            `;
+            overlay.appendChild(card);
+            document.body.appendChild(overlay);
+            document.getElementById("mc-delete-cancel-btn").onclick = () => overlay.remove();
+            document.getElementById("mc-delete-confirm-btn").onclick = () => mcConfirmDeleteEntry_(uid);
+        }
+
+        async function mcConfirmDeleteEntry_(uid) {
+            const overlay = document.getElementById("mc-delete-overlay");
+            if (overlay) overlay.remove();
+
+            const all = await getMobileCorrectionEntries_();
+            const entry = all.find((e) => getEntryUid_(e) === uid);
+            if (!entry) return showToast("Entry नहीं मिली", false);
+
+            let ok = true;
+            if (entry.entry_id) {
+                ok = await deleteSharedEntry_(MC_MODULE, entry.entry_id);
+                if (!ok) {
+                    showToast("Cloud से delete नहीं हो पाया (internet check करें)", false);
+                }
+                sharedModuleEntriesCache[MC_MODULE] = (sharedModuleEntriesCache[MC_MODULE] || []).filter((e) => e.entry_id !== entry.entry_id);
+            }
+
+            if (entry.id) {
+                await idbDelete_(MC_MODULE, entry.id);
+            }
+
+            if (!ok && !entry.id) return; // cloud delete fail hui aur local copy bhi nahi hai
+
+            showToast("Entry हट गई", true);
+            await renderMobileCorrectionList_();
         }
 
         async function saveCorrectMobile_(uid) {
