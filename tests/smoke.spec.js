@@ -641,7 +641,7 @@ test.describe('Mobile Correction Tracker (galat mobile number flag + monitor)', 
     });
   });
 
-  test('IVRS number par tap karne se copy hota hai, mobile number par tap karne se Call/SMS/WhatsApp sheet khulti hai', async ({ page }) => {
+  test('IVRS aur mobile number par tap karne se ek jaisi action sheet khulti hai — sirf copy aur call ke options', async ({ page }) => {
     await openApp(page, {
       beforeGoto: async (p) => {
         await mockConsumerCsv(p);
@@ -659,18 +659,28 @@ test.describe('Mobile Correction Tracker (galat mobile number flag + monitor)', 
       navigator.clipboard.writeText = (t) => { window.__copiedText = t; return Promise.resolve(); };
     });
 
+    // IVRS tap -> ek sheet khule, sirf "कॉपी करें" option ho (call/sms/whatsapp nahi)
     await page.click('#res-ivrs');
+    const ivrsSheet = page.locator('#mc-mobile-actions-overlay');
+    await expect(ivrsSheet).toBeVisible();
+    await expect(ivrsSheet).toContainText('IVRS नंबर कॉपी करें');
+    await expect(ivrsSheet.locator('a[href^="tel:"]')).toHaveCount(0);
+    await page.click('#mc-copy-ivrs-card');
     await page.waitForFunction(() => window.__copiedText === '1234567890');
     await expect(page.locator('#toast-notif')).toContainText(/कॉपी/);
+    await expect(ivrsSheet).toHaveCount(0);
 
+    // Mobile tap -> sirf do options: कॉल करें aur मोबाइल नंबर कॉपी करें (SMS/WhatsApp nahi)
     await page.click('#res-old');
     const sheet = page.locator('#mc-mobile-actions-overlay');
     await expect(sheet).toBeVisible();
     await expect(sheet.locator('a[href^="tel:"]')).toHaveAttribute('href', 'tel:+919998887771');
-    await expect(sheet.locator('a[href^="sms:"]')).toHaveAttribute('href', 'sms:+919998887771');
-    await expect(sheet.locator('a[href*="wa.me"]')).toHaveAttribute('href', 'https://wa.me/919998887771');
+    await expect(sheet.locator('a[href^="sms:"]')).toHaveCount(0);
+    await expect(sheet.locator('a[href*="wa.me"]')).toHaveCount(0);
+    await expect(sheet).toContainText('मोबाइल नंबर कॉपी करें');
 
-    await page.click('#mc-mobile-actions-close-btn');
+    await page.click('#mc-copy-mobile-card');
+    await page.waitForFunction(() => window.__copiedText === '9998887771');
     await expect(sheet).toHaveCount(0);
   });
 

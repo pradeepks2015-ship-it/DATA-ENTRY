@@ -46,9 +46,9 @@
             showToast(`${label || "टेक्स्ट"} कॉपी हो गया 📋`, true);
         }
 
-        function mcCopyIvrsField_() {
+        function mcShowIvrsActionsField_() {
             const val = document.getElementById("res-ivrs")?.innerText?.trim();
-            if (val) mcCopyText_(val, "IVRS नंबर");
+            if (val) mcShowIvrsActions_(val);
         }
 
         function mcShowMobileActionsField_() {
@@ -56,19 +56,20 @@
             if (val && val !== "N/A") mcShowMobileActions_(val, currentData?.name, currentData?.father);
         }
 
-        function mcActionCardHtml_(href, target, iconBg, icon, title, subtitle) {
-            return `<a href="${href}"${target ? ` target="${target}" rel="noopener"` : ""} style="display:flex; align-items:center; gap:14px; width:100%; padding:14px; border:1.5px solid ${iconBg.border}; border-radius:16px; background:#ffffff; text-decoration:none; margin-bottom:12px; box-sizing:border-box;">
+        function mcActionCardHtml_(hrefOrId, target, iconBg, icon, title, subtitle) {
+            const isHref = /^(tel:|sms:|https?:)/.test(hrefOrId);
+            const tag = isHref ? "a" : "div";
+            const attr = isHref ? `href="${hrefOrId}"${target ? ` target="${target}" rel="noopener"` : ""}` : `id="${hrefOrId}" style="cursor:pointer;"`;
+            return `<${tag} ${attr} style="${isHref ? "" : "cursor:pointer; "}display:flex; align-items:center; gap:14px; width:100%; padding:14px; border:1.5px solid ${iconBg.border}; border-radius:16px; background:#ffffff; text-decoration:none; margin-bottom:12px; box-sizing:border-box;">
                 <span style="width:46px; height:46px; border-radius:14px; background:${iconBg.bg}; display:flex; align-items:center; justify-content:center; font-size:20px; flex-shrink:0;">${icon}</span>
                 <span>
                     <div style="font-size:14px; font-weight:900; color:#1e293b;">${title}</div>
                     <div style="font-size:11px; font-weight:600; color:#64748b; margin-top:2px;">${subtitle}</div>
                 </span>
-            </a>`;
+            </${tag}>`;
         }
 
-        function mcShowMobileActions_(mobile, name, father) {
-            const digits = String(mobile || "").replace(/\D/g, "");
-            if (digits.length !== 10) return showToast("मोबाइल नंबर उपलब्ध नहीं है", false);
+        function mcOpenActionSheet_(headerHtml, cardsHtml, onCloseId) {
             const existing = document.getElementById("mc-mobile-actions-overlay");
             if (existing) existing.remove();
 
@@ -81,16 +82,46 @@
             sheet.style.cssText = "background:#ffffff; border-radius:24px 24px 0 0; padding:20px; width:100%; max-width:420px; box-shadow:0 -12px 30px rgba(0,0,0,0.25); box-sizing:border-box;";
             sheet.innerHTML = `
                 <div style="width:36px; height:4px; background:#cbd5e1; border-radius:99px; margin:0 auto 16px auto;"></div>
-                ${name ? `<div style="font-size:15px; font-weight:900; color:#1e3a5f;">${escapeHtml(name)}${father ? ` <span style="font-weight:700; color:#64748b;">(पिता/पति: ${escapeHtml(father)})</span>` : ""}</div>` : ""}
-                <div style="display:flex; align-items:center; gap:6px; font-size:14px; font-weight:700; color:#334155; margin:4px 0 18px 0;">📞 ${escapeHtml(digits)}</div>
-                ${mcActionCardHtml_(`tel:+91${digits}`, "", { bg: "#d1fae5", border: "#a7f3d0" }, "📞", "कॉल करें", "सीधे फोन लगाएं")}
-                ${mcActionCardHtml_(`sms:+91${digits}`, "", { bg: "#dbeafe", border: "#bfdbfe" }, "💬", "SMS भेजें", "Text Message भेजें")}
-                ${mcActionCardHtml_(`https://wa.me/91${digits}`, "_blank", { bg: "#dcfce7", border: "#bbf7d0" }, "🟢", "WhatsApp करें", "WhatsApp Message भेजें")}
+                ${headerHtml}
+                ${cardsHtml}
                 <button id="mc-mobile-actions-close-btn" style="width:100%; height:52px; border:1.5px solid #e2e8f0; border-radius:16px; background:#ffffff; color:#1e293b; font-size:14px; font-weight:900;">रद्द करें</button>
             `;
             overlay.appendChild(sheet);
             document.body.appendChild(overlay);
             document.getElementById("mc-mobile-actions-close-btn").onclick = () => overlay.remove();
+            return overlay;
+        }
+
+        function mcShowMobileActions_(mobile, name, father) {
+            const digits = String(mobile || "").replace(/\D/g, "");
+            if (digits.length !== 10) return showToast("मोबाइल नंबर उपलब्ध नहीं है", false);
+
+            const headerHtml = `
+                ${name ? `<div style="font-size:15px; font-weight:900; color:#1e3a5f;">${escapeHtml(name)}${father ? ` <span style="font-weight:700; color:#64748b;">(पिता/पति: ${escapeHtml(father)})</span>` : ""}</div>` : ""}
+                <div style="display:flex; align-items:center; gap:6px; font-size:14px; font-weight:700; color:#334155; margin:4px 0 18px 0;">📞 ${escapeHtml(digits)}</div>
+            `;
+            const cardsHtml = `
+                ${mcActionCardHtml_(`tel:+91${digits}`, "", { bg: "#d1fae5", border: "#a7f3d0" }, "📞", "कॉल करें", "सीधे फोन लगाएं")}
+                ${mcActionCardHtml_("mc-copy-mobile-card", "", { bg: "#dbeafe", border: "#bfdbfe" }, "📋", "मोबाइल नंबर कॉपी करें", "क्लिपबोर्ड में कॉपी होगा")}
+            `;
+            const overlay = mcOpenActionSheet_(headerHtml, cardsHtml);
+            document.getElementById("mc-copy-mobile-card").onclick = () => {
+                mcCopyText_(digits, "मोबाइल नंबर");
+                overlay.remove();
+            };
+        }
+
+        function mcShowIvrsActions_(ivrs) {
+            const val = String(ivrs || "").trim();
+            if (!val) return;
+
+            const headerHtml = `<div style="font-size:15px; font-weight:900; color:#1e3a5f; margin-bottom:18px;">🔢 IVRS नंबर: ${escapeHtml(val)}</div>`;
+            const cardsHtml = mcActionCardHtml_("mc-copy-ivrs-card", "", { bg: "#dbeafe", border: "#bfdbfe" }, "📋", "IVRS नंबर कॉपी करें", "क्लिपबोर्ड में कॉपी होगा");
+            const overlay = mcOpenActionSheet_(headerHtml, cardsHtml);
+            document.getElementById("mc-copy-ivrs-card").onclick = () => {
+                mcCopyText_(val, "IVRS नंबर");
+                overlay.remove();
+            };
         }
 
         document.addEventListener("click", (e) => {
@@ -405,7 +436,7 @@
                     const fatherJs = mcJsEscape_(e.father || "");
                     return `<tr style="background:${rowBg};">
                         <td style="${mcTableCellStyle_()}">${sNo}</td>
-                        <td style="${mcTableCellStyle_("font-weight:900;")}" class="mc-tap-copy" onclick="mcCopyText_('${ivrsJs}','IVRS नंबर')">${escapeHtml(e.ivrs || "")}</td>
+                        <td style="${mcTableCellStyle_("font-weight:900;")}" class="mc-tap-copy" onclick="mcShowIvrsActions_('${ivrsJs}')">${escapeHtml(e.ivrs || "")}</td>
                         <td style="${mcTableCellStyle_("text-align:left;")}">${escapeHtml(e.name || "-")}${e.father ? `<br><span style="color:#94a3b8; font-weight:600;">/ ${escapeHtml(e.father)}</span>` : ""}</td>
                         <td style="${mcTableCellStyle_("text-align:left; white-space:normal; min-width:120px;")}">${escapeHtml(e.address || "-")}${[e.tariff, e.load].filter(Boolean).length ? `<br><span style="color:#94a3b8; font-weight:600; text-decoration:none;">${escapeHtml([e.tariff, e.load].filter(Boolean).join(" / "))}</span>` : ""}</td>
                         <td style="${mcTableCellStyle_("color:#991b1b; font-weight:900;")}"${e.old_mobile ? ` class="mc-tap-copy" onclick="mcShowMobileActions_('${oldMobileJs}','${nameJs}','${fatherJs}')"` : ""}>${escapeHtml(e.old_mobile || "N/A")}${e.flagged_date ? `<br><span style="color:#64748b; font-weight:700; text-decoration:none;">${escapeHtml(e.flagged_date)}</span>` : ""}</td>
