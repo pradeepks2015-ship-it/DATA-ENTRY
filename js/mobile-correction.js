@@ -101,8 +101,31 @@
             menu.style.display = "none";
         });
 
+        // Colorful Excel (screen jaisa hi) ExcelJS se banta hai — jo library
+        // (SheetJS community) baaki app me use ho rahi hai wo free version me
+        // cell colors/fonts likh hi nahi sakti. ExcelJS ~950KB hai isliye sirf
+        // is button ko pehli baar dabaane par lazy-load hoti hai (app boot par
+        // load nahi hoti), aur local se aati hai (koi CDN dependency nahi).
+        function mcLoadExcelJs_() {
+            if (window.ExcelJS) return Promise.resolve();
+            if (window.__exceljsLoadPromise) return window.__exceljsLoadPromise;
+            window.__exceljsLoadPromise = new Promise((resolve, reject) => {
+                const script = document.createElement("script");
+                script.src = "js/vendor/exceljs.min.js";
+                script.onload = () => resolve();
+                script.onerror = () => { window.__exceljsLoadPromise = null; reject(new Error("ExcelJS load nahi hui")); };
+                document.head.appendChild(script);
+            });
+            return window.__exceljsLoadPromise;
+        }
+
+        function mcRichText_(mainText, mainStyle, subText, subStyle) {
+            const runs = [{ font: mainStyle, text: mainText || "-" }];
+            if (subText) runs.push({ font: subStyle, text: `\n${subText}` });
+            return { richText: runs };
+        }
+
         async function downloadMobileCorrectionExcel_() {
-            if (!window.XLSX) return showToast("Excel library load नहीं हुई, फिर कोशिश करें", false);
             const btn = document.getElementById("mc-excel-btn");
             if (btn) { btn.innerText = "बन रहा है..."; btn.disabled = true; }
             try {
@@ -117,28 +140,81 @@
                     return;
                 }
 
-                // Screen par jo columns dikhte hain (mobile-correction table), Excel
-                // bhi bilkul usi format me — naam+pita aur mobile+date ek hi cell me.
-                const headers = ["क्र", "IVRS No", "नाम", "पता / टैरिफ / लोड", "पुराना (गलत) नंबर", "स्थिति", "सही मोबाइल नंबर"];
-                const rows = entries.map((e, i) => {
-                    const tariffLoad = [e.tariff, e.load].filter(Boolean).join(" / ");
-                    return [
-                        i + 1,
-                        e.ivrs || "",
-                        e.name ? `${e.name}${e.father ? ` / ${e.father}` : ""}` : "",
-                        `${e.address || ""}${tariffLoad ? ` (${tariffLoad})` : ""}`,
-                        `${e.old_mobile || "N/A"}${e.flagged_date ? ` (${e.flagged_date})` : ""}`,
-                        e.status === "corrected" ? "ठीक हुआ" : "पेंडिंग",
-                        e.correct_mobile ? `${e.correct_mobile}${e.corrected_date ? ` (${e.corrected_date})` : ""}` : ""
-                    ];
+                // Excel banane wala kaam tabhi hota hai jab actually koi entry ho —
+                // is se khali export par 950KB ExcelJS library waste nahi load hoti.
+                await mcLoadExcelJs_();
+                if (!window.ExcelJS) return showToast("Excel library load नहीं हुई, फिर कोशिश करें", false);
+
+                const subFont = { size: 9, color: { argb: "FF94A3B8" } };
+                const wb = new ExcelJS.Workbook();
+                const ws = wb.addWorksheet("Mobile Correction");
+                ws.columns = [
+                    { width: 6 }, { width: 16 }, { width: 24 }, { width: 28 },
+                    { width: 20 }, { width: 13 }, { width: 20 }
+                ];
+                ws.views = [{ state: "frozen", ySplit: 1 }];
+
+                const headerRow = ws.addRow(["क्र", "IVRS No", "नाम", "पता / टैरिफ / लोड", "पुराना (गलत) नंबर", "स्थिति", "सही मोबाइल नंबर"]);
+                headerRow.height = 26;
+                headerRow.eachCell((cell) => {
+                    cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FF991B1B" } };
+                    cell.font = { bold: true, color: { argb: "FFFFFFFF" }, size: 11 };
+                    cell.alignment = { vertical: "middle", horizontal: "center", wrapText: true };
                 });
 
-                const ws = XLSX.utils.aoa_to_sheet([headers, ...rows]);
-                const wb = XLSX.utils.book_new();
-                XLSX.utils.book_append_sheet(wb, ws, "Mobile Correction");
+                entries.forEach((e, i) => {
+                    const isPending = e.status !== "corrected";
+                    const tariffLoad = [e.tariff, e.load].filter(Boolean).join(" / ");
+                    const row = ws.addRow([
+                        i + 1, e.ivrs || "", "", "", "",
+                        isPending ? "⏳ पेंडिंग" : "✅ ठीक हुआ", ""
+                    ]);
+                    row.height = 34;
+
+                    const rowFillArgb = isPending ? "FFFEE2E2" : "FFF0FDF4";
+                    row.eachCell((cell) => {
+                        cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: rowFillArgb } };
+                        cell.alignment = { ...(cell.alignment || {}), vertical: "middle", wrapText: true };
+                        cell.border = {
+                            top: { style: "thin", color: { argb: "FFCBD5E1" } },
+                            left: { style: "thin", color: { argb: "FFCBD5E1" } },
+                            bottom: { style: "thin", color: { argb: "FFCBD5E1" } },
+                            right: { style: "thin", color: { argb: "FFCBD5E1" } }
+                        };
+                    });
+
+                    row.getCell(1).alignment = { vertical: "middle", horizontal: "center" };
+
+                    const ivrsCell = row.getCell(2);
+                    ivrsCell.value = e.ivrs || "";
+                    ivrsCell.font = { bold: true, color: { argb: "FF2563EB" }, underline: true };
+                    ivrsCell.alignment = { vertical: "middle", horizontal: "center" };
+
+                    row.getCell(3).value = mcRichText_(e.name, { bold: true, size: 11, color: { argb: "FF000000" } }, e.father ? `/ ${e.father}` : "", subFont);
+                    row.getCell(4).value = mcRichText_(e.address, { size: 10.5, color: { argb: "FF000000" } }, tariffLoad, subFont);
+                    row.getCell(5).value = mcRichText_(e.old_mobile || "N/A", { bold: true, size: 11, color: { argb: "FF991B1B" } }, e.flagged_date, subFont);
+
+                    row.getCell(6).font = { bold: true, color: { argb: isPending ? "FFB91C1C" : "FF15803D" } };
+                    row.getCell(6).alignment = { vertical: "middle", horizontal: "center" };
+
+                    if (e.correct_mobile) {
+                        row.getCell(7).value = mcRichText_(e.correct_mobile, { bold: true, size: 11, color: { argb: "FF15803D" } }, e.corrected_date, subFont);
+                    }
+                });
+
+                const buffer = await wb.xlsx.writeBuffer();
+                const blob = new Blob([buffer], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
                 const filenameHq = (hqFilter || dcFilter || "all").replace(/[^a-zA-Z0-9]+/g, "_");
                 const filename = `Mobile_Correction_${filenameHq}_${localTodayIso_().replace(/-/g, "")}.xlsx`;
-                XLSX.writeFile(wb, filename);
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement("a");
+                a.href = url;
+                a.download = filename;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                setTimeout(() => URL.revokeObjectURL(url), 4000);
+
                 showToast("Excel Downloaded!", true);
             } catch (_) {
                 showToast("Excel generate करने में error आया", false);
@@ -195,7 +271,16 @@
                 const entryId = await syncEntryToCloud_(MC_MODULE, entry);
                 if (entryId) entry.entry_id = entryId;
                 await idbAdd_(MC_MODULE, entry);
-                showToast(entryId ? "गलत नंबर के रूप में फ़्लैग हो गया" : "Internet नहीं है — device पर save हुआ, internet आने पर अपने-आप sync होगा 🔄", true);
+                if (entryId) {
+                    showToast("गलत नंबर के रूप में फ़्लैग हो गया — सभी users को दिखेगा ✅", true);
+                } else if (window.__lastSyncErrorReason === "network") {
+                    showToast("Internet नहीं है — device पर save हुआ, internet आने पर अपने-आप sync होगा 🔄", true);
+                } else {
+                    // Backend/server error — internet chalu hone ke bawajood ho sakta
+                    // hai. Device par save ho gaya hai, background me automatic
+                    // retry hoti rahegi (har 2 min) jab tak sync na ho jaaye.
+                    showToast(`Server error (internet nahi ki wajah se nahi): ${window.__lastSyncErrorMessage || "sync fail hua"} — device par save hai, retry hoti rahegi 🔄`, false);
+                }
                 resetForm(true);
                 const searchInput = document.getElementById("search-ivrs");
                 if (searchInput) searchInput.focus();
@@ -368,7 +453,15 @@
             };
             const ok = await updateSharedEntry_(MC_MODULE, localId, updates);
             if (!ok) return showToast("Save करने में समस्या आई", false);
-            showToast("सही नंबर सेव हो गया ✅", true);
+            if (!window.__lastSyncErrorReason) {
+                showToast("सही नंबर सेव हो गया — सभी users को दिखेगा ✅", true);
+            } else if (window.__lastSyncErrorReason === "network") {
+                showToast("Internet नहीं है — device पर save हुआ, internet आने पर अपने-आप sync होगा 🔄", true);
+            } else if (window.__lastSyncErrorReason === "pending_original") {
+                showToast("यह entry अभी cloud पर sync नहीं हुई थी — device पर save हुआ, दोनों साथ में sync होंगे 🔄", true);
+            } else {
+                showToast(`Server error (internet nahi ki wajah se nahi): ${window.__lastSyncErrorMessage || "sync fail hua"} — device par save hai, retry hoti rahegi 🔄`, false);
+            }
             await renderMobileCorrectionList_();
         }
 
