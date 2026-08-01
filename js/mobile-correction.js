@@ -268,10 +268,26 @@
         // isliye view khulte hi aisi orphan entries ko chupchaap ek baar phir bhejte
         // hain — isse purani "sync nahi ho raha" aur "reinstall par data gayab" wali
         // shikayat khud-ba-khud theek ho jaati hai, bina user ko kuch dobara karna pade.
-        async function mcResyncOrphanedEntries_() {
+        //
+        // Perf: ek baar me sirf 5 orphans (taaki bade backlog par list load/flag save
+        // dheema na ho — bache hue agli baar app khulne par apne aap continue ho jaate
+        // hain), aur session me sirf ek baar (baar-baar tab aane-jaane par nahi), 4
+        // second delay ke saath (taaki turant ki list-load/flag-save request se
+        // network competition na ho).
+        let mcResyncAttempted_ = false;
+        const MC_RESYNC_BATCH_SIZE = 5;
+        const MC_RESYNC_DELAY_MS = 4000;
+
+        function mcResyncOrphanedEntries_() {
+            if (mcResyncAttempted_) return;
+            mcResyncAttempted_ = true;
+            setTimeout(mcResyncOrphanedEntriesNow_, MC_RESYNC_DELAY_MS);
+        }
+
+        async function mcResyncOrphanedEntriesNow_() {
             try {
                 const localRows = await idbGetAll_(MC_MODULE);
-                const orphans = localRows.filter((r) => !r.entry_id);
+                const orphans = localRows.filter((r) => !r.entry_id).slice(0, MC_RESYNC_BATCH_SIZE);
                 if (!orphans.length) return;
                 let anySynced = false;
                 for (const entry of orphans) {
