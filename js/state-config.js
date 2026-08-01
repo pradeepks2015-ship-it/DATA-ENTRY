@@ -80,6 +80,35 @@
             }
         }
 
+        // PDF/Excel export libraries (jsPDF, jsPDF-autotable, html2canvas, xlsx)
+        // ab CDN (cdnjs.cloudflare.com) se nahi, is app ke apne server se lazy-load
+        // hote hain — sirf tab jab koi user wakai PDF/Excel download karta hai, na
+        // ki har app-boot par. Isse (a) rural/kharab network par CDN unreachable
+        // hone ka risk khatam hota hai, (b) jo user kabhi export nahi karte unke
+        // liye shuruaati load lighter rehta hai.
+        const _vendorLoadPromises_ = {};
+        function loadVendorScript_(key, src) {
+            if (_vendorLoadPromises_[key]) return _vendorLoadPromises_[key];
+            _vendorLoadPromises_[key] = new Promise((resolve, reject) => {
+                const script = document.createElement("script");
+                script.src = src;
+                script.onload = () => resolve();
+                script.onerror = () => { delete _vendorLoadPromises_[key]; reject(new Error(`${src} load nahi hui`)); };
+                document.head.appendChild(script);
+            });
+            return _vendorLoadPromises_[key];
+        }
+        function ensureJsPdf_() {
+            return loadVendorScript_("jspdf", "js/vendor/jspdf.umd.min.js")
+                .then(() => loadVendorScript_("jspdf-autotable", "js/vendor/jspdf.plugin.autotable.min.js"));
+        }
+        function ensureHtml2Canvas_() {
+            return loadVendorScript_("html2canvas", "js/vendor/html2canvas.min.js");
+        }
+        function ensureXlsx_() {
+            return loadVendorScript_("xlsx", "js/vendor/xlsx.full.min.js");
+        }
+
         function renderErrorLogRows_(logs) {
             if (!logs.length) return `<div style="text-align:center; padding:18px; font-size:12px; font-weight:800; color:#64748b;">कोई error नहीं — सब ठीक है ✅</div>`;
             return logs.slice().reverse().map((e) => `

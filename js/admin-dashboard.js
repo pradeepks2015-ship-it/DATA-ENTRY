@@ -142,10 +142,10 @@
 
         let admLastData_ = null;
 
-        function admExportExcel_() {
-            if (!window.XLSX) return showToast("Excel library load नहीं हुई, फिर कोशिश करें", false);
+        async function admExportExcel_() {
             if (!admLastData_) return showToast("पहले data load होने दें", false);
             try {
+                await ensureXlsx_();
                 const { feederRows, bpInRange, bcInRange, kcInRange, mobileRows, fromKey, toKey } = admLastData_;
                 const wb = XLSX.utils.book_new();
 
