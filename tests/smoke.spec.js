@@ -455,32 +455,40 @@ test.describe('Admin Dashboard (Phase-1)', () => {
     expect(cached).toEqual({ feeder: 1, bp: 1, bc: 1, kc: 1, mobile: 2 });
   });
 
-  test('Excel export XLSX library या data missing होने पर crash नहीं करता, friendly toast देता है', async ({ page }) => {
-    // Test sandbox सभी external requests block करता है (blockExternal), इसलिए असली
-    // CDN-loaded XLSX library यहाँ कभी नहीं मिलती — यही missing-library guard जांचता है।
+  test('Excel export data missing hone par crash nahi karta, friendly toast deta hai', async ({ page }) => {
     await openApp(page, { beforeGoto: mockAdminBackend });
-    const noLibToast = await page.evaluate(() => {
-      let msg = null;
-      const original = window.showToast;
-      window.showToast = (m) => { msg = m; };
-      admExportExcel_();
-      window.showToast = original;
-      return msg;
-    });
-    expect(noLibToast).toBeTruthy();
-
     const noDataToast = await page.evaluate(() => {
       admLastData_ = null;
       let msg = null;
       const original = window.showToast;
       window.showToast = (m) => { msg = m; };
-      window.XLSX = { utils: {}, writeFile: () => {} }; // stub, sirf guard-order test karne ke liye
       admExportExcel_();
       window.showToast = original;
-      delete window.XLSX;
       return msg;
     });
     expect(noDataToast).toContain('पहले data load होने दें');
+  });
+
+  test('Excel export library (xlsx.full.min.js) load fail ho to crash nahi karta, friendly toast deta hai', async ({ page }) => {
+    // xlsx.full.min.js ab CDN se nahi, is app ke apne server se lazy-load hoti
+    // hai (sirf export click par) — yahaan uska local request hi fail karke
+    // dikhate hain ki load-failure gracefully handle hoti hai.
+    await openApp(page, {
+      beforeGoto: async (p) => {
+        await mockAdminBackend(p);
+        await p.route('**/js/vendor/xlsx.full.min.js', (route) => route.abort());
+      },
+    });
+    const toast = await page.evaluate(async () => {
+      admLastData_ = { feederRows: [], bpInRange: [], bcInRange: [], kcInRange: [], mobileRows: [], fromKey: '', toKey: '' };
+      let msg = null;
+      const original = window.showToast;
+      window.showToast = (m) => { msg = m; };
+      await admExportExcel_();
+      window.showToast = original;
+      return msg;
+    });
+    expect(toast).toBeTruthy();
   });
 
   test('लॉक करें home पर वापस भेजता है और दोबारा PIN मांगता है', async ({ page }) => {

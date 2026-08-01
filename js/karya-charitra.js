@@ -712,6 +712,8 @@
             showToast("Report तैयार हो रही है...", true);
 
             try {
+                await ensureJsPdf_();
+
                 // Group by employee
                 const empGroups = {};
                 records.forEach((r) => {
