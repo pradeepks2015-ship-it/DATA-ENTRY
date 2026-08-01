@@ -123,7 +123,7 @@
                         payload.append("entry_id", cloudEntryId);
                         payload.append("updates_json", JSON.stringify(updates));
                         payload.append("auth_token", APPS_SCRIPT_AUTH_TOKEN);
-                        await fetch(sharedModuleSyncScriptUrl, {
+                        await fetchWithTimeout_(sharedModuleSyncScriptUrl, {
                             method: "POST",
                             headers: { "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8" },
                             body: payload.toString()
