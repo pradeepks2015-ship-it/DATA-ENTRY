@@ -134,7 +134,7 @@
 
         async function admFetchMobileUpdateRows_() {
             try {
-                const res = await fetch(`${scriptURL}?action=getSummary&auth_token=${encodeURIComponent(APPS_SCRIPT_AUTH_TOKEN)}&t=${Date.now()}`);
+                const res = await fetchWithTimeout_(`${scriptURL}?action=getSummary&auth_token=${encodeURIComponent(APPS_SCRIPT_AUTH_TOKEN)}&t=${Date.now()}`);
                 const data = await res.json();
                 return Array.isArray(data) ? data : null;
             } catch (_) { return null; }

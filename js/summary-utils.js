@@ -900,11 +900,12 @@
             return line.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/).map((item) => item.replace(/^"|"$/g, "").trim());
         }
 
-        function xhrGetText(url) {
+        function xhrGetText(url, timeoutMs = 15000) {
             return new Promise((resolve, reject) => {
                 try {
                     const xhr = new XMLHttpRequest();
                     xhr.open("GET", url, true);
+                    xhr.timeout = timeoutMs; // dheeme/atke network par hamesha ke liye latakne se rokta hai
                     xhr.onreadystatechange = () => {
                         if (xhr.readyState !== 4) return;
                         if (xhr.status >= 200 && xhr.status < 300 && xhr.responseText) {
@@ -913,6 +914,7 @@
                             reject(new Error("XHR fetch failed"));
                         }
                     };
+                    xhr.ontimeout = () => reject(new Error("XHR timeout"));
                     xhr.onerror = () => reject(new Error("XHR network error"));
                     xhr.send();
                 } catch (error) {
@@ -921,10 +923,13 @@
             });
         }
 
+        // 4 tarike se koshish karta hai (fetch → xhr with cache-bust → xhr plain →
+        // fetch plain), har ek ka apna timeout hai — isliye poori chain kabhi
+        // anishchit samay tak nahi latakti (worst case bhi bounded hai).
         async function loadRemoteText(url) {
             const withTs = url.includes("?") ? `${url}&t=${Date.now()}` : `${url}?t=${Date.now()}`;
             try {
-                const response = await fetch(withTs);
+                const response = await fetchWithTimeout_(withTs);
                 const text = await response.text();
                 if (text) return text;
             } catch (_) {}
@@ -934,7 +939,7 @@
             try {
                 return await xhrGetText(url);
             } catch (_) {}
-            const fallbackResponse = await fetch(url);
+            const fallbackResponse = await fetchWithTimeout_(url);
             return fallbackResponse.text();
         }
 
@@ -993,7 +998,7 @@
 
         async function reverseGeocodeLocation(latitude, longitude) {
             try {
-                const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${latitude}&lon=${longitude}`);
+                const response = await fetchWithTimeout_(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${latitude}&lon=${longitude}`, {}, 8000);
                 const data = await response.json();
                 return data.display_name || `${latitude}, ${longitude}`;
             } catch (_) {
