@@ -259,12 +259,7 @@
         // (agar abhi-abhi fetch hui thi to dobara network call nahi). "cache" =
         // jo bhi cached hai (chahe kitna bhi purana ho) turant, koi network wait nahi.
         async function getMobileCorrectionEntries_(mode = "force") {
-            const rows = await idbGetAll_(MC_MODULE);
-            const local = rows.slice().sort((a, b) => (a.id || 0) - (b.id || 0));
-            const shared = mode === "cache"
-                ? (sharedModuleEntriesCache[MC_MODULE] || [])
-                : await fetchSharedEntries_(MC_MODULE, mode === "force");
-            return mergeLocalAndSharedEntries_(local, shared);
+            return getModuleEntries_(MC_MODULE, mode);
         }
 
         // Backend me pehle "mobile_correction" module registered hi nahi tha, isliye

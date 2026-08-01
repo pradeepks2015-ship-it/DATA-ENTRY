@@ -80,16 +80,8 @@
             }
         }
 
-        // mode: "force" = hamesha fresh network fetch (default). "soft" = 10s
-        // cache window respect karo. "cache" = jo bhi cached hai turant, koi
-        // network wait nahi — list turant instant render ke liye.
         async function getBrokenPoleEntries_(mode = "force") {
-            const rows = await idbGetAll_("broken_pole");
-            const local = rows.slice().sort((a, b) => (a.id || 0) - (b.id || 0));
-            const shared = mode === "cache"
-                ? (sharedModuleEntriesCache["broken_pole"] || [])
-                : await fetchSharedEntries_("broken_pole", mode === "force");
-            return mergeLocalAndSharedEntries_(local, shared);
+            return getModuleEntries_("broken_pole", mode);
         }
 
         async function saveBrokenPoleEntry_(entry) {
@@ -447,12 +439,7 @@
         }
 
         async function getBijliChoriEntries_(mode = "force") {
-            const rows = await idbGetAll_("bijli_chori");
-            const local = rows.slice().sort((a, b) => (a.id || 0) - (b.id || 0));
-            const shared = mode === "cache"
-                ? (sharedModuleEntriesCache["bijli_chori"] || [])
-                : await fetchSharedEntries_("bijli_chori", mode === "force");
-            return mergeLocalAndSharedEntries_(local, shared);
+            return getModuleEntries_("bijli_chori", mode);
         }
 
         async function saveBijliChoriEntry_(entry) {

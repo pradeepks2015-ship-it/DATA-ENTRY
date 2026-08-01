@@ -857,6 +857,19 @@
             return merged;
         }
 
+        // Generic version of getMobileCorrectionEntries_/getBrokenPoleEntries_/
+        // getBijliChoriEntries_ — teeno pehle bilkul yehi 6 lines alag-alag copy
+        // kiye hue the (sirf storeName badalta tha). mode: "force" = hamesha
+        // fresh network fetch (default). "soft" = 10s cache window respect karo.
+        // "cache" = jo bhi cached hai turant, koi network wait nahi.
+        async function getModuleEntries_(storeName, mode = "force") {
+            const rows = await idbGetAll_(storeName);
+            const local = rows.slice().sort((a, b) => (a.id || 0) - (b.id || 0));
+            const shared = mode === "cache"
+                ? (sharedModuleEntriesCache[storeName] || [])
+                : await fetchSharedEntries_(storeName, mode === "force");
+            return mergeLocalAndSharedEntries_(local, shared);
+        }
 
         let feederRecentSubmittedEntries = [];
 
