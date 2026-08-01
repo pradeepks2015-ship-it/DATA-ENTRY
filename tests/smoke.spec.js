@@ -802,12 +802,14 @@ test.describe('Mobile Correction Tracker (galat mobile number flag + monitor)', 
     await expect(overlay).toHaveCount(0);
     await expect(list).toContainText('Test Consumer');
 
-    // Ab confirm karke delete karte hain
+    // Ab confirm karke delete karte hain — local delete turant hoti hai (list
+    // turant refresh), cloud delete background me hoti hai isliye deleteCalled
+    // ka alag se wait karte hain.
     await page.click("button[onclick*=\"mcDeleteEntryConfirm_\"]");
     await page.click('#mc-delete-confirm-btn');
     await page.waitForFunction(() => document.getElementById('mc-pending-list').innerText.includes('कोई flag की हुई entry नहीं है'));
 
-    expect(deleteCalled).toBe(true);
+    await expect.poll(() => deleteCalled).toBe(true);
     const entries = await page.evaluate(() => getMobileCorrectionEntries_());
     expect(entries.length).toBe(0);
   });

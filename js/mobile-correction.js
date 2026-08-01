@@ -391,17 +391,13 @@
             }
             container.style.display = "block";
 
-            // Agar is session me pehle kabhi fetch ho chuka hai (chahe thoda purana
-            // ho), turant wahi dikha dete hain — network wait ka ehsaas nahi hota.
-            // Fresh data background me load hokar chupchaap list update kar deta hai.
-            const hasCachedData = (sharedModuleEntriesCache[MC_MODULE] || []).length > 0;
-            if (hasCachedData) {
-                await renderMobileCorrectionList_("cache");
-                renderMobileCorrectionList_("force"); // background refresh, fire-and-forget
-            } else {
-                container.innerHTML = `<div style="text-align:center; padding:14px; font-size:12px; font-weight:800; color:#ffffff;">लोड हो रहा है...</div>`;
-                await renderMobileCorrectionList_("force");
-            }
+            // Turant jo bhi data maujood hai (is device ka local data + is
+            // session me pehle se cached cloud data, chahe abhi tak fetch hi na
+            // hui ho) turant dikha dete hain — network ka slow/hang hona
+            // list-open ko kabhi block nahi karta. Fresh cloud data background
+            // me load hoke chupchaap list update kar deta hai.
+            await renderMobileCorrectionList_("cache");
+            renderMobileCorrectionList_("force"); // background refresh, fire-and-forget
         }
 
         function mcGroupByHq_(entries) {
@@ -460,9 +456,18 @@
             const hqFilter = document.getElementById("mc-hq-filter")?.value || "";
             const entries = dcEntries.filter((e) => !hqFilter || (e.hq || "सामान्य") === hqFilter);
 
+            // "cache" mode me agar is session me abhi tak cloud se ek baar bhi
+            // fetch nahi hui, to jo dikh raha hai wo sirf is device ka local data
+            // ho sakta hai — dusre users ki entries abhi load ho rahi hain, isliye
+            // ek chhota sa syncing note dikhate hain (list ko block kiye bina).
+            const stillSyncing = mode === "cache" && !sharedModuleLastFetch[MC_MODULE];
+            const syncingNoteHtml = stillSyncing
+                ? `<div style="text-align:center; padding:6px; margin-bottom:8px; font-size:10.5px; font-weight:800; color:#fef3c7; background:rgba(0,0,0,0.18); border-radius:8px;">☁️ बाकी users की entries load हो रही हैं...</div>`
+                : "";
+
             if (!entries.length) {
                 const msg = hqFilter ? "इस HQ में अभी कोई flag की हुई entry नहीं है।" : "इस DC में अभी कोई flag की हुई entry नहीं है।";
-                container.innerHTML = `<div style="text-align:center; padding:14px; font-size:12px; font-weight:800; color:#ffffff; background:rgba(0,0,0,0.12); border-radius:12px;">${msg}</div>`;
+                container.innerHTML = `${syncingNoteHtml}<div style="text-align:center; padding:14px; font-size:12px; font-weight:800; color:#ffffff; background:rgba(0,0,0,0.12); border-radius:12px;">${msg}</div>`;
                 return;
             }
 
@@ -527,6 +532,7 @@
             }).join("");
 
             container.innerHTML = `
+                ${syncingNoteHtml}
                 ${summaryHtml}
                 <div style="overflow-x:auto; border-radius:10px; background:#ffffff;">
                     <table style="border-collapse:collapse; width:100%;">
@@ -576,23 +582,25 @@
             }
             if (!entry) return showToast("Entry नहीं मिली, सूची फिर से खोलें", false);
 
-            let ok = true;
+            // Optimistic: turant local IndexedDB + in-memory cloud-cache dono se
+            // hata dete hain aur list turant refresh dikha dete hain. Asli cloud
+            // delete background me hoti hai — Apps Script slow hone par bhi delete
+            // turant hota mehsoos hota hai.
             if (entry.entry_id) {
-                ok = await deleteSharedEntry_(MC_MODULE, entry.entry_id);
-                if (!ok) {
-                    showToast("Cloud से delete नहीं हो पाया (internet check करें)", false);
-                }
                 sharedModuleEntriesCache[MC_MODULE] = (sharedModuleEntriesCache[MC_MODULE] || []).filter((e) => e.entry_id !== entry.entry_id);
             }
-
             if (entry.id) {
                 await idbDelete_(MC_MODULE, entry.id);
             }
 
-            if (!ok && !entry.id) return; // cloud delete fail hui aur local copy bhi nahi hai
-
             showToast("Entry हट गई", true);
-            await renderMobileCorrectionList_();
+            await renderMobileCorrectionList_("cache");
+
+            if (entry.entry_id) {
+                deleteSharedEntry_(MC_MODULE, entry.entry_id).then((ok) => {
+                    if (!ok) showToast("Cloud से delete नहीं हो पाया (internet check करें) — दोबारा दिख सकती है", false);
+                }).catch(() => {});
+            }
         }
 
         async function saveCorrectMobile_(uid) {
