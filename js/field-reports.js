@@ -80,10 +80,15 @@
             }
         }
 
-        async function getBrokenPoleEntries_() {
+        // mode: "force" = hamesha fresh network fetch (default). "soft" = 10s
+        // cache window respect karo. "cache" = jo bhi cached hai turant, koi
+        // network wait nahi — list turant instant render ke liye.
+        async function getBrokenPoleEntries_(mode = "force") {
             const rows = await idbGetAll_("broken_pole");
             const local = rows.slice().sort((a, b) => (a.id || 0) - (b.id || 0));
-            const shared = await fetchSharedEntries_("broken_pole");
+            const shared = mode === "cache"
+                ? (sharedModuleEntriesCache["broken_pole"] || [])
+                : await fetchSharedEntries_("broken_pole", mode === "force");
             return mergeLocalAndSharedEntries_(local, shared);
         }
 
@@ -172,17 +177,17 @@
             return /^-?\d+(\.\d+)?$/.test(String(lat)) && /^-?\d+(\.\d+)?$/.test(String(lon));
         }
 
-        async function refreshBrokenPoleMisTotal() {
+        async function refreshBrokenPoleMisTotal(mode = "force") {
             const fromDate = document.getElementById("bp-mis-from-date")?.value;
             const toDate = document.getElementById("bp-mis-to-date")?.value;
             const totalNode = document.getElementById("bp-mis-total");
             if (!totalNode) return;
-            const filtered = await filterBrokenPoleEntries_(fromDate, toDate);
+            const filtered = await filterBrokenPoleEntries_(fromDate, toDate, mode);
             totalNode.innerText = filtered.length;
         }
 
-        async function filterBrokenPoleEntries_(fromDate, toDate) {
-            const entries = await getBrokenPoleEntries_();
+        async function filterBrokenPoleEntries_(fromDate, toDate, mode = "force") {
+            const entries = await getBrokenPoleEntries_(mode);
             if (!fromDate || !toDate) return entries;
             const fromTs = new Date(fromDate);
             const toTs = new Date(toDate);
@@ -440,10 +445,12 @@
             renderBcPhotoSlots();
         }
 
-        async function getBijliChoriEntries_() {
+        async function getBijliChoriEntries_(mode = "force") {
             const rows = await idbGetAll_("bijli_chori");
             const local = rows.slice().sort((a, b) => (a.id || 0) - (b.id || 0));
-            const shared = await fetchSharedEntries_("bijli_chori");
+            const shared = mode === "cache"
+                ? (sharedModuleEntriesCache["bijli_chori"] || [])
+                : await fetchSharedEntries_("bijli_chori", mode === "force");
             return mergeLocalAndSharedEntries_(local, shared);
         }
 
@@ -536,17 +543,17 @@
             }
         }
 
-        async function refreshBijliChoriMisTotal() {
+        async function refreshBijliChoriMisTotal(mode = "force") {
             const fromDate = document.getElementById("bc-mis-from-date")?.value;
             const toDate = document.getElementById("bc-mis-to-date")?.value;
             const totalNode = document.getElementById("bc-mis-total");
             if (!totalNode) return;
-            const filtered = await filterBijliChoriEntries_(fromDate, toDate);
+            const filtered = await filterBijliChoriEntries_(fromDate, toDate, mode);
             totalNode.innerText = filtered.length;
         }
 
-        async function filterBijliChoriEntries_(fromDate, toDate) {
-            const entries = await getBijliChoriEntries_();
+        async function filterBijliChoriEntries_(fromDate, toDate, mode = "force") {
+            const entries = await getBijliChoriEntries_(mode);
             if (!fromDate || !toDate) return entries;
             const fromTs = new Date(fromDate);
             const toTs = new Date(toDate);
@@ -787,8 +794,13 @@
                 return;
             }
             container.style.display = "block";
-            container.innerHTML = `<div style="text-align:center; padding:14px; font-size:12px; font-weight:800; color:#ffffff;">Loading...</div>`;
-            await renderEntriesList_(storeName);
+
+            // Turant jo bhi data maujood hai (local + jo bhi cached hai, chahe abhi
+            // tak fetch hi na hui ho) turant dikha dete hain — network ka slow/hang
+            // hona list-open ko kabhi block nahi karta. Fresh cloud data background
+            // me load hoke chupchaap list update kar deta hai.
+            await renderEntriesList_(storeName, "cache");
+            renderEntriesList_(storeName, "force"); // background refresh, fire-and-forget
         }
 
         // Returns a stable string identifier for an entry, usable for view/delete lookups
@@ -809,21 +821,30 @@
             entries.forEach((e) => { entryDetailCache_[storeName][getEntryUid_(e)] = e; });
         }
 
-        async function renderEntriesList_(storeName) {
+        async function renderEntriesList_(storeName, mode = "force") {
             const config = ENTRY_STORE_CONFIG[storeName];
             const container = document.getElementById(`entries-list-${storeName}`);
             if (!config || !container) return;
 
-            const entries = await config.getEntries();
+            const entries = await config.getEntries(mode);
             cacheEntriesForDetail_(storeName, entries);
             const sorted = entries.slice().reverse(); // newest first
 
+            // "cache" mode me agar is session me abhi tak cloud se ek baar bhi fetch
+            // nahi hui, to sirf is device ka local data dikh sakta hai — dusre users
+            // ki entries abhi load ho rahi hain, isliye ek chhota syncing note.
+            const stillSyncing = mode === "cache" && !sharedModuleLastFetch[storeName];
+            const syncingNoteHtml = stillSyncing
+                ? `<div style="text-align:center; padding:6px; margin-bottom:8px; font-size:10.5px; font-weight:800; color:#fef3c7; background:rgba(0,0,0,0.18); border-radius:8px;">☁️ बाकी users की entries load हो रही हैं...</div>`
+                : "";
+
             if (!sorted.length) {
-                container.innerHTML = `<div style="text-align:center; padding:14px; font-size:12px; font-weight:800; color:#ffffff; background:rgba(0,0,0,0.12); border-radius:12px;">Koi saved entry nahi hai.</div>`;
+                container.innerHTML = `${syncingNoteHtml}<div style="text-align:center; padding:14px; font-size:12px; font-weight:800; color:#ffffff; background:rgba(0,0,0,0.12); border-radius:12px;">Koi saved entry nahi hai.</div>`;
                 return;
             }
 
             container.innerHTML = `
+                ${syncingNoteHtml}
                 <div style="background:rgba(255,255,255,0.92); border-radius:14px; padding:8px; max-height:340px; overflow-y:auto;">
                     ${sorted.map((e) => {
                         const thumb = config.getThumb(e) || "";
@@ -933,34 +954,35 @@
             if (overlay) overlay.remove();
 
             const config = ENTRY_STORE_CONFIG[storeName];
-            const entries = await config.getEntries();
-            const entry = entries.find((e) => getEntryUid_(e) === uid);
-            if (!entry) return showToast("Entry nahi mili", false);
+            let entries = await config.getEntries("cache");
+            let entry = entries.find((e) => getEntryUid_(e) === uid);
+            if (!entry) {
+                entries = await config.getEntries("force");
+                entry = entries.find((e) => getEntryUid_(e) === uid);
+            }
+            if (!entry) return showToast("Entry nahi mili, list dobara kholein", false);
 
-            let ok = true;
-            // Delete from shared backend if it has a cloud entry_id
+            // Optimistic: turant local IndexedDB + in-memory cloud-cache dono se
+            // hata dete hain aur list turant refresh dikha dete hain. Asli cloud
+            // delete background me hoti hai — Apps Script slow hone par bhi delete
+            // turant hota mehsoos hota hai.
             if (entry.entry_id) {
-                ok = await deleteSharedEntry_(storeName, entry.entry_id);
-                if (!ok) {
-                    showToast("Cloud se delete nahi ho paya (internet check karein)", false);
-                }
-                // Clear cache so the deleted entry doesn't reappear from stale cache
                 sharedModuleEntriesCache[storeName] = (sharedModuleEntriesCache[storeName] || []).filter((e) => e.entry_id !== entry.entry_id);
             }
-
-            // Delete the local IndexedDB copy if present
             if (entry.id) {
                 await idbDelete_(storeName, entry.id);
             }
 
-            if (!ok && !entry.id) {
-                return; // cloud delete failed and there's no local copy to remove
-            }
-
             showToast("Entry delete ho gayi", true);
-            await renderEntriesList_(storeName);
+            await renderEntriesList_(storeName, "cache");
             await refreshStorageCounter_(storeName);
-            if (config?.refreshFn) await config.refreshFn();
+            if (config?.refreshFn) config.refreshFn();
+
+            if (entry.entry_id) {
+                deleteSharedEntry_(storeName, entry.entry_id).then((ok) => {
+                    if (!ok) showToast("Cloud se delete nahi ho paya (internet check karein) — dobara dikh sakti hai", false);
+                }).catch(() => {});
+            }
         }
 
 

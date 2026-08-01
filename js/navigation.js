@@ -20,7 +20,7 @@
                     const firstOfMonth = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,"0")}-01`;
                     if (document.getElementById("bp-mis-from-date")) document.getElementById("bp-mis-from-date").value = firstOfMonth;
                     if (document.getElementById("bp-mis-to-date")) document.getElementById("bp-mis-to-date").value = today;
-                    refreshBrokenPoleMisTotal();
+                    refreshBrokenPoleMisTotal("soft");
                     refreshStorageCounter_("broken_pole");
                     const bpEntriesList = document.getElementById("entries-list-broken_pole");
                     if (bpEntriesList) { bpEntriesList.style.display = "none"; bpEntriesList.innerHTML = ""; }
@@ -32,7 +32,7 @@
                     if (document.getElementById("bc-mis-from-date")) document.getElementById("bc-mis-from-date").value = firstOfMonth;
                     if (document.getElementById("bc-mis-to-date")) document.getElementById("bc-mis-to-date").value = today;
                     renderBcPhotoSlots();
-                    refreshBijliChoriMisTotal();
+                    refreshBijliChoriMisTotal("soft");
                     refreshStorageCounter_("bijli_chori");
                     const bcEntriesList = document.getElementById("entries-list-bijli_chori");
                     if (bcEntriesList) { bcEntriesList.style.display = "none"; bcEntriesList.innerHTML = ""; }
