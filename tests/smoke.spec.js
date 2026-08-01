@@ -1101,7 +1101,10 @@ test.describe('Mobile Correction Tracker (galat mobile number flag + monitor)', 
     });
     await goToMobileUpdate(page);
     await page.click('#mc-flag-btn');
+    // Ab save local-first optimistic hai — button turant free ho jaata hai,
+    // asli server error background sync poora hone ke baad toast me aata hai.
     await page.waitForFunction(() => document.getElementById('mc-flag-btn').innerText.includes('मार्क करें'));
+    await page.waitForFunction(() => document.getElementById('toast-notif')?.textContent?.includes('Sheet quota exceeded'), null, { timeout: 10000 });
 
     // Toast me "internet nahi hai" nahi, balki asli server error dikhna chahiye
     await expect(page.locator('#toast-notif')).not.toContainText('Internet नहीं है');
