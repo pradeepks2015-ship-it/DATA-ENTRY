@@ -1221,12 +1221,16 @@ test.describe('Mobile Correction Tracker (galat mobile number flag + monitor)', 
     await page.evaluate(() => switchView('mobile-update'));
     await page.waitForFunction(() => document.getElementById('mobile-update-view').classList.contains('active'));
 
-    await page.waitForFunction(async () => {
-      const rows = await idbGetAll_('mobile_correction');
-      const rec = rows.find((r) => r.ivrs === '9998887799');
-      return !!(rec && rec.entry_id === 'E_RESYNCED_1');
-    }, null, { timeout: 10000 });
+    // Resync jaan-boojhkar 4s delay ke baad chalta hai (perf ke liye — turant
+    // list-load/flag-save se network competition avoid karne ko), isliye seedhe
+    // waitForTimeout se pehle intezaar karte hain phir final state check karte hain.
+    // (waitForFunction ke andar async IndexedDB predicate + numeric polling
+    // is Playwright/CDP setup me anreliable paaya gaya — isliye seedha wait.)
+    await page.waitForTimeout(6000);
+    const rowsAfter = await page.evaluate(async () => await idbGetAll_('mobile_correction'));
+    const rec = rowsAfter.find((r) => r.ivrs === '9998887799');
 
     expect(addEntryCalled).toBe(true);
+    expect(rec?.entry_id).toBe('E_RESYNCED_1');
   });
 });
