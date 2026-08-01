@@ -43,6 +43,7 @@
                 if (id === "mobile-update" && activeDC) {
                     ensureDcDataLoaded(activeDC).then(() => {
                         if (typeof mcPopulateHqFilter_ === "function") mcPopulateHqFilter_();
+                        if (typeof mcResyncOrphanedEntries_ === "function") mcResyncOrphanedEntries_();
                     });
                 }
                 if (id === "feeder-reading") {

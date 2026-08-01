@@ -1185,4 +1185,48 @@ test.describe('Mobile Correction Tracker (galat mobile number flag + monitor)', 
     await expect(sheet).toHaveCount(0);
     expect(errors).toEqual([]);
   });
+
+  test('Purani (backend fix se pehle) atki hui orphan entries view khulte hi apne aap resync ho jaati hain', async ({ page }) => {
+    let addEntryCalled = false;
+    await openApp(page, {
+      beforeGoto: async (p) => {
+        await mockConsumerCsv(p);
+        await p.route('**/macros/**', (route) => {
+          const req = route.request();
+          if (req.method() === 'POST') {
+            const params = new URLSearchParams(req.postData() || '');
+            const action = params.get('action') || 'addEntry';
+            if (action === 'addEntry') {
+              addEntryCalled = true;
+              return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ status: 'success', entry_id: 'E_RESYNCED_1' }) });
+            }
+          }
+          return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ status: 'success', entries: [] }) });
+        });
+      },
+    });
+    await goToDcDashboard(page);
+
+    // Purani orphan entry manually seed karte hain — entry_id missing, jaise
+    // backend fix se pehle IVRS flag hua tha aur kabhi cloud sync nahi hua.
+    await page.evaluate(async () => {
+      await idbAdd_('mobile_correction', {
+        ivrs: '9998887799', name: 'Orphan Test', father: 'Test Father', address: 'Test Addr',
+        hq: 'ADEGAON HQ', dc_name: 'ADEGAON', division: 'DIVISION LAKHNADON',
+        old_mobile: '9998887799', correct_mobile: '', status: 'pending',
+        flagged_date: '01-01-2026', timestamp: new Date().toISOString(),
+      });
+    });
+
+    await page.evaluate(() => switchView('mobile-update'));
+    await page.waitForFunction(() => document.getElementById('mobile-update-view').classList.contains('active'));
+
+    await page.waitForFunction(async () => {
+      const rows = await idbGetAll_('mobile_correction');
+      const rec = rows.find((r) => r.ivrs === '9998887799');
+      return !!(rec && rec.entry_id === 'E_RESYNCED_1');
+    }, null, { timeout: 10000 });
+
+    expect(addEntryCalled).toBe(true);
+  });
 });

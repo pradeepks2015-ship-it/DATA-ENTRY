@@ -261,6 +261,33 @@
             return mergeLocalAndSharedEntries_(local, shared);
         }
 
+        // Backend me pehle "mobile_correction" module registered hi nahi tha, isliye
+        // us waqt jo entries flag/correct hui thi unhe kabhi cloud entry_id nahi mila
+        // aur wo sync_queue me bhi nahi gayi (queue-on-failure feature tab tak nahi
+        // bana tha) — sirf usi device par atki reh gayi. Ab module theek ho chuka hai,
+        // isliye view khulte hi aisi orphan entries ko chupchaap ek baar phir bhejte
+        // hain — isse purani "sync nahi ho raha" aur "reinstall par data gayab" wali
+        // shikayat khud-ba-khud theek ho jaati hai, bina user ko kuch dobara karna pade.
+        async function mcResyncOrphanedEntries_() {
+            try {
+                const localRows = await idbGetAll_(MC_MODULE);
+                const orphans = localRows.filter((r) => !r.entry_id);
+                if (!orphans.length) return;
+                let anySynced = false;
+                for (const entry of orphans) {
+                    const entryId = await syncEntryToCloud_(MC_MODULE, entry, true);
+                    if (entryId) {
+                        await idbPut_(MC_MODULE, { ...entry, entry_id: entryId });
+                        anySynced = true;
+                    }
+                }
+                if (anySynced) {
+                    const container = document.getElementById("mc-pending-list");
+                    if (container && container.style.display === "block") await renderMobileCorrectionList_();
+                }
+            } catch (_) {}
+        }
+
         async function flagWrongMobile_() {
             if (!currentData || !currentData.ivrs) {
                 return showToast("पहले IVRS सर्च करें", false);
@@ -677,7 +704,7 @@
                         </colgroup>
                         <thead><tr>
                             <th style="${thStyle} text-align:left;">मुख्यालय</th>
-                            <th style="${thStyle}">किये गये wrong mb. no. फ्लैग</th>
+                            <th style="${thStyle}">गलत मोबाइल नंबर (फ़्लैग)</th>
                             <th style="${thStyle}">सही किए गए मोबाइल नंबर</th>
                             <th style="${thStyle}">पेंडिंग</th>
                         </tr></thead>
