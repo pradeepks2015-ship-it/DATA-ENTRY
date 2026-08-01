@@ -254,10 +254,16 @@
             }
         }
 
-        async function getMobileCorrectionEntries_() {
+        // mode: "force" = hamesha fresh network fetch (default — actions ke baad
+        // sahi state dikhane ke liye). "soft" = 10s cache window respect karo
+        // (agar abhi-abhi fetch hui thi to dobara network call nahi). "cache" =
+        // jo bhi cached hai (chahe kitna bhi purana ho) turant, koi network wait nahi.
+        async function getMobileCorrectionEntries_(mode = "force") {
             const rows = await idbGetAll_(MC_MODULE);
             const local = rows.slice().sort((a, b) => (a.id || 0) - (b.id || 0));
-            const shared = await fetchSharedEntries_(MC_MODULE, true);
+            const shared = mode === "cache"
+                ? (sharedModuleEntriesCache[MC_MODULE] || [])
+                : await fetchSharedEntries_(MC_MODULE, mode === "force");
             return mergeLocalAndSharedEntries_(local, shared);
         }
 
@@ -342,22 +348,30 @@
                     ...mcEmployeeTag_()
                 };
 
-                const entryId = await syncEntryToCloud_(MC_MODULE, entry);
-                if (entryId) entry.entry_id = entryId;
-                await idbAdd_(MC_MODULE, entry);
-                if (entryId) {
-                    showToast("गलत नंबर के रूप में फ़्लैग हो गया — सभी users को दिखेगा ✅", true);
-                } else if (window.__lastSyncErrorReason === "network") {
-                    showToast("Internet नहीं है — device पर save हुआ, internet आने पर अपने-आप sync होगा 🔄", true);
-                } else {
-                    // Backend/server error — internet chalu hone ke bawajood ho sakta
-                    // hai. Device par save ho gaya hai, background me automatic
-                    // retry hoti rahegi (har 2 min) jab tak sync na ho jaaye.
-                    showToast(`Server error (internet nahi ki wajah se nahi): ${window.__lastSyncErrorMessage || "sync fail hua"} — device par save hai, retry hoti rahegi 🔄`, false);
-                }
+                entry.client_id = genClientId_();
+
+                // Local-first save: turant IndexedDB me save karke turant success
+                // dikha dete hain — cloud sync background me hoti hai, taaki Apps
+                // Script cold-start/slow mobile network ka wait "Saving..." button
+                // par na dikhe. Sync fail ho to bhi entry queue me hai, retry hoti
+                // rahegi (har 2 min) jab tak sync na ho jaaye.
+                const localId = await idbAdd_(MC_MODULE, entry);
+                showToast("गलत नंबर के रूप में फ़्लैग हो गया — sync हो रहा है... 🔄", true);
                 resetForm(true);
                 const searchInput = document.getElementById("search-ivrs");
                 if (searchInput) searchInput.focus();
+
+                syncEntryToCloud_(MC_MODULE, entry).then(async (entryId) => {
+                    if (entryId) {
+                        await idbPut_(MC_MODULE, { ...entry, id: localId, entry_id: entryId });
+                        const container = document.getElementById("mc-pending-list");
+                        if (container && container.style.display === "block") await renderMobileCorrectionList_("force");
+                    } else if (window.__lastSyncErrorReason === "network") {
+                        showToast("Internet नहीं है — device पर save हुआ, internet आने पर अपने-आप sync होगा 🔄", true);
+                    } else if (window.__lastSyncErrorReason && window.__lastSyncErrorReason !== "disabled") {
+                        showToast(`Server error (internet nahi ki wajah se nahi): ${window.__lastSyncErrorMessage || "sync fail hua"} — device par save hai, retry hoti rahegi 🔄`, false);
+                    }
+                }).catch(() => {});
             } catch (_) {
                 showToast("Save करने में समस्या आई, दोबारा कोशिश करें", false);
             } finally {
@@ -376,8 +390,18 @@
                 return;
             }
             container.style.display = "block";
-            container.innerHTML = `<div style="text-align:center; padding:14px; font-size:12px; font-weight:800; color:#ffffff;">लोड हो रहा है...</div>`;
-            await renderMobileCorrectionList_();
+
+            // Agar is session me pehle kabhi fetch ho chuka hai (chahe thoda purana
+            // ho), turant wahi dikha dete hain — network wait ka ehsaas nahi hota.
+            // Fresh data background me load hokar chupchaap list update kar deta hai.
+            const hasCachedData = (sharedModuleEntriesCache[MC_MODULE] || []).length > 0;
+            if (hasCachedData) {
+                await renderMobileCorrectionList_("cache");
+                renderMobileCorrectionList_("force"); // background refresh, fire-and-forget
+            } else {
+                container.innerHTML = `<div style="text-align:center; padding:14px; font-size:12px; font-weight:800; color:#ffffff;">लोड हो रहा है...</div>`;
+                await renderMobileCorrectionList_("force");
+            }
         }
 
         function mcGroupByHq_(entries) {
@@ -420,15 +444,17 @@
         }
 
         function mcHqFilterChanged_() {
+            // Sirf ek dropdown-select hai — abhi-abhi fetch ki hui list ko turant
+            // client-side re-filter karte hain, dobara network call ki zaroorat nahi.
             const container = document.getElementById("mc-pending-list");
-            if (container && container.style.display === "block") renderMobileCorrectionList_();
+            if (container && container.style.display === "block") renderMobileCorrectionList_("soft");
         }
 
-        async function renderMobileCorrectionList_() {
+        async function renderMobileCorrectionList_(mode = "force") {
             const container = document.getElementById("mc-pending-list");
             if (!container) return;
             const dcFilter = activeDC || "";
-            const all = await getMobileCorrectionEntries_();
+            const all = await getMobileCorrectionEntries_(mode);
             const dcEntries = all.filter((e) => !dcFilter || e.dc_name === dcFilter);
             mcPopulateHqFilter_(dcEntries);
             const hqFilter = document.getElementById("mc-hq-filter")?.value || "";
@@ -542,9 +568,13 @@
             const overlay = document.getElementById("mc-delete-overlay");
             if (overlay) overlay.remove();
 
-            const all = await getMobileCorrectionEntries_();
-            const entry = all.find((e) => getEntryUid_(e) === uid);
-            if (!entry) return showToast("Entry नहीं मिली", false);
+            let all = await getMobileCorrectionEntries_("cache");
+            let entry = all.find((e) => getEntryUid_(e) === uid);
+            if (!entry) {
+                all = await getMobileCorrectionEntries_("force");
+                entry = all.find((e) => getEntryUid_(e) === uid);
+            }
+            if (!entry) return showToast("Entry नहीं मिली, सूची फिर से खोलें", false);
 
             let ok = true;
             if (entry.entry_id) {
@@ -570,9 +600,17 @@
             const value = input?.value || "";
             if (value.length !== 10) return showToast("10 अंक का मोबाइल नंबर डालें", false);
 
-            const all = await getMobileCorrectionEntries_();
-            const entry = all.find((e) => getEntryUid_(e) === uid);
-            if (!entry) return showToast("Entry नहीं मिली", false);
+            // List jo abhi screen par dikh rahi hai wahi cached data se bani thi —
+            // usi se entry dhoondte hain (dobara network fetch nahi karte), taaki
+            // save turant shuru ho aur background refresh se uid race na ho.
+            let all = await getMobileCorrectionEntries_("cache");
+            let entry = all.find((e) => getEntryUid_(e) === uid);
+            if (!entry) {
+                // Fallback: list refresh ho chuki thi shayad — ek baar fresh data try karo.
+                all = await getMobileCorrectionEntries_("force");
+                entry = all.find((e) => getEntryUid_(e) === uid);
+            }
+            if (!entry) return showToast("Entry नहीं मिली, सूची फिर से खोलें", false);
 
             const localId = entry.entry_id ? entry.entry_id : entry.id;
             const empTag = mcEmployeeTag_();
@@ -583,18 +621,30 @@
                 corrected_by_id: empTag.submitted_by_id,
                 corrected_by_name: empTag.submitted_by_name
             };
-            const ok = await updateSharedEntry_(MC_MODULE, localId, updates);
-            if (!ok) return showToast("Save करने में समस्या आई", false);
-            if (!window.__lastSyncErrorReason) {
-                showToast("सही नंबर सेव हो गया — सभी users को दिखेगा ✅", true);
-            } else if (window.__lastSyncErrorReason === "network") {
-                showToast("Internet नहीं है — device पर save हुआ, internet आने पर अपने-आप sync होगा 🔄", true);
-            } else if (window.__lastSyncErrorReason === "pending_original") {
-                showToast("यह entry अभी cloud पर sync नहीं हुई थी — device पर save हुआ, दोनों साथ में sync होंगे 🔄", true);
-            } else {
-                showToast(`Server error (internet nahi ki wajah se nahi): ${window.__lastSyncErrorMessage || "sync fail hua"} — device par save hai, retry hoti rahegi 🔄`, false);
-            }
-            await renderMobileCorrectionList_();
+
+            // Optimistic: turant in-memory (cloud-cache origin entries ke liye) aur
+            // IndexedDB (local origin entries ke liye) dono me apply karke list
+            // turant "corrected" dikha dete hain. Asli cloud sync background me
+            // hoti hai — Apps Script slow/cold-start hone par bhi save turant
+            // hota mehsoos hota hai.
+            Object.assign(entry, updates);
+            try {
+                const localRows = await idbGetAll_(MC_MODULE);
+                const localRec = localRows.find((r) => (entry.entry_id && r.entry_id === entry.entry_id) || (!entry.entry_id && r.id === entry.id));
+                if (localRec) await idbPut_(MC_MODULE, { ...localRec, ...updates });
+            } catch (_) {}
+            showToast("सही नंबर सेव हो गया — sync हो रहा है... 🔄", true);
+            await renderMobileCorrectionList_("cache");
+
+            updateSharedEntry_(MC_MODULE, localId, updates).then(() => {
+                if (window.__lastSyncErrorReason === "network") {
+                    showToast("Internet नहीं है — device पर save हुआ, internet आने पर अपने-आप sync होगा 🔄", true);
+                } else if (window.__lastSyncErrorReason === "pending_original") {
+                    showToast("यह entry अभी cloud पर sync नहीं हुई थी — device पर save हुआ, दोनों साथ में sync होंगे 🔄", true);
+                } else if (window.__lastSyncErrorReason) {
+                    showToast(`Server error (internet nahi ki wajah se nahi): ${window.__lastSyncErrorMessage || "sync fail hua"} — device par save hai, retry hoti rahegi 🔄`, false);
+                }
+            }).catch(() => {});
         }
 
         // ===== मुख्यालय वार मोबाइल नंबर करेक्शन स्कोरकार्ड (⋮ मेनू) =====
