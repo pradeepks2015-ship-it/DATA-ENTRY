@@ -108,6 +108,9 @@
                     <button type="button" onclick="refreshAdminDashboardData_()" style="flex:1; height:40px; border:none; border-radius:10px; background:rgba(0,0,0,0.15); color:#ffffff; font-size:10px; font-weight:900; text-transform:uppercase;">🔄 Refresh</button>
                     <button type="button" onclick="admExportExcel_()" style="flex:1; height:40px; border:none; border-radius:10px; background:rgba(0,0,0,0.15); color:#ffffff; font-size:10px; font-weight:900; text-transform:uppercase;">📥 Excel</button>
                 </div>
+                <div style="margin-bottom:12px;">
+                    <button type="button" onclick="admOpenDiagnostics_()" style="width:100%; height:40px; border:none; border-radius:10px; background:rgba(0,0,0,0.15); color:#ffffff; font-size:10px; font-weight:900; text-transform:uppercase;">🩺 Field Devices पर क्या गड़बड़ हुई (Diagnostics)</button>
+                </div>
                 <div style="background:rgba(255,255,255,0.95); border-radius:14px; padding:12px; margin-bottom:12px;">
                     <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
                         <div>
@@ -169,6 +172,64 @@
             } catch (_) {
                 showToast("Excel generate karne mein error aaya", false);
             }
+        }
+
+        // Field devices se error-logs — pehle sirf us device ke localStorage me
+        // bandh rehte the, admin ko kabhi pata nahi chalta tha ki kis DC/device par
+        // kya gadbad ho rahi hai. Ab yahan ek jagah dikhte hain (device_diagnostics
+        // module se, mobile_correction jaisi hi generic backend mechanism).
+        function admOpenDiagnostics_() {
+            const menu = document.getElementById("header-menu-dropdown");
+            if (menu) menu.style.display = "none";
+            const existing = document.getElementById("adm-diag-overlay");
+            if (existing) existing.remove();
+
+            const overlay = document.createElement("div");
+            overlay.id = "adm-diag-overlay";
+            overlay.style.cssText = "position:fixed; inset:0; background:rgba(0,0,0,0.55); z-index:9999; display:flex; align-items:flex-end; justify-content:center;";
+            overlay.addEventListener("click", (e) => { if (e.target === overlay) overlay.remove(); });
+
+            const sheet = document.createElement("div");
+            sheet.style.cssText = "background:#ffffff; border-radius:20px 20px 0 0; padding:18px; width:100%; max-width:480px; max-height:82vh; overflow-y:auto; box-shadow:0 -12px 30px rgba(0,0,0,0.25);";
+            sheet.innerHTML = `
+                <div style="font-size:14px; font-weight:900; color:#1e293b; text-align:center; text-transform:uppercase; margin-bottom:10px;">🩺 Field Devices Diagnostics</div>
+                <div id="adm-diag-body"><div style="text-align:center; padding:14px; font-size:12px; font-weight:800; color:#64748b;">लोड हो रहा है...</div></div>
+                <button id="adm-diag-close-btn" style="width:100%; height:42px; border:none; border-radius:12px; background:#e2e8f0; color:#1e293b; font-size:12px; font-weight:900; text-transform:uppercase; margin-top:14px;">बंद करें</button>
+            `;
+            overlay.appendChild(sheet);
+            document.body.appendChild(overlay);
+            document.getElementById("adm-diag-close-btn").onclick = () => overlay.remove();
+
+            admRefreshDiagnostics_();
+        }
+
+        async function admRefreshDiagnostics_() {
+            const body = document.getElementById("adm-diag-body");
+            if (!body) return;
+            let entries = [];
+            try {
+                entries = await fetchSharedEntries_(DIAGNOSTICS_MODULE, true);
+            } catch (_) {}
+
+            if (!entries.length) {
+                body.innerHTML = `<div style="text-align:center; padding:18px; font-size:12px; font-weight:800; color:#64748b; background:#f8fafc; border-radius:14px;">कोई device error report नहीं हुआ (ya backend module abhi register nahi hua).</div>`;
+                return;
+            }
+
+            const sorted = entries.slice().sort((a, b) => new Date(b.timestamp || b.t || 0) - new Date(a.timestamp || a.t || 0)).slice(0, 60);
+            body.innerHTML = `
+                <div style="font-size:10.5px; font-weight:800; color:#64748b; margin-bottom:8px;">पिछले ${sorted.length} errors (सबसे नया पहले)</div>
+                ${sorted.map((e) => `
+                    <div style="border:1px solid #fca5a5; border-radius:10px; padding:8px 10px; margin-bottom:8px; background:#fef2f2;">
+                        <div style="display:flex; justify-content:space-between; gap:8px; margin-bottom:3px;">
+                            <span style="font-size:10px; font-weight:900; color:#991b1b; text-transform:uppercase;">${escapeHtml(e.ctx || "?")}</span>
+                            <span style="font-size:9.5px; font-weight:700; color:#94a3b8; flex-shrink:0;">${escapeHtml((e.timestamp || e.t || "").slice(0, 16).replace("T", " "))}</span>
+                        </div>
+                        <div style="font-size:11.5px; font-weight:700; color:#1e293b; line-height:1.4; margin-bottom:4px;">${escapeHtml(e.msg || "")}</div>
+                        <div style="font-size:9.5px; font-weight:700; color:#64748b;">DC: ${escapeHtml(e.dc || "-")} | View: ${escapeHtml(e.view || "-")} | Device: ${escapeHtml((e.device_id || "").slice(0, 10))}</div>
+                    </div>
+                `).join("")}
+            `;
         }
 
         function admSummaryCard_(icon, label, count, note) {
