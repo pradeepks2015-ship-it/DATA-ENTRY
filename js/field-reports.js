@@ -212,10 +212,10 @@
 
             let holder = null;
             try {
-                if (typeof html2canvas === "undefined") {
-                    showToast("PDF library load nahi hui — internet check karke dobara try karein", false);
-                    return;
-                }
+                btn.innerText = "PDF library load ho rahi hai...";
+                await Promise.all([ensureJsPdf_(), ensureHtml2Canvas_()]);
+                btn.innerText = "Generating...";
+
                 const filtered = await filterBrokenPoleEntries_(fromDate, toDate);
                 await refreshBrokenPoleMisTotal();
                 await hydratePhotoDataForPdf_(filtered);
@@ -578,10 +578,10 @@
 
             let holder = null;
             try {
-                if (typeof html2canvas === "undefined") {
-                    showToast("PDF library load nahi hui — internet check karke dobara try karein", false);
-                    return;
-                }
+                btn.innerText = "PDF library load ho rahi hai...";
+                await Promise.all([ensureJsPdf_(), ensureHtml2Canvas_()]);
+                btn.innerText = "Generating...";
+
                 const filtered = await filterBijliChoriEntries_(fromDate, toDate);
                 await refreshBijliChoriMisTotal();
                 await hydratePhotoDataForPdf_(filtered);

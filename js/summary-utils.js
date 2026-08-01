@@ -795,7 +795,7 @@
             });
         }
 
-        function doExport(fmt) {
+        async function doExport(fmt) {
             const levelT = activeViewLevel === "DC" ? `DC - ${activeDC}` : (activeViewLevel === "DIVISION" ? activeDiv : "SEONI CIRCLE");
             const rawVal = document.getElementById("report-date").value;
             const dateLabel = summaryMode === "DAILY" ? "DATE - " + getFormattedDate(rawVal, "DAILY") : "MONTH - " + getFormattedDate(rawVal, "MONTHLY");
@@ -816,6 +816,7 @@
                 link.download = `Report_${levelT}_${reportType}.csv`;
                 link.click();
             } else {
+                await ensureJsPdf_();
                 const { jsPDF } = window.jspdf;
                 const doc = new jsPDF();
                 doc.setFontSize(7);

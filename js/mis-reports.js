@@ -276,6 +276,7 @@
 
             if (format === "EXCEL") {
                 try {
+                    await ensureXlsx_();
                     const wsData = [config.headers, ...rows.map(config.rowMapper)];
                     const ws = XLSX.utils.aoa_to_sheet(wsData);
                     const wb = XLSX.utils.book_new();
@@ -288,6 +289,7 @@
                 }
             } else {
                 try {
+                    await ensureJsPdf_();
                     const { jsPDF } = window.jspdf;
                     const doc = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" });
 
