@@ -254,10 +254,16 @@
             }
         }
 
-        async function getMobileCorrectionEntries_() {
+        // mode: "force" = hamesha fresh network fetch (default — actions ke baad
+        // sahi state dikhane ke liye). "soft" = 10s cache window respect karo
+        // (agar abhi-abhi fetch hui thi to dobara network call nahi). "cache" =
+        // jo bhi cached hai (chahe kitna bhi purana ho) turant, koi network wait nahi.
+        async function getMobileCorrectionEntries_(mode = "force") {
             const rows = await idbGetAll_(MC_MODULE);
             const local = rows.slice().sort((a, b) => (a.id || 0) - (b.id || 0));
-            const shared = await fetchSharedEntries_(MC_MODULE, true);
+            const shared = mode === "cache"
+                ? (sharedModuleEntriesCache[MC_MODULE] || [])
+                : await fetchSharedEntries_(MC_MODULE, mode === "force");
             return mergeLocalAndSharedEntries_(local, shared);
         }
 
@@ -376,8 +382,18 @@
                 return;
             }
             container.style.display = "block";
-            container.innerHTML = `<div style="text-align:center; padding:14px; font-size:12px; font-weight:800; color:#ffffff;">लोड हो रहा है...</div>`;
-            await renderMobileCorrectionList_();
+
+            // Agar is session me pehle kabhi fetch ho chuka hai (chahe thoda purana
+            // ho), turant wahi dikha dete hain — network wait ka ehsaas nahi hota.
+            // Fresh data background me load hokar chupchaap list update kar deta hai.
+            const hasCachedData = (sharedModuleEntriesCache[MC_MODULE] || []).length > 0;
+            if (hasCachedData) {
+                await renderMobileCorrectionList_("cache");
+                renderMobileCorrectionList_("force"); // background refresh, fire-and-forget
+            } else {
+                container.innerHTML = `<div style="text-align:center; padding:14px; font-size:12px; font-weight:800; color:#ffffff;">लोड हो रहा है...</div>`;
+                await renderMobileCorrectionList_("force");
+            }
         }
 
         function mcGroupByHq_(entries) {
@@ -420,15 +436,17 @@
         }
 
         function mcHqFilterChanged_() {
+            // Sirf ek dropdown-select hai — abhi-abhi fetch ki hui list ko turant
+            // client-side re-filter karte hain, dobara network call ki zaroorat nahi.
             const container = document.getElementById("mc-pending-list");
-            if (container && container.style.display === "block") renderMobileCorrectionList_();
+            if (container && container.style.display === "block") renderMobileCorrectionList_("soft");
         }
 
-        async function renderMobileCorrectionList_() {
+        async function renderMobileCorrectionList_(mode = "force") {
             const container = document.getElementById("mc-pending-list");
             if (!container) return;
             const dcFilter = activeDC || "";
-            const all = await getMobileCorrectionEntries_();
+            const all = await getMobileCorrectionEntries_(mode);
             const dcEntries = all.filter((e) => !dcFilter || e.dc_name === dcFilter);
             mcPopulateHqFilter_(dcEntries);
             const hqFilter = document.getElementById("mc-hq-filter")?.value || "";
