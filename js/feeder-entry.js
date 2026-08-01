@@ -373,7 +373,7 @@
                 let submitMessage = "Feeder readings submit ho gayi";
 
                 try {
-                    const response = await fetch(feederSubmitScriptUrl, {
+                    const response = await fetchWithTimeout_(feederSubmitScriptUrl, {
                         method: "POST",
                         headers: { "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8" },
                         body: payload.toString()
@@ -481,7 +481,7 @@
 
             try {
                 const url = `${feederSubmitScriptUrl}?action=getFeederReadings&auth_token=${encodeURIComponent(APPS_SCRIPT_AUTH_TOKEN)}&t=${Date.now()}`;
-                const response = await fetch(url);
+                const response = await fetchWithTimeout_(url);
                 const text = await response.text();
 
                 let parsed;

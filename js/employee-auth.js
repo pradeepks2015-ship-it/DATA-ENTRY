@@ -74,7 +74,7 @@
                 payload.append("emp_id", empId);
                 payload.append("pin_hash", pinHash);
                 payload.append("auth_token", APPS_SCRIPT_AUTH_TOKEN);
-                const res = await fetch(scriptURL, {
+                const res = await fetchWithTimeout_(scriptURL, {
                     method: "POST",
                     headers: { "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8" },
                     body: payload.toString()

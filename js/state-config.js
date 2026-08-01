@@ -64,6 +64,22 @@
             try { localStorage.removeItem(ERROR_LOG_KEY); } catch (_) {}
         }
 
+        // Kisi bhi network call (Apps Script/Sheets ko) ek max samay ke baad khud
+        // hi rok deta hai — pehle koi bhi fetch() dheere/atke huye network par
+        // anishchit samay tak latki reh sakti thi (na success na fail), isliye UI
+        // "Saving..."/"लोड हो रहा है" me hamesha ke liye fas sakta tha. Ab timeout
+        // ke baad AbortError throw hota hai, jise caller apne normal catch/error
+        // path se hi handle kar leta hai (jaise real network error).
+        async function fetchWithTimeout_(url, options = {}, timeoutMs = 15000) {
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+            try {
+                return await fetch(url, { ...options, signal: controller.signal });
+            } finally {
+                clearTimeout(timeoutId);
+            }
+        }
+
         function renderErrorLogRows_(logs) {
             if (!logs.length) return `<div style="text-align:center; padding:18px; font-size:12px; font-weight:800; color:#64748b;">कोई error नहीं — सब ठीक है ✅</div>`;
             return logs.slice().reverse().map((e) => `
@@ -446,7 +462,7 @@
                 payload.append("entry_json", JSON.stringify(entryToSync));
                 payload.append("auth_token", APPS_SCRIPT_AUTH_TOKEN);
 
-                const response = await fetch(sharedModuleSyncScriptUrl, {
+                const response = await fetchWithTimeout_(sharedModuleSyncScriptUrl, {
                     method: "POST",
                     headers: { "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8" },
                     body: payload.toString()
@@ -499,11 +515,11 @@
                             photoPayload.append("photo_index", String(photo.index));
                             photoPayload.append("auth_token", APPS_SCRIPT_AUTH_TOKEN);
 
-                            const photoResponse = await fetch(sharedModuleSyncScriptUrl, {
+                            const photoResponse = await fetchWithTimeout_(sharedModuleSyncScriptUrl, {
                                 method: "POST",
                                 headers: { "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8" },
                                 body: photoPayload.toString()
-                            });
+                            }, 30000); // photo data bada ho sakta hai, isliye lamba timeout
                             const photoResult = JSON.parse((await photoResponse.text()) || "{}");
                             if (photoResult && photoResult.status === "success") {
                                 uploaded = true;
@@ -524,7 +540,7 @@
                 // me queue me daal dete hain (internet aane/retry hone par apne aap
                 // cloud me bhej degi), sirf reason/message alag hota hai taaki caller
                 // sahi toast dikha sake (galat "internet nahi hai" na bole).
-                const isNetworkErr = navigator.onLine === false || err instanceof TypeError;
+                const isNetworkErr = navigator.onLine === false || err instanceof TypeError || err?.name === "AbortError";
                 window.__lastSyncErrorReason = isNetworkErr ? "network" : "backend";
                 if (!isNetworkErr) {
                     window.__lastSyncErrorMessage = err && err.message ? err.message : String(err);
@@ -593,7 +609,7 @@
                         payload.append("entry_id", cloudEntryId);
                         payload.append("updates_json", JSON.stringify(updates));
                         payload.append("auth_token", APPS_SCRIPT_AUTH_TOKEN);
-                        const response = await fetch(sharedModuleSyncScriptUrl, {
+                        const response = await fetchWithTimeout_(sharedModuleSyncScriptUrl, {
                             method: "POST",
                             headers: { "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8" },
                             body: payload.toString()
@@ -610,7 +626,7 @@
                             sharedModuleLastFetch[module] = 0;
                         }
                     } catch (err) {
-                        const isNetworkErr = navigator.onLine === false || err instanceof TypeError;
+                        const isNetworkErr = navigator.onLine === false || err instanceof TypeError || err?.name === "AbortError";
                         window.__lastSyncErrorReason = isNetworkErr ? "network" : "backend";
                         if (!isNetworkErr) {
                             window.__lastSyncErrorMessage = err && err.message ? err.message : String(err);
@@ -684,7 +700,7 @@
                             await backfillEntryId_(item.module, item.entry.client_id, entryId);
                             sharedModuleLastFetch[item.module] = 0;
                         } else if (item.kind === "post_form") {
-                            const response = await fetch(APPS_SCRIPT_EXEC_URL, {
+                            const response = await fetchWithTimeout_(APPS_SCRIPT_EXEC_URL, {
                                 method: "POST",
                                 headers: { "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8" },
                                 body: item.body
@@ -697,7 +713,7 @@
                             payload.append("entry_id", item.entryId);
                             payload.append("updates_json", JSON.stringify(item.updates));
                             payload.append("auth_token", APPS_SCRIPT_AUTH_TOKEN);
-                            const response = await fetch(sharedModuleSyncScriptUrl, {
+                            const response = await fetchWithTimeout_(sharedModuleSyncScriptUrl, {
                                 method: "POST",
                                 headers: { "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8" },
                                 body: payload.toString()
@@ -713,7 +729,7 @@
                             payload.append("entry_id", item.entryId);
                             payload.append("updates_json", JSON.stringify(item.updates));
                             payload.append("auth_token", APPS_SCRIPT_AUTH_TOKEN);
-                            const response = await fetch(sharedModuleSyncScriptUrl, {
+                            const response = await fetchWithTimeout_(sharedModuleSyncScriptUrl, {
                                 method: "POST",
                                 headers: { "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8" },
                                 body: payload.toString()
@@ -770,7 +786,7 @@
                 payload.append("action", "deleteEntry");
                 payload.append("entry_id", entryId);
                 payload.append("auth_token", APPS_SCRIPT_AUTH_TOKEN);
-                const response = await fetch(sharedModuleSyncScriptUrl, {
+                const response = await fetchWithTimeout_(sharedModuleSyncScriptUrl, {
                     method: "POST",
                     headers: { "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8" },
                     body: payload.toString()
