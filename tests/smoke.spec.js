@@ -507,6 +507,41 @@ test.describe('Admin Dashboard (Phase-1)', () => {
     await expect(page.locator('#admin-pin-overlay')).toBeVisible();
   });
 
+  test('🩺 Diagnostics panel field devices ki error-log dikhata hai, backend module register na ho to bhi crash nahi karta', async ({ page }) => {
+    const errors = [];
+    page.on('pageerror', (e) => errors.push(e.message));
+    await openApp(page, {
+      beforeGoto: async (p) => {
+        await p.route('**/macros/**', (route) => {
+          const url = new URL(route.request().url());
+          if (url.searchParams.get('action') === 'getEntries' && url.searchParams.get('module') === 'device_diagnostics') {
+            return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ status: 'success', entries: [
+              { ctx: 'sync-broken_pole', msg: 'Server ne HTTP 500 diya', dc: 'ADEGAON', view: 'broken-pole-view', device_id: 'D123abc456', timestamp: '2026-07-20T10:00:00.000Z' },
+            ] }) });
+          }
+          return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ status: 'success', entries: [] }) });
+        });
+      },
+    });
+    await page.evaluate(async () => {
+      openAdminDashboardGate_();
+      document.getElementById('admin-pin-input').value = 'SC@2026';
+      await document.getElementById('admin-pin-submit-btn').onclick();
+    });
+    await page.waitForFunction(() => document.getElementById('admin-dashboard-view').classList.contains('active'));
+
+    await page.click('text=🩺 Field Devices पर क्या गड़बड़ हुई (Diagnostics)');
+    await expect(page.locator('#adm-diag-overlay')).toBeVisible();
+    await page.waitForFunction(() => !document.getElementById('adm-diag-body')?.innerText.includes('लोड हो रहा है'));
+    await expect(page.locator('#adm-diag-body')).toContainText('sync-broken_pole');
+    await expect(page.locator('#adm-diag-body')).toContainText('Server ne HTTP 500 diya');
+    await expect(page.locator('#adm-diag-body')).toContainText('ADEGAON');
+
+    await page.click('#adm-diag-close-btn');
+    await expect(page.locator('#adm-diag-overlay')).toHaveCount(0);
+    expect(errors).toEqual([]);
+  });
+
   test('header title पर long-press (700ms) से PIN prompt खुलता है', async ({ page }) => {
     await openApp(page, { beforeGoto: mockAdminBackend });
     const title = page.locator('#main-header-title');

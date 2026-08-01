@@ -64,6 +64,55 @@
             try { localStorage.removeItem(ERROR_LOG_KEY); } catch (_) {}
         }
 
+        // Har device ka apna ek sthir (persistent) pehchaan number — employee login
+        // na ho tab bhi admin dekh sake ki error kis phone/device se aa rahi hai.
+        const DEVICE_ID_KEY = "seoni-circle-device-id";
+        function getDeviceId_() {
+            try {
+                let id = localStorage.getItem(DEVICE_ID_KEY);
+                if (!id) {
+                    id = "D" + Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+                    localStorage.setItem(DEVICE_ID_KEY, id);
+                }
+                return id;
+            } catch (_) { return ""; }
+        }
+
+        // Error logs pehle sirf isi device ke localStorage me bandh rehte the — admin
+        // ko kabhi pata nahi chalta tha ki field me kis DC/device par kya toot raha
+        // hai. Ab yeh (mobile_correction jaisi hi generic backend mechanism se)
+        // cloud par bhi bhej diye jaate hain, taaki Admin Dashboard se sabhi devices
+        // ki dikkatein ek jagah dikh sakein. Backend par "device_diagnostics" module
+        // add karna hoga (PHOTO_MODULES me), warna yeh chupchaap fail hokar agli
+        // baar phir try karega — koi crash/blocking nahi hoti.
+        const DIAGNOSTICS_MODULE = "device_diagnostics";
+        async function syncErrorLogsToCloud_() {
+            if (!sharedModuleSyncEnabled) return;
+            try {
+                const logs = getErrorLogs_();
+                // Apni hi sync-failure ko report karna recursive noise banata hai
+                // (backend module abhi register na hua ho to har 5 min ek nayi
+                // "sync-device_diagnostics fail" entry ban jaati) — usse turant
+                // synced maan lete hain, register hote hi normal ho jaayega.
+                logs.forEach((l) => { if (l.ctx === `sync-${DIAGNOSTICS_MODULE}`) l.synced = true; });
+                const unsynced = logs.filter((l) => !l.synced).slice(0, 10); // ek baar me thoda hi, network par bhaar na pade
+                if (!unsynced.length) return;
+                const deviceId = getDeviceId_();
+                let anySynced = false;
+                for (const log of unsynced) {
+                    const entry = { ...log, device_id: deviceId, timestamp: log.t || new Date().toISOString() };
+                    // isReplay=true — fail hone par sync_queue me nahi daalte (diagnostics
+                    // ki apni retry agli periodic run me khud ho jaati hai, asli user-data
+                    // ki queue ko bewajah bhaari nahi karna chahte).
+                    const entryId = await syncEntryToCloud_(DIAGNOSTICS_MODULE, entry, true);
+                    if (entryId) { log.synced = true; anySynced = true; }
+                }
+                if (anySynced) {
+                    try { localStorage.setItem(ERROR_LOG_KEY, JSON.stringify(logs)); } catch (_) {}
+                }
+            } catch (_) {}
+        }
+
         // Kisi bhi network call (Apps Script/Sheets ko) ek max samay ke baad khud
         // hi rok deta hai — pehle koi bhi fetch() dheere/atke huye network par
         // anishchit samay tak latki reh sakti thi (na success na fail), isliye UI
@@ -783,6 +832,12 @@
         setTimeout(updateSyncQueueBadge_, 3000);
         setInterval(processSyncQueue_, 120000);
         // ================== END OFFLINE SYNC QUEUE ====================
+
+        // Error-log cloud sync — asli user-data (upar wali queue) se kam priority
+        // isliye zyada delay se shuru hoti hai aur kam baar chalti hai, taaki field
+        // me limited network/Apps Script slot pehle asli kaam ke liye mile.
+        setTimeout(syncErrorLogsToCloud_, 20000);
+        setInterval(syncErrorLogsToCloud_, 300000);
 
         // Fetches all shared entries for a module from the backend. Returns [] on
         // failure (offline, not configured, etc.) so callers can fall back to local data.
