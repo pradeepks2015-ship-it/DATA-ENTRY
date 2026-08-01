@@ -30,10 +30,14 @@
             } catch (_) { return []; }
         }
 
-        async function kcGetAllRecords_() {
+        // mode: "force" = hamesha fresh network fetch (default). "soft" = 10s
+        // cache window respect karo. "cache" = jo bhi cached hai turant, koi
+        // network wait nahi — list turant instant render ke liye.
+        async function kcGetAllRecords_(mode = "force") {
             try {
-                // Fetch from cloud
-                const cloudRecords = await fetchSharedEntries_("karya_charitra", true);
+                const cloudRecords = mode === "cache"
+                    ? (sharedModuleEntriesCache["karya_charitra"] || [])
+                    : await fetchSharedEntries_("karya_charitra", mode === "force");
                 const cloudIds = new Set(cloudRecords.map((r) => r.entry_id).filter(Boolean));
 
                 // Get local IDB records
@@ -45,8 +49,9 @@
                 // Auto-migrate unsynced local records to cloud (fire and forget).
                 // Routed through syncEntryToCloud_ so a failed attempt here also gets
                 // queued in sync_queue for automatic retry, instead of only trying
-                // again the next time this list happens to be opened.
-                if (unsynced.length && sharedModuleSyncEnabled) {
+                // again the next time this list happens to be opened. "cache" mode
+                // sirf turant render ke liye hai — usme koi network call nahi honi chahiye.
+                if (mode !== "cache" && unsynced.length && sharedModuleSyncEnabled) {
                     unsynced.forEach(async (record) => {
                         // If this retry has to be queued for later (offline), the queue
                         // replay finds its way back to this local record by client_id —
@@ -250,7 +255,9 @@
             if (tab === "view") {
                 if (vp) vp.style.display = "block";
                 if (tv) { tv.style.background = "linear-gradient(135deg,#1e3a5f,#0f172a)"; tv.style.color = "#fff"; }
-                kcRenderAllEmployees_();
+                // Turant cached/local data dikhao, fresh cloud data background me
+                // chupchaap load ho jaaye — tab-open network par kabhi block nahi hota.
+                kcRenderAllEmployees_("cache").then(() => kcRenderAllEmployees_("force"));
             } else if (tab === "emp") {
                 if (ep) ep.style.display = "block";
                 if (te) { te.style.background = "linear-gradient(135deg,#0284c7,#0c4a6e)"; te.style.color = "#fff"; }
@@ -278,21 +285,30 @@
                 opt.text = `${e.emp_name} (${e.emp_designation || "कर्मचारी"})`;
                 sel.appendChild(opt);
             });
-            if (cur) { sel.value = cur; if (sel.value) kcLoadMyScns(); }
+            // Tab dobara khulne par (naam pehle se selected) turant cached/local
+            // data dikhao, fresh cloud data background me chupchaap load ho jaaye —
+            // is se list-open network par kabhi block nahi hota.
+            if (cur) { sel.value = cur; if (sel.value) kcLoadMyScns("cache").then(() => kcLoadMyScns("force")); }
         }
 
-        async function kcLoadMyScns() {
+        async function kcLoadMyScns(mode = "force") {
             const empId = document.getElementById("kc-emp-self-select").value;
             const container = document.getElementById("kc-my-scns-list");
             if (!container) return;
             if (!empId) { container.innerHTML = ""; return; }
-            container.innerHTML = `<div style="text-align:center; padding:16px; font-size:12px; font-weight:800; color:#0284c7;">Loading...</div>`;
-            const records = (await kcGetAllRecords_()).filter((r) => r.emp_id === empId);
+            if (!container.innerHTML.trim()) {
+                container.innerHTML = `<div style="text-align:center; padding:16px; font-size:12px; font-weight:800; color:#0284c7;">Loading...</div>`;
+            }
+            const records = (await kcGetAllRecords_(mode)).filter((r) => r.emp_id === empId);
+            const stillSyncing = mode === "cache" && !sharedModuleLastFetch["karya_charitra"];
+            const syncingNoteHtml = stillSyncing
+                ? `<div style="text-align:center; padding:6px; margin-bottom:8px; font-size:10.5px; font-weight:800; color:#78350f; background:#fef9c3; border-radius:8px;">☁️ बाकी SCN load हो रहे हैं...</div>`
+                : "";
             if (!records.length) {
-                container.innerHTML = `<div style="text-align:center; padding:18px; font-size:13px; font-weight:800; color:#64748b; background:#f8fafc; border-radius:14px;">आपके नाम पर कोई SCN जारी नहीं है।</div>`;
+                container.innerHTML = `${syncingNoteHtml}<div style="text-align:center; padding:18px; font-size:13px; font-weight:800; color:#64748b; background:#f8fafc; border-radius:14px;">आपके नाम पर कोई SCN जारी नहीं है।</div>`;
                 return;
             }
-            container.innerHTML = records.map((r) => {
+            container.innerHTML = syncingNoteHtml + records.map((r) => {
                 const uid = r.entry_id || String(r.id);
                 const hasReplied = !!r.reply_text;
                 return `
@@ -438,29 +454,31 @@
                 localRecord = all.find((r) => String(r.id) === String(recordId) || r.entry_id === recordId) || null;
             } catch (_) {}
 
-            // Delete from cloud (if entry has a cloud entry_id)
             const cloudEntryId = (typeof recordId === "string" && recordId.startsWith("E"))
                 ? recordId
                 : (localRecord?.entry_id || null);
-            let cloudOk = true;
-            if (cloudEntryId) {
-                cloudOk = await deleteSharedEntry_("karya_charitra", cloudEntryId);
-                sharedModuleLastFetch["karya_charitra"] = 0;
-            }
 
-            // Delete from local IDB
+            // Optimistic: turant local IndexedDB + in-memory cloud-cache dono se
+            // hata dete hain aur list turant refresh dikha dete hain. Asli cloud
+            // delete background me hoti hai — Apps Script slow hone par bhi delete
+            // turant hota mehsoos hota hai.
+            if (cloudEntryId) {
+                sharedModuleEntriesCache["karya_charitra"] = (sharedModuleEntriesCache["karya_charitra"] || []).filter((e) => e.entry_id !== cloudEntryId);
+            }
             if (localRecord) {
                 try { await idbDelete_("karya_charitra", localRecord.id); } catch (_) {}
             }
 
-            if (cloudEntryId && !cloudOk) {
-                showToast("Local se delete हुआ, लेकिन cloud sync में error आया", false);
-            } else {
-                showToast("SCN delete हो गया", true);
-            }
-
+            showToast("SCN delete हो गया", true);
             await kcRefreshJeDropdowns_();
             await kcLoadScnForRemark();
+
+            if (cloudEntryId) {
+                deleteSharedEntry_("karya_charitra", cloudEntryId).then((ok) => {
+                    sharedModuleLastFetch["karya_charitra"] = 0;
+                    if (!ok) showToast("Cloud se delete nahi ho paya (internet check karein) — dobara dikh sakti hai", false);
+                }).catch(() => {});
+            }
         }
 
         function kcJeSetMode(mode) {
@@ -498,14 +516,20 @@
         }
 
         // Renders all employees grouped, with their SCNs below each name
-        async function kcRenderAllEmployees_() {
+        async function kcRenderAllEmployees_(mode = "force") {
             const container = document.getElementById("kc-all-employees-list");
             if (!container) return;
-            container.innerHTML = `<div style="text-align:center; padding:16px; font-size:12px; font-weight:800; color:#64748b;">Loading...</div>`;
+            if (!container.innerHTML.trim()) {
+                container.innerHTML = `<div style="text-align:center; padding:16px; font-size:12px; font-weight:800; color:#64748b;">Loading...</div>`;
+            }
 
-            const allRecords = await kcGetAllRecords_();
+            const allRecords = await kcGetAllRecords_(mode);
+            const stillSyncing = mode === "cache" && !sharedModuleLastFetch["karya_charitra"];
+            const syncingNoteHtml = stillSyncing
+                ? `<div style="text-align:center; padding:6px; margin-bottom:8px; font-size:10.5px; font-weight:800; color:#78350f; background:#fef9c3; border-radius:8px;">☁️ बाकी SCN load हो रहे हैं...</div>`
+                : "";
             if (!allRecords.length) {
-                container.innerHTML = `<div style="text-align:center; padding:18px; font-size:13px; font-weight:800; color:#64748b; background:#f8fafc; border-radius:14px;">अभी तक कोई SCN दर्ज नहीं किया गया है।</div>`;
+                container.innerHTML = `${syncingNoteHtml}<div style="text-align:center; padding:18px; font-size:13px; font-weight:800; color:#64748b; background:#f8fafc; border-radius:14px;">अभी तक कोई SCN दर्ज नहीं किया गया है।</div>`;
                 return;
             }
 
@@ -518,7 +542,7 @@
                 empGroups[r.emp_id].records.push(r);
             });
 
-            container.innerHTML = Object.entries(empGroups).map(([empId, group]) => `
+            container.innerHTML = syncingNoteHtml + Object.entries(empGroups).map(([empId, group]) => `
                 <div style="border:2px solid #1e3a5f; border-radius:16px; margin-bottom:16px; overflow:hidden;">
                     <!-- Employee Header -->
                     <div style="background:linear-gradient(135deg,#1e3a5f,#0f172a); padding:12px 14px; display:flex; align-items:center; justify-content:space-between;">
