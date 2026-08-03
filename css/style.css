@@ -294,6 +294,7 @@
         .chhapara-calc-field label { font-size: 0.68rem; font-weight: 900; color: #155e75; text-transform: uppercase; letter-spacing: 0.04em; }
         .chhapara-calc-input { width: 100%; min-height: 46px; padding: 0 12px; border-radius: 14px; border: 1.6px solid #7dd3fc; background: #ffffff; color: #0f172a; font-size: 0.9rem; font-weight: 800; }
         .chhapara-calc-input::placeholder { color: #94a3b8; }
+        #mc-search-input::placeholder { color: #fecaca; }
         .chhapara-calc-textarea { min-height: 78px; padding: 12px; resize: vertical; }
         .chhapara-calc-preview { margin-top: 14px; background: #ecfeff; border: 1px solid #a5f3fc; border-radius: 18px; padding: 14px; }
         .chhapara-calc-preview-line { font-size: 0.78rem; font-weight: 800; color: #0f172a; line-height: 1.55; margin-top: 4px; }
