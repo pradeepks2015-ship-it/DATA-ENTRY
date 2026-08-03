@@ -898,6 +898,47 @@ test.describe('Mobile Correction Tracker (galat mobile number flag + monitor)', 
     await page.waitForFunction(() => document.getElementById('mc-pending-list').innerText.includes('Test Consumer') && document.getElementById('mc-pending-list').innerText.includes('Doosra Consumer'));
   });
 
+  test('Search box se IVRS/naam/mobile/gaanv/tariff se particular consumer dhoonda ja sakta hai', async ({ page }) => {
+    await openApp(page, {
+      beforeGoto: async (p) => {
+        await mockConsumerCsv(p);
+        await p.route('**/macros/**', (route) => {
+          route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ status: 'success', entry_id: 'MC1', entries: [] }) });
+        });
+      },
+    });
+    await goToMobileUpdate(page);
+    await page.click('#mc-flag-btn'); // Test Consumer, ADEGAON HQ, address "Test Address, Adegaon", mobile 9998887771
+    await page.waitForTimeout(300);
+
+    await page.fill('#search-ivrs', '2345678901');
+    await page.click('#search-btn');
+    await page.waitForFunction(() => document.getElementById('result-box').style.display !== 'none');
+    await page.click('#mc-flag-btn'); // Doosra Consumer, BIBI HQ, address "Doosra Address, Bibi", mobile 9998887772
+    await page.waitForTimeout(300);
+
+    // Search box se list khud khul jaani chahiye (band karke rakha tha)
+    await page.fill('#mc-search-input', 'Adegaon');
+    await page.waitForFunction(() => document.getElementById('mc-pending-list').style.display === 'block');
+    await page.waitForFunction(() => document.getElementById('mc-pending-list').innerText.includes('Test Consumer'));
+    const list = page.locator('#mc-pending-list');
+    await expect(list).toContainText('Test Consumer');
+    await expect(list).not.toContainText('Doosra Consumer');
+
+    // Mobile number se bhi search ho
+    await page.fill('#mc-search-input', '9998887772');
+    await page.waitForFunction(() => !document.getElementById('mc-pending-list').innerText.includes('Test Consumer'));
+    await expect(list).toContainText('Doosra Consumer');
+
+    // Khali karne par sab wapas dikhein
+    await page.fill('#mc-search-input', '');
+    await page.waitForFunction(() => document.getElementById('mc-pending-list').innerText.includes('Test Consumer') && document.getElementById('mc-pending-list').innerText.includes('Doosra Consumer'));
+
+    // Kisi bhi field se match na ho to friendly "koi entry nahi mili" dikhe
+    await page.fill('#mc-search-input', 'zzz-no-match-zzz');
+    await page.waitForFunction(() => document.getElementById('mc-pending-list').innerText.includes('इस खोज से कोई entry नहीं मिली'));
+  });
+
   test('⋮ मेनू me MPEZ Portal aur Excel download milte hain, PDF MIS Report option nahi hai', async ({ page }) => {
     const errors = [];
     page.on('pageerror', (e) => errors.push(e.message));
