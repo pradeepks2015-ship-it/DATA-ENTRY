@@ -441,6 +441,31 @@
             if (container && container.style.display === "block") renderMobileCorrectionList_("soft");
         }
 
+        // IVRS, naam, mobile (purana/sahi dono), address (gaanv), tariff/load — sab
+        // me se kisi bhi field me search text milne par entry match hoti hai.
+        function mcMatchesSearch_(entry, queryLower) {
+            const haystack = [
+                entry.ivrs, entry.name, entry.father, entry.address,
+                entry.old_mobile, entry.correct_mobile, entry.tariff, entry.load, entry.hq
+            ].filter(Boolean).join(" ").toLowerCase();
+            return haystack.includes(queryLower);
+        }
+
+        let mcSearchDebounceTimer_ = null;
+        function mcSearchInputChanged_() {
+            clearTimeout(mcSearchDebounceTimer_);
+            mcSearchDebounceTimer_ = setTimeout(() => {
+                const container = document.getElementById("mc-pending-list");
+                if (!container) return;
+                // Search box me type karte hi list turant khud khul jaaye (agar band
+                // thi) — user ko pehle alag se "सूची देखें" dabana na pade.
+                if (container.style.display !== "block") {
+                    container.style.display = "block";
+                }
+                renderMobileCorrectionList_("soft");
+            }, 200);
+        }
+
         async function renderMobileCorrectionList_(mode = "force") {
             const container = document.getElementById("mc-pending-list");
             if (!container) return;
@@ -449,7 +474,9 @@
             const dcEntries = all.filter((e) => !dcFilter || e.dc_name === dcFilter);
             mcPopulateHqFilter_(dcEntries);
             const hqFilter = document.getElementById("mc-hq-filter")?.value || "";
-            const entries = dcEntries.filter((e) => !hqFilter || (e.hq || "सामान्य") === hqFilter);
+            const hqEntries = dcEntries.filter((e) => !hqFilter || (e.hq || "सामान्य") === hqFilter);
+            const searchQuery = (document.getElementById("mc-search-input")?.value || "").trim().toLowerCase();
+            const entries = searchQuery ? hqEntries.filter((e) => mcMatchesSearch_(e, searchQuery)) : hqEntries;
 
             // "cache" mode me agar is session me abhi tak cloud se ek baar bhi
             // fetch nahi hui, to jo dikh raha hai wo sirf is device ka local data
@@ -461,7 +488,9 @@
                 : "";
 
             if (!entries.length) {
-                const msg = hqFilter ? "इस HQ में अभी कोई flag की हुई entry नहीं है।" : "इस DC में अभी कोई flag की हुई entry नहीं है।";
+                const msg = searchQuery
+                    ? "इस खोज से कोई entry नहीं मिली।"
+                    : (hqFilter ? "इस HQ में अभी कोई flag की हुई entry नहीं है।" : "इस DC में अभी कोई flag की हुई entry नहीं है।");
                 container.innerHTML = `${syncingNoteHtml}<div style="text-align:center; padding:14px; font-size:12px; font-weight:800; color:#ffffff; background:rgba(0,0,0,0.12); border-radius:12px;">${msg}</div>`;
                 return;
             }
