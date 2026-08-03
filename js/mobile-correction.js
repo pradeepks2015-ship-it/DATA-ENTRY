@@ -488,6 +488,14 @@
                 : "";
 
             if (!entries.length) {
+                // Abhi cloud se sync ho hi rahi hai (koi search/HQ filter bhi nahi
+                // laga) — is waqt "koi entry nahi hai" bolna galat/daraavna hai,
+                // kyunki asal me pata hi nahi hai abhi kitni entries hain. Sirf
+                // loading dikhate hain, jab tak background force-fetch poori na ho.
+                if (stillSyncing && !searchQuery && !hqFilter) {
+                    container.innerHTML = `<div style="text-align:center; padding:14px; font-size:12px; font-weight:800; color:#ffffff;">लोड हो रहा है...</div>`;
+                    return;
+                }
                 const msg = searchQuery
                     ? "इस खोज से कोई entry नहीं मिली।"
                     : (hqFilter ? "इस HQ में अभी कोई flag की हुई entry नहीं है।" : "इस DC में अभी कोई flag की हुई entry नहीं है।");
