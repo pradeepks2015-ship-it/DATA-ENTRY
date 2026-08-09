@@ -190,23 +190,23 @@
                 </div>`;
         }
 
-        async function getFeederMisRows_(fromDate, toDate) {
-            await loadFeederReportData(true);
-            const rows = getAllFeederHistoryEntries_();
+        function feederFilterRowsByDcAndDate_(rows, fromDate, toDate) {
             const activeDcKey = normalizeDcName(activeDC || "");
-            const filtered = rows.filter((r) => {
+            return rows.filter((r) => {
                 const dateKey = buildFeederDateKey_(r["DATE(DD/MM/YYY)"] || r.date || "");
                 if (!misDateInRange_(dateKey, fromDate, toDate)) return false;
                 if (!activeDcKey) return true;
                 const rowDcKey = normalizeDcName(r["DC NAME"] || r.dc_name || "");
                 return rowDcKey === activeDcKey;
             });
-            // DEDUPE: unfreeze karke reading correct karne par purani entry sheet me
-            // reh jaati hai — ek hi feeder+meter+date ki multiple entries me sirf
-            // SABSE LATEST (corrected) entry use karo, warna consumption double
-            // count hota hai aur SS loss galat (inflate) ho jaata hai.
+        }
+
+        // Unfreeze karke reading correct karne par purani entry sheet me reh jaati
+        // hai — ek hi feeder+meter+date ki multiple entries me sirf SABSE LATEST
+        // (corrected) entry use karo, warna consumption double count ho jaata hai.
+        function feederDedupeLatestByReading_(rows) {
             const latestByKey = new Map();
-            filtered.forEach((r, idx) => {
+            rows.forEach((r, idx) => {
                 const key = [
                     (r["33/11 KV SUBSTATION"] || "").trim().toUpperCase(),
                     (r["33 AND 11 KV FEEDER"] || "").trim().toUpperCase(),
@@ -224,6 +224,176 @@
             return Array.from(latestByKey.values())
                 .sort((a, b) => a.idx - b.idx)
                 .map((item) => item.row);
+        }
+
+        async function getFeederMisRows_(fromDate, toDate) {
+            await loadFeederReportData(true);
+            const rows = getAllFeederHistoryEntries_();
+            const filtered = feederFilterRowsByDcAndDate_(rows, fromDate, toDate);
+            return feederDedupeLatestByReading_(filtered);
+        }
+
+        // ===== Substation / 11KV Feeder-wise Monthly Input Scorecard =====
+        // Is mahine, pichhle mahine, aur pichhle saal isi mahine ka input (kWh)
+        // ek saath dikhata hai — mahine ke aakhri din check karne par teeno
+        // periods ki poori tulna mil jaati hai.
+        const FEEDER_INCOMING_33KV_METERS = ["BS12775548", "BS12775550", "BS12776133", "BS12775543", "BS12775544", "MPP28230"];
+
+        function feederScorecardPeriod_(monthsAgo, yearsAgo) {
+            const now = new Date();
+            const first = new Date(now.getFullYear() - yearsAgo, now.getMonth() - monthsAgo, 1);
+            const last = new Date(first.getFullYear(), first.getMonth() + 1, 0);
+            const toIso = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+            return { from: toIso(first), to: toIso(last), label: first.toLocaleDateString("hi-IN", { month: "long", year: "numeric" }) };
+        }
+
+        // Sirf 11KV feeders (33KV incoming/outgoing meters exclude) — substation
+        // ke andar feeder-wise kWh input jod deta hai.
+        function feederAggregateBySubstationFeeder_(rows) {
+            const map = {};
+            rows.forEach((r) => {
+                const meterNo = (r["METER NO"] || "").trim();
+                if (FEEDER_INCOMING_33KV_METERS.includes(meterNo)) return;
+                const ss = r["33/11 KV SUBSTATION"] || "";
+                const fdr = r["33 AND 11 KV FEEDER"] || "";
+                if (!ss || !fdr) return;
+                const prev = Number(r["PREVIUS READING"]) || 0;
+                const curr = Number(r["CURRENT READING"]) || 0;
+                const mf = Number(r["MF"]) || 1;
+                const con = Math.abs(Number(r["CONSUMPTION"]) || Math.abs(curr - prev) * mf);
+                if (!map[ss]) map[ss] = {};
+                map[ss][fdr] = (map[ss][fdr] || 0) + con;
+            });
+            return map;
+        }
+
+        function toggleFeederMenu_() {
+            const menu = document.getElementById("feeder-menu-dropdown");
+            if (!menu) return;
+            menu.style.display = menu.style.display === "block" ? "none" : "block";
+        }
+
+        document.addEventListener("click", (e) => {
+            const menu = document.getElementById("feeder-menu-dropdown");
+            const btn = document.getElementById("feeder-menu-btn");
+            if (!menu || menu.style.display !== "block") return;
+            if (e.target === btn || menu.contains(e.target)) return;
+            menu.style.display = "none";
+        });
+
+        let feederScorecardCsvRows_ = null; // last computed scorecard — download ke liye reuse
+
+        async function feederOpenMonthlyScorecard_() {
+            const menu = document.getElementById("feeder-menu-dropdown");
+            if (menu) menu.style.display = "none";
+            const existing = document.getElementById("feeder-scorecard-overlay");
+            if (existing) existing.remove();
+
+            const overlay = document.createElement("div");
+            overlay.id = "feeder-scorecard-overlay";
+            overlay.style.cssText = "position:fixed; inset:0; background:rgba(0,0,0,0.55); z-index:9999; display:flex; align-items:flex-end; justify-content:center;";
+            overlay.addEventListener("click", (e) => { if (e.target === overlay) overlay.remove(); });
+
+            const sheet = document.createElement("div");
+            sheet.style.cssText = "background:#ffffff; border-radius:20px 20px 0 0; padding:18px; width:100%; max-width:480px; max-height:82vh; overflow-y:auto; box-shadow:0 -12px 30px rgba(0,0,0,0.25);";
+            sheet.innerHTML = `
+                <div style="font-size:14px; font-weight:900; color:#1e293b; text-align:center; text-transform:uppercase; margin-bottom:10px;">📊 सब स्टेशन / फीडर वाइज मासिक इनपुट स्कोरकार्ड</div>
+                <div id="feeder-scorecard-body"><div style="text-align:center; padding:14px; font-size:12px; font-weight:800; color:#64748b;">लोड हो रहा है...</div></div>
+                <div style="display:flex; gap:10px; margin-top:14px;">
+                    <button id="feeder-scorecard-close-btn" style="flex:1; height:42px; border:none; border-radius:12px; background:#e2e8f0; color:#1e293b; font-size:12px; font-weight:900; text-transform:uppercase;">बंद करें</button>
+                    <button id="feeder-scorecard-download-btn" onclick="feederDownloadMonthlyScorecardCsv_()" style="flex:1; height:42px; border:none; border-radius:12px; background:linear-gradient(135deg,#16a34a,#15803d); color:#fff; font-size:12px; font-weight:900; text-transform:uppercase;">📥 Download</button>
+                </div>
+            `;
+            overlay.appendChild(sheet);
+            document.body.appendChild(overlay);
+            document.getElementById("feeder-scorecard-close-btn").onclick = () => overlay.remove();
+
+            const body = document.getElementById("feeder-scorecard-body");
+            try {
+                // Ek hi baar network se poori history laate hain, phir teeno periods
+                // ke liye client-side hi filter karte hain — 3x redundant fetch nahi.
+                await loadFeederReportData(true);
+                const allRows = getAllFeederHistoryEntries_();
+
+                const periods = [
+                    feederScorecardPeriod_(0, 0), // is mahina
+                    feederScorecardPeriod_(1, 0), // pichhla mahina
+                    feederScorecardPeriod_(0, 1)  // pichhle saal isi mahine
+                ];
+                const maps = periods.map((p) => {
+                    const filtered = feederFilterRowsByDcAndDate_(allRows, p.from, p.to);
+                    return feederAggregateBySubstationFeeder_(feederDedupeLatestByReading_(filtered));
+                });
+
+                const ssNames = new Set();
+                maps.forEach((m) => Object.keys(m).forEach((ss) => ssNames.add(ss)));
+
+                if (!ssNames.size) {
+                    body.innerHTML = `<div style="text-align:center; padding:18px; font-size:13px; font-weight:800; color:#64748b; background:#f8fafc; border-radius:14px;">इन तीनों periods में कोई feeder reading नहीं मिली।</div>`;
+                    feederScorecardCsvRows_ = null;
+                    return;
+                }
+
+                const fmt = (n) => (n === null ? "—" : Math.round(n).toLocaleString("en-IN"));
+                const csvRows = [["Substation", "Feeder", periods[0].label, periods[1].label, periods[2].label]];
+
+                let bodyHtml = `
+                    <div style="font-size:10px; font-weight:700; color:#64748b; margin-bottom:10px; text-align:center;">
+                        🟢 ${escapeHtml(periods[0].label)} &nbsp;|&nbsp; 🟡 ${escapeHtml(periods[1].label)} &nbsp;|&nbsp; 🔵 ${escapeHtml(periods[2].label)}
+                    </div>
+                `;
+                Array.from(ssNames).sort().forEach((ss) => {
+                    const feederNames = new Set();
+                    maps.forEach((m) => Object.keys(m[ss] || {}).forEach((f) => feederNames.add(f)));
+                    const ssTotal = [0, 0, 0];
+                    const feederRowsHtml = Array.from(feederNames).sort().map((fdr) => {
+                        const vals = maps.map((m) => (m[ss] && m[ss][fdr] !== undefined) ? m[ss][fdr] : null);
+                        vals.forEach((v, i) => { if (v !== null) ssTotal[i] += v; });
+                        csvRows.push([ss, fdr, vals[0] ?? "", vals[1] ?? "", vals[2] ?? ""]);
+                        return `
+                            <div style="display:grid; grid-template-columns:1.3fr 1fr 1fr 1fr; gap:4px; padding:5px 0; border-bottom:1px solid #fce7f3; font-size:10.5px;">
+                                <span style="font-weight:700; color:#334155;">${escapeHtml(fdr)}</span>
+                                <span style="font-weight:900; color:#16a34a; text-align:right;">${fmt(vals[0])}</span>
+                                <span style="font-weight:900; color:#b45309; text-align:right;">${fmt(vals[1])}</span>
+                                <span style="font-weight:900; color:#1d4ed8; text-align:right;">${fmt(vals[2])}</span>
+                            </div>`;
+                    }).join("");
+                    bodyHtml += `
+                        <div style="background:#fdf2f8; border-radius:10px; padding:10px; margin-bottom:10px; border:1px solid #fbcfe8;">
+                            <div style="font-size:12px; font-weight:900; color:#9d174d; margin-bottom:6px; text-transform:uppercase;">🔌 ${escapeHtml(ss)}</div>
+                            ${feederRowsHtml}
+                            <div style="display:grid; grid-template-columns:1.3fr 1fr 1fr 1fr; gap:4px; padding-top:6px; margin-top:4px; border-top:2px solid #ec4899;">
+                                <span style="font-weight:900; color:#1e293b; font-size:10.5px;">कुल</span>
+                                <span style="font-weight:900; color:#16a34a; text-align:right; font-size:10.5px;">${fmt(ssTotal[0])}</span>
+                                <span style="font-weight:900; color:#b45309; text-align:right; font-size:10.5px;">${fmt(ssTotal[1])}</span>
+                                <span style="font-weight:900; color:#1d4ed8; text-align:right; font-size:10.5px;">${fmt(ssTotal[2])}</span>
+                            </div>
+                        </div>`;
+                });
+                body.innerHTML = bodyHtml;
+                feederScorecardCsvRows_ = csvRows;
+            } catch (err) {
+                body.innerHTML = `<div style="text-align:center; padding:18px; font-size:12px; font-weight:800; color:#b91c1c;">Scorecard banane me error aaya, dobara try karein</div>`;
+                feederScorecardCsvRows_ = null;
+            }
+        }
+
+        function feederDownloadMonthlyScorecardCsv_() {
+            if (!feederScorecardCsvRows_ || feederScorecardCsvRows_.length < 2) {
+                return showToast("पहले scorecard load होने दें", false);
+            }
+            const csv = feederScorecardCsvRows_.map((row) =>
+                row.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(",")
+            ).join("\n");
+            const blob = new Blob(["﻿" + csv], { type: "text/csv;charset=utf-8;" });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = url;
+            const today = new Date();
+            a.download = `Feeder_Monthly_Scorecard_${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}.csv`;
+            a.click();
+            URL.revokeObjectURL(url);
+            showToast("Scorecard (CSV) Downloaded!", true);
         }
 
         function getMisModuleConfig_(moduleType) {

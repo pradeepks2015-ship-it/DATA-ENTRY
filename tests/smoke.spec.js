@@ -155,6 +155,73 @@ test.describe('Feeder Reading (active feature)', () => {
     expect(dropdownOk).toBe(true);
     expect(errors).toEqual([]);
   });
+
+  test('⋮ menu se substation/feeder-wise is mahina/pichhla mahina/pichhle saal ka kWh input scorecard dikhta hai aur download hota hai', async ({ page }) => {
+    const errors = [];
+    page.on('pageerror', (e) => errors.push(e.message));
+
+    // Date brittle na ho isliye "abhi" ke hisaab se dynamically banate hain
+    // (10 tareekh — mahine ke start/end edge cases se bachne ke liye).
+    function dateMonthsAgo(monthsAgo, yearsAgo = 0) {
+      const now = new Date();
+      const d = new Date(now.getFullYear() - yearsAgo, now.getMonth() - monthsAgo, 10);
+      return `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`;
+    }
+    const feederRow = (dateStr, current) => ({
+      '33/11 KV SUBSTATION': 'TESTSS', '33 AND 11 KV FEEDER': 'TESTFEEDER', 'METER NO': 'MTR001',
+      'PREVIUS READING': '0', 'CURRENT READING': String(current), 'MF': '1', 'CONSUMPTION': String(current),
+      'DC NAME': 'ADEGAON', 'DATE(DD/MM/YYY)': dateStr, 'TIME(HH/MM)': '10:00',
+    });
+    const rows = [
+      feederRow(dateMonthsAgo(0), 100),    // is mahina
+      feederRow(dateMonthsAgo(1), 200),    // pichhla mahina
+      feederRow(dateMonthsAgo(0, 1), 300), // pichhle saal isi mahine
+    ];
+
+    await openApp(page, {
+      beforeGoto: async (p) => {
+        await p.route('**/macros/**', (route) => {
+          const url = new URL(route.request().url());
+          if (url.searchParams.get('action') === 'getFeederReadings') {
+            return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(rows) });
+          }
+          return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ status: 'success', entries: [] }) });
+        });
+      },
+    });
+    await goToDcDashboard(page);
+    await page.evaluate(() => switchView('feeder-reading'));
+    await page.waitForFunction(() => document.getElementById('feeder-reading-view').classList.contains('active'));
+
+    await page.evaluate(() => {
+      window.__lastFeederCsvBlob = null;
+      const origCreateObjectURL = URL.createObjectURL.bind(URL);
+      URL.createObjectURL = (blob) => { window.__lastFeederCsvBlob = blob; return origCreateObjectURL(blob); };
+    });
+
+    await page.click('#feeder-menu-btn');
+    await expect(page.locator('#feeder-menu-dropdown')).toBeVisible();
+    await page.click('#feeder-scorecard-btn');
+    await expect(page.locator('#feeder-scorecard-overlay')).toBeVisible();
+    await page.waitForFunction(() => !document.getElementById('feeder-scorecard-body')?.innerText.includes('लोड हो रहा है'));
+
+    const body = page.locator('#feeder-scorecard-body');
+    await expect(body).toContainText('TESTSS');
+    await expect(body).toContainText('TESTFEEDER');
+    await expect(body).toContainText('100');
+    await expect(body).toContainText('200');
+    await expect(body).toContainText('300');
+
+    await page.click('#feeder-scorecard-download-btn');
+    await page.waitForFunction(() => window.__lastFeederCsvBlob !== null);
+    const csvText = await page.evaluate(async () => await window.__lastFeederCsvBlob.text());
+    expect(csvText).toContain('TESTSS');
+    expect(csvText).toContain('TESTFEEDER');
+
+    await page.click('#feeder-scorecard-close-btn');
+    await expect(page.locator('#feeder-scorecard-overlay')).toHaveCount(0);
+    expect(errors).toEqual([]);
+  });
 });
 
 test.describe('Broken Pole / बिजली चोरी / कर्मचारी कार्य चरित्रावली (active features)', () => {
