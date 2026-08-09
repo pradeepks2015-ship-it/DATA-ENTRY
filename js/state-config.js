@@ -287,9 +287,6 @@
             "11 KV PINDRAI": [
                 { dcName: "ADEGAON", percent: 100 }
             ],
-            "ADEGAON-CB": [
-                { dcName: "ADEGAON", percent: 100 }
-            ],
             "33KV ADEGAON": [
                 { dcName: "ADEGAON", percent: 100 }
             ],
@@ -327,7 +324,8 @@
             { "33/11 KV SUBSTATION": "ADEGAON", "33 AND 11 KV FEEDER": "11KV MADI (ADEGAON) MIX", substation: "ADEGAON", feeder: "11KV MADI (ADEGAON) MIX", meterNo: "BS12774693", mf: "4000" },
             { "33/11 KV SUBSTATION": "ADEGAON", "33 AND 11 KV FEEDER": "11KV BIBI DL", substation: "ADEGAON", feeder: "11KV BIBI DL", meterNo: "BS12776368", mf: "4000" },
             { "33/11 KV SUBSTATION": "ADEGAON", "33 AND 11 KV FEEDER": "11KV BIBI AG", substation: "ADEGAON", feeder: "11KV BIBI AG", meterNo: "BS12774694", mf: "4000" },
-            { "33/11 KV SUBSTATION": "ADEGAON", "33 AND 11 KV FEEDER": "ADEGAON-CB", substation: "ADEGAON", feeder: "ADEGAON-CB", meterNo: "BS12770679", mf: "4000" },
+            // ADEGAON-CB (meterNo: BS12770679) hataya gaya hai — meter reading nahi aa
+            // rahi abhi. Jab reading aane lage tab is row ko wapas jod dena.
             { "33/11 KV SUBSTATION": "MADHI", "33 AND 11 KV FEEDER": "11 KV PATAN", substation: "MADHI", feeder: "11 KV PATAN", meterNo: "BS12775542", mf: "4000" },
             { "33/11 KV SUBSTATION": "MADHI", "33 AND 11 KV FEEDER": "11 KV MADHI", substation: "MADHI", feeder: "11 KV MADHI", meterNo: "BS12775541", mf: "4000" },
             { "33/11 KV SUBSTATION": "MADHI", "33 AND 11 KV FEEDER": "11 KV PINDRAI", substation: "MADHI", feeder: "11 KV PINDRAI", meterNo: "BS12775540", mf: "4000" },
