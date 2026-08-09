@@ -282,6 +282,17 @@
         });
 
         let feederScorecardCsvRows_ = null; // last computed scorecard — download ke liye reuse
+        let feederScorecardState_ = null;   // ek baar fetch kiya hua data — manual edit/remark par dobara network call na ho
+
+        function feederManualLastYearKey_(lastYearPeriod) {
+            return `feeder-manual-lastyear-${lastYearPeriod.from.slice(0, 7)}`;
+        }
+        function feederScorecardRemarkKey_(thisMonthPeriod) {
+            return `feeder-scorecard-remark-${thisMonthPeriod.from.slice(0, 7)}`;
+        }
+        function feederGetManualLastYearOverrides_(lastYearPeriod) {
+            try { return JSON.parse(localStorage.getItem(feederManualLastYearKey_(lastYearPeriod)) || "{}"); } catch (_) { return {}; }
+        }
 
         async function feederOpenMonthlyScorecard_() {
             const menu = document.getElementById("feeder-menu-dropdown");
@@ -297,7 +308,8 @@
             const sheet = document.createElement("div");
             sheet.style.cssText = "background:#ffffff; border-radius:20px 20px 0 0; padding:18px; width:100%; max-width:480px; max-height:82vh; overflow-y:auto; box-shadow:0 -12px 30px rgba(0,0,0,0.25);";
             sheet.innerHTML = `
-                <div style="font-size:14px; font-weight:900; color:#1e293b; text-align:center; text-transform:uppercase; margin-bottom:10px;">📊 सब स्टेशन / फीडर वाइज मासिक इनपुट स्कोरकार्ड</div>
+                <div style="font-size:14px; font-weight:900; color:#1e293b; text-align:center; text-transform:uppercase; margin-bottom:2px;">📊 सब स्टेशन / फीडर वाइज मासिक इनपुट स्कोरकार्ड</div>
+                <div id="feeder-scorecard-heading" style="font-size:12px; font-weight:800; color:#9d174d; text-align:center; margin-bottom:10px;"></div>
                 <div id="feeder-scorecard-body"><div style="text-align:center; padding:14px; font-size:12px; font-weight:800; color:#64748b;">लोड हो रहा है...</div></div>
                 <div style="display:flex; gap:10px; margin-top:14px;">
                     <button id="feeder-scorecard-close-btn" style="flex:1; height:42px; border:none; border-radius:12px; background:#e2e8f0; color:#1e293b; font-size:12px; font-weight:900; text-transform:uppercase;">बंद करें</button>
@@ -312,77 +324,165 @@
             try {
                 // Ek hi baar network se poori history laate hain, phir teeno periods
                 // ke liye client-side hi filter karte hain — 3x redundant fetch nahi.
+                // Manual entry/remark edit hone par bhi yahi state dobara istemaal
+                // hoti hai, dobara network call nahi lagti.
                 await loadFeederReportData(true);
                 const allRows = getAllFeederHistoryEntries_();
 
-                const periods = [
-                    feederScorecardPeriod_(0, 0), // is mahina
-                    feederScorecardPeriod_(1, 0), // pichhla mahina
-                    feederScorecardPeriod_(0, 1)  // pichhle saal isi mahine
-                ];
-                const maps = periods.map((p) => {
-                    const filtered = feederFilterRowsByDcAndDate_(allRows, p.from, p.to);
-                    return feederAggregateBySubstationFeeder_(feederDedupeLatestByReading_(filtered));
-                });
+                const thisMonth = feederScorecardPeriod_(0, 0);
+                const lastYear = feederScorecardPeriod_(0, 1);
+                const lastMonth = feederScorecardPeriod_(1, 0);
 
-                const ssNames = new Set();
-                maps.forEach((m) => Object.keys(m).forEach((ss) => ssNames.add(ss)));
-
-                if (!ssNames.size) {
-                    body.innerHTML = `<div style="text-align:center; padding:18px; font-size:13px; font-weight:800; color:#64748b; background:#f8fafc; border-radius:14px;">इन तीनों periods में कोई feeder reading नहीं मिली।</div>`;
-                    feederScorecardCsvRows_ = null;
-                    return;
-                }
-
-                const fmt = (n) => (n === null ? "—" : Math.round(n).toLocaleString("en-IN"));
-                const csvRows = [["Substation", "Feeder", periods[0].label, periods[1].label, periods[2].label]];
-
-                let bodyHtml = `
-                    <div style="font-size:10px; font-weight:700; color:#64748b; margin-bottom:10px; text-align:center;">
-                        🟢 ${escapeHtml(periods[0].label)} &nbsp;|&nbsp; 🟡 ${escapeHtml(periods[1].label)} &nbsp;|&nbsp; 🔵 ${escapeHtml(periods[2].label)}
-                    </div>
-                `;
-                Array.from(ssNames).sort().forEach((ss) => {
-                    const feederNames = new Set();
-                    maps.forEach((m) => Object.keys(m[ss] || {}).forEach((f) => feederNames.add(f)));
-                    const ssTotal = [0, 0, 0];
-                    const feederRowsHtml = Array.from(feederNames).sort().map((fdr) => {
-                        const vals = maps.map((m) => (m[ss] && m[ss][fdr] !== undefined) ? m[ss][fdr] : null);
-                        vals.forEach((v, i) => { if (v !== null) ssTotal[i] += v; });
-                        csvRows.push([ss, fdr, vals[0] ?? "", vals[1] ?? "", vals[2] ?? ""]);
-                        return `
-                            <div style="display:grid; grid-template-columns:1.3fr 1fr 1fr 1fr; gap:4px; padding:5px 0; border-bottom:1px solid #fce7f3; font-size:10.5px;">
-                                <span style="font-weight:700; color:#334155;">${escapeHtml(fdr)}</span>
-                                <span style="font-weight:900; color:#16a34a; text-align:right;">${fmt(vals[0])}</span>
-                                <span style="font-weight:900; color:#b45309; text-align:right;">${fmt(vals[1])}</span>
-                                <span style="font-weight:900; color:#1d4ed8; text-align:right;">${fmt(vals[2])}</span>
-                            </div>`;
-                    }).join("");
-                    bodyHtml += `
-                        <div style="background:#fdf2f8; border-radius:10px; padding:10px; margin-bottom:10px; border:1px solid #fbcfe8;">
-                            <div style="font-size:12px; font-weight:900; color:#9d174d; margin-bottom:6px; text-transform:uppercase;">🔌 ${escapeHtml(ss)}</div>
-                            ${feederRowsHtml}
-                            <div style="display:grid; grid-template-columns:1.3fr 1fr 1fr 1fr; gap:4px; padding-top:6px; margin-top:4px; border-top:2px solid #ec4899;">
-                                <span style="font-weight:900; color:#1e293b; font-size:10.5px;">कुल</span>
-                                <span style="font-weight:900; color:#16a34a; text-align:right; font-size:10.5px;">${fmt(ssTotal[0])}</span>
-                                <span style="font-weight:900; color:#b45309; text-align:right; font-size:10.5px;">${fmt(ssTotal[1])}</span>
-                                <span style="font-weight:900; color:#1d4ed8; text-align:right; font-size:10.5px;">${fmt(ssTotal[2])}</span>
-                            </div>
-                        </div>`;
-                });
-                body.innerHTML = bodyHtml;
-                feederScorecardCsvRows_ = csvRows;
+                const mapFor = (p) => feederAggregateBySubstationFeeder_(feederDedupeLatestByReading_(feederFilterRowsByDcAndDate_(allRows, p.from, p.to)));
+                feederScorecardState_ = {
+                    thisMonth, lastYear, lastMonth,
+                    mapThisMonth: mapFor(thisMonth),
+                    mapLastYearAuto: mapFor(lastYear),
+                    mapLastMonth: mapFor(lastMonth)
+                };
+                feederRenderScorecardBody_();
             } catch (err) {
                 body.innerHTML = `<div style="text-align:center; padding:18px; font-size:12px; font-weight:800; color:#b91c1c;">Scorecard banane me error aaya, dobara try karein</div>`;
                 feederScorecardCsvRows_ = null;
+                feederScorecardState_ = null;
             }
+        }
+
+        // State (fetch ki hui) se HTML dobara banata hai — manual last-year entry
+        // edit/delete hone par ya remark badalne par isi ko dobara call karte hain,
+        // network par kabhi dobara nahi jaate.
+        function feederRenderScorecardBody_() {
+            const st = feederScorecardState_;
+            const body = document.getElementById("feeder-scorecard-body");
+            const heading = document.getElementById("feeder-scorecard-heading");
+            if (!st || !body) return;
+
+            const { thisMonth, lastYear, lastMonth, mapThisMonth, mapLastYearAuto, mapLastMonth } = st;
+            if (heading) heading.innerText = `${thisMonth.label} बनाम ${lastYear.label} (पिछला महीना: ${lastMonth.label})`;
+
+            const manualOverrides = feederGetManualLastYearOverrides_(lastYear);
+            const ssNames = new Set();
+            [mapThisMonth, mapLastMonth, mapLastYearAuto].forEach((m) => Object.keys(m).forEach((ss) => ssNames.add(ss)));
+            Object.keys(manualOverrides).forEach((ss) => ssNames.add(ss));
+
+            if (!ssNames.size) {
+                body.innerHTML = `<div style="text-align:center; padding:18px; font-size:13px; font-weight:800; color:#64748b; background:#f8fafc; border-radius:14px;">इन periods में कोई feeder reading नहीं मिली। नीचे "${escapeHtml(lastYear.label)}" का data मैन्युअल भी भरा जा सकता है, entries आने के बाद यहाँ dobara khol kar dekhein।</div>`;
+                feederScorecardCsvRows_ = null;
+                return;
+            }
+
+            const fmt = (n) => (n === null ? "—" : Math.round(n).toLocaleString("en-IN"));
+            const csvRows = [["Substation", "Feeder", thisMonth.label, `${lastYear.label} (मैन्युअल हो सकता है)`, lastMonth.label]];
+            const grandTotal = [0, 0, 0];
+
+            let bodyHtml = `
+                <div style="display:grid; grid-template-columns:1.3fr 1fr 1fr 1fr; gap:4px; padding:0 0 6px 0; font-size:9.5px; font-weight:900; color:#64748b; text-transform:uppercase; border-bottom:2px solid #f472b6;">
+                    <span>Feeder</span>
+                    <span style="text-align:right; color:#16a34a;">${escapeHtml(thisMonth.label)}</span>
+                    <span style="text-align:right; color:#1d4ed8;">${escapeHtml(lastYear.label)}</span>
+                    <span style="text-align:right; color:#b45309;">${escapeHtml(lastMonth.label)}</span>
+                </div>
+            `;
+            Array.from(ssNames).sort().forEach((ss) => {
+                const feederNames = new Set();
+                [mapThisMonth, mapLastMonth, mapLastYearAuto].forEach((m) => Object.keys(m[ss] || {}).forEach((f) => feederNames.add(f)));
+                Object.keys(manualOverrides[ss] || {}).forEach((f) => feederNames.add(f));
+
+                const ssTotal = [0, 0, 0];
+                const feederRowsHtml = Array.from(feederNames).sort().map((fdr) => {
+                    const valThisMonth = mapThisMonth[ss]?.[fdr] ?? null;
+                    const valLastMonth = mapLastMonth[ss]?.[fdr] ?? null;
+                    const manualVal = manualOverrides[ss]?.[fdr];
+                    const valLastYear = manualVal !== undefined ? manualVal : (mapLastYearAuto[ss]?.[fdr] ?? null);
+
+                    if (valThisMonth !== null) ssTotal[0] += valThisMonth;
+                    if (valLastYear !== null) ssTotal[1] += valLastYear;
+                    if (valLastMonth !== null) ssTotal[2] += valLastMonth;
+                    csvRows.push([ss, fdr, valThisMonth ?? "", valLastYear ?? "", valLastMonth ?? ""]);
+
+                    return `
+                        <div style="display:grid; grid-template-columns:1.3fr 1fr 1fr 1fr; gap:4px; padding:5px 0; border-bottom:1px solid #fce7f3; font-size:10.5px; align-items:center;">
+                            <span style="font-weight:700; color:#334155;">${escapeHtml(fdr)}</span>
+                            <span style="font-weight:900; color:#16a34a; text-align:right;">${fmt(valThisMonth)}</span>
+                            <input type="number" inputmode="decimal" value="${valLastYear !== null ? valLastYear : ""}" placeholder="भरें"
+                                data-ss="${escapeHtml(ss)}" data-fdr="${escapeHtml(fdr)}" onchange="feederSaveManualLastYear_(this)"
+                                style="width:100%; text-align:right; border:1.3px solid #93c5fd; border-radius:6px; font-size:10px; font-weight:900; color:#1d4ed8; padding:3px 4px; background:#eff6ff; box-sizing:border-box;">
+                            <span style="font-weight:900; color:#b45309; text-align:right;">${fmt(valLastMonth)}</span>
+                        </div>`;
+                }).join("");
+                grandTotal[0] += ssTotal[0]; grandTotal[1] += ssTotal[1]; grandTotal[2] += ssTotal[2];
+                bodyHtml += `
+                    <div style="background:#fdf2f8; border-radius:10px; padding:10px; margin-bottom:10px; border:1px solid #fbcfe8;">
+                        <div style="font-size:12px; font-weight:900; color:#9d174d; margin-bottom:6px; text-transform:uppercase;">🔌 ${escapeHtml(ss)}</div>
+                        ${feederRowsHtml}
+                        <div style="display:grid; grid-template-columns:1.3fr 1fr 1fr 1fr; gap:4px; padding-top:6px; margin-top:4px; border-top:2px solid #ec4899;">
+                            <span style="font-weight:900; color:#1e293b; font-size:10.5px;">कुल</span>
+                            <span style="font-weight:900; color:#16a34a; text-align:right; font-size:10.5px;">${fmt(ssTotal[0])}</span>
+                            <span style="font-weight:900; color:#1d4ed8; text-align:right; font-size:10.5px;">${fmt(ssTotal[1])}</span>
+                            <span style="font-weight:900; color:#b45309; text-align:right; font-size:10.5px;">${fmt(ssTotal[2])}</span>
+                        </div>
+                    </div>`;
+            });
+
+            csvRows.push(["", "GRAND TOTAL", grandTotal[0], grandTotal[1], grandTotal[2]]);
+            bodyHtml += `
+                <div style="background:#4a044e; border-radius:10px; padding:10px; margin-bottom:12px;">
+                    <div style="display:grid; grid-template-columns:1.3fr 1fr 1fr 1fr; gap:4px; align-items:center;">
+                        <span style="font-weight:900; color:#fce7f3; font-size:11px; text-transform:uppercase;">GRAND TOTAL</span>
+                        <span style="font-weight:900; color:#86efac; text-align:right; font-size:11px;">${fmt(grandTotal[0])}</span>
+                        <span style="font-weight:900; color:#93c5fd; text-align:right; font-size:11px;">${fmt(grandTotal[1])}</span>
+                        <span style="font-weight:900; color:#fde68a; text-align:right; font-size:11px;">${fmt(grandTotal[2])}</span>
+                    </div>
+                </div>
+                <div>
+                    <div style="font-size:10.5px; font-weight:900; color:#9d174d; text-transform:uppercase; margin-bottom:6px;">📝 रिमार्क (विशेष परिस्थितियां जो इनपुट को प्रभावित करती हैं)</div>
+                    <textarea id="feeder-scorecard-remark" oninput="feederSaveScorecardRemark_(this)" placeholder="जैसे: इस महीने 8 दिन बारिश हुई, 5 दिन ब्रेकडाउन ज्यादा रहा..." style="width:100%; min-height:70px; border-radius:10px; border:1.5px solid #fbcfe8; padding:8px; font-size:11px; font-weight:700; color:#1e293b; resize:vertical; outline:none; box-sizing:border-box;">${escapeHtml(localStorage.getItem(feederScorecardRemarkKey_(thisMonth)) || "")}</textarea>
+                </div>
+            `;
+            body.innerHTML = bodyHtml;
+            feederScorecardCsvRows_ = csvRows;
+        }
+
+        function feederSaveManualLastYear_(inputEl) {
+            if (!feederScorecardState_) return;
+            const key = feederManualLastYearKey_(feederScorecardState_.lastYear);
+            const ss = inputEl.dataset.ss;
+            const fdr = inputEl.dataset.fdr;
+            const val = inputEl.value.trim();
+            let overrides = {};
+            try { overrides = JSON.parse(localStorage.getItem(key) || "{}"); } catch (_) {}
+            if (!val) {
+                // Khali chhodne par = delete (auto/khali value par wapas)
+                if (overrides[ss]) {
+                    delete overrides[ss][fdr];
+                    if (!Object.keys(overrides[ss]).length) delete overrides[ss];
+                }
+            } else {
+                if (!overrides[ss]) overrides[ss] = {};
+                overrides[ss][fdr] = Number(val);
+            }
+            try { localStorage.setItem(key, JSON.stringify(overrides)); } catch (_) {}
+            feederRenderScorecardBody_();
+            showToast(val ? `${feederLastYearLabelSafe_()} की entry save हो गई` : "Entry हटा दी गई", true);
+        }
+        function feederLastYearLabelSafe_() {
+            return feederScorecardState_ ? feederScorecardState_.lastYear.label : "पिछले साल";
+        }
+
+        function feederSaveScorecardRemark_(textareaEl) {
+            if (!feederScorecardState_) return;
+            const key = feederScorecardRemarkKey_(feederScorecardState_.thisMonth);
+            try { localStorage.setItem(key, textareaEl.value); } catch (_) {}
         }
 
         function feederDownloadMonthlyScorecardCsv_() {
             if (!feederScorecardCsvRows_ || feederScorecardCsvRows_.length < 2) {
                 return showToast("पहले scorecard load होने दें", false);
             }
-            const csv = feederScorecardCsvRows_.map((row) =>
+            const rows = feederScorecardCsvRows_.slice();
+            const remark = feederScorecardState_ ? (localStorage.getItem(feederScorecardRemarkKey_(feederScorecardState_.thisMonth)) || "") : "";
+            if (remark.trim()) rows.push(["", "", "", "", ""], ["रिमार्क", remark, "", "", ""]);
+            const csv = rows.map((row) =>
                 row.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(",")
             ).join("\n");
             const blob = new Blob(["﻿" + csv], { type: "text/csv;charset=utf-8;" });
