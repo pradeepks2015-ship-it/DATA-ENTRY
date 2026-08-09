@@ -164,7 +164,7 @@ test.describe('Feeder Reading (active feature)', () => {
     expect(errors).toEqual([]);
   });
 
-  test('⋮ menu se substation/feeder-wise is mahina/pichhla mahina/pichhle saal ka kWh input scorecard dikhta hai aur download hota hai', async ({ page }) => {
+  test('⋮ menu se substation/feeder-wise mahina-wise kWh scorecard dikhta hai, pichhle saal ka data manual edit/delete hota hai, remark save hota hai, aur download hota hai', async ({ page }) => {
     const errors = [];
     page.on('pageerror', (e) => errors.push(e.message));
 
@@ -181,9 +181,9 @@ test.describe('Feeder Reading (active feature)', () => {
       'DC NAME': 'ADEGAON', 'DATE(DD/MM/YYY)': dateStr, 'TIME(HH/MM)': '10:00',
     });
     const rows = [
-      feederRow(dateMonthsAgo(0), 100),    // is mahina
-      feederRow(dateMonthsAgo(1), 200),    // pichhla mahina
-      feederRow(dateMonthsAgo(0, 1), 300), // pichhle saal isi mahine
+      feederRow(dateMonthsAgo(0), 100),  // is mahina
+      feederRow(dateMonthsAgo(1), 200),  // pichhla mahina
+      // pichhle saal isi mahine ki koi record nahi — manual entry se bharenge
     ];
 
     await openApp(page, {
@@ -216,15 +216,43 @@ test.describe('Feeder Reading (active feature)', () => {
     const body = page.locator('#feeder-scorecard-body');
     await expect(body).toContainText('TESTSS');
     await expect(body).toContainText('TESTFEEDER');
-    await expect(body).toContainText('100');
-    await expect(body).toContainText('200');
-    await expect(body).toContainText('300');
+    await expect(body).toContainText('100'); // is mahina (auto)
+    await expect(body).toContainText('200'); // pichhla mahina (auto)
+    await expect(body).toContainText('GRAND TOTAL');
 
+    // Pichhle saal isi mahine ka koi record nahi tha — input khali hona chahiye
+    const lastYearInput = page.locator('input[data-ss="TESTSS"][data-fdr="TESTFEEDER"]');
+    await expect(lastYearInput).toHaveValue('');
+
+    // Manual entry bharte hain — save hokar re-render hona chahiye, grand total me bhi jud jaana chahiye
+    await lastYearInput.fill('500');
+    await lastYearInput.dispatchEvent('change');
+    await page.waitForFunction(() => document.querySelector('input[data-ss="TESTSS"][data-fdr="TESTFEEDER"]')?.value === '500');
+    await expect(body).toContainText('500');
+
+    // Scorecard band-khol karne par bhi manual entry save rahni chahiye (localStorage persist)
+    await page.click('#feeder-scorecard-close-btn');
+    await page.click('#feeder-menu-btn');
+    await page.click('#feeder-scorecard-btn');
+    await page.waitForFunction(() => !document.getElementById('feeder-scorecard-body')?.innerText.includes('लोड हो रहा है'));
+    await expect(page.locator('input[data-ss="TESTSS"][data-fdr="TESTFEEDER"]')).toHaveValue('500');
+
+    // Remark likhte hain
+    await page.fill('#feeder-scorecard-remark', 'Is mahine 8 din barish hui');
+
+    // Download CSV me manual entry aur remark dono aane chahiye
     await page.click('#feeder-scorecard-download-btn');
     await page.waitForFunction(() => window.__lastFeederCsvBlob !== null);
     const csvText = await page.evaluate(async () => await window.__lastFeederCsvBlob.text());
     expect(csvText).toContain('TESTSS');
     expect(csvText).toContain('TESTFEEDER');
+    expect(csvText).toContain('500');
+    expect(csvText).toContain('barish');
+
+    // Khali karke delete karte hain — auto value (yahaan khali) par wapas aa jaana chahiye
+    await lastYearInput.fill('');
+    await lastYearInput.dispatchEvent('change');
+    await page.waitForFunction(() => document.querySelector('input[data-ss="TESTSS"][data-fdr="TESTFEEDER"]')?.value === '');
 
     await page.click('#feeder-scorecard-close-btn');
     await expect(page.locator('#feeder-scorecard-overlay')).toHaveCount(0);
