@@ -258,6 +258,66 @@ test.describe('Feeder Reading (active feature)', () => {
     await expect(page.locator('#feeder-scorecard-overlay')).toHaveCount(0);
     expect(errors).toEqual([]);
   });
+
+  test('Scorecard me "महीना चुनें" input se koi bhi purana mahina select karke uska data dekha ja sakta hai', async ({ page }) => {
+    function dateMonthsAgo(monthsAgo, yearsAgo = 0) {
+      const now = new Date();
+      const d = new Date(now.getFullYear() - yearsAgo, now.getMonth() - monthsAgo, 10);
+      return `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`;
+    }
+    function yearMonthAgo(monthsAgo, yearsAgo = 0) {
+      const now = new Date();
+      const d = new Date(now.getFullYear() - yearsAgo, now.getMonth() - monthsAgo, 1);
+      return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+    }
+    const feederRow = (dateStr, current) => ({
+      '33/11 KV SUBSTATION': 'TESTSS', '33 AND 11 KV FEEDER': 'TESTFEEDER', 'METER NO': 'MTR001',
+      'PREVIUS READING': '0', 'CURRENT READING': String(current), 'MF': '1', 'CONSUMPTION': String(current),
+      'DC NAME': 'ADEGAON', 'DATE(DD/MM/YYY)': dateStr, 'TIME(HH/MM)': '10:00',
+    });
+    const rows = [
+      feederRow(dateMonthsAgo(0), 100), // is mahina
+      feederRow(dateMonthsAgo(1), 200), // pichhla mahina
+      feederRow(dateMonthsAgo(2), 300), // 2 mahine pehle
+      feederRow(dateMonthsAgo(3), 400), // 3 mahine pehle
+    ];
+
+    await openApp(page, {
+      beforeGoto: async (p) => {
+        await p.route('**/macros/**', (route) => {
+          const url = new URL(route.request().url());
+          if (url.searchParams.get('action') === 'getFeederReadings') {
+            return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(rows) });
+          }
+          return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ status: 'success', entries: [] }) });
+        });
+      },
+    });
+    await goToDcDashboard(page);
+    await page.evaluate(() => switchView('feeder-reading'));
+    await page.waitForFunction(() => document.getElementById('feeder-reading-view').classList.contains('active'));
+
+    await page.click('#feeder-menu-btn');
+    await page.click('#feeder-scorecard-btn');
+    await expect(page.locator('#feeder-scorecard-overlay')).toBeVisible();
+    await page.waitForFunction(() => !document.getElementById('feeder-scorecard-body')?.innerText.includes('लोड हो रहा है'));
+
+    const body = page.locator('#feeder-scorecard-body');
+    const monthInput = page.locator('#feeder-scorecard-month-select');
+
+    // Default open par aaj ka mahina hi selected hona chahiye, 100/200 dikhne chahiye
+    await expect(monthInput).toHaveValue(yearMonthAgo(0));
+    await expect(body).toContainText('100');
+    await expect(body).toContainText('200');
+
+    // 2 mahine pehle wala mahina select karte hain — "is mahina" ab wahi ban jaata
+    // hai, to 300 (usi mahine ka) aur 400 (uske pichhle mahine ka) dikhna chahiye
+    await monthInput.fill(yearMonthAgo(2));
+    await monthInput.dispatchEvent('change');
+    await page.waitForFunction(() => document.getElementById('feeder-scorecard-body')?.innerText.includes('300'));
+    await expect(body).toContainText('300');
+    await expect(body).toContainText('400');
+  });
 });
 
 test.describe('Broken Pole / बिजली चोरी / कर्मचारी कार्य चरित्रावली (active features)', () => {

@@ -246,9 +246,19 @@
         // scorecard se bahar rakha hai. Reading aane par yahan se hata dena.
         const FEEDER_EXCLUDED_METERS = ["BS12770679"];
 
-        function feederScorecardPeriod_(monthsAgo, yearsAgo) {
-            const now = new Date();
-            const first = new Date(now.getFullYear() - yearsAgo, now.getMonth() - monthsAgo, 1);
+        // baseYearMonth ("YYYY-MM") diya ho to usi ko "is mahina" maan kar period
+        // nikalta hai — nahi diya to aaj ki tareekh se. Isi se scorecard me
+        // manually koi bhi mahina select kiya ja sakta hai.
+        function feederScorecardPeriod_(monthsAgo, yearsAgo, baseYearMonth) {
+            let baseYear, baseMonthIdx;
+            if (baseYearMonth) {
+                const [y, m] = baseYearMonth.split("-").map(Number);
+                baseYear = y; baseMonthIdx = (m || 1) - 1;
+            } else {
+                const now = new Date();
+                baseYear = now.getFullYear(); baseMonthIdx = now.getMonth();
+            }
+            const first = new Date(baseYear - yearsAgo, baseMonthIdx - monthsAgo, 1);
             const last = new Date(first.getFullYear(), first.getMonth() + 1, 0);
             const toIso = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
             return { from: toIso(first), to: toIso(last), label: first.toLocaleDateString("hi-IN", { month: "long", year: "numeric" }) };
@@ -291,6 +301,8 @@
 
         let feederScorecardCsvRows_ = null; // last computed scorecard — download ke liye reuse
         let feederScorecardState_ = null;   // ek baar fetch kiya hua data — manual edit/remark par dobara network call na ho
+        let feederScorecardAllRows_ = null; // poori history — mahina badalne par dobara network call na ho, sirf client-side re-filter
+        let feederScorecardBaseYearMonth_ = null; // user ne "month" picker se chuna hua "YYYY-MM" (isi ko "is mahina" maante hain), null = aaj ka mahina
 
         function feederManualLastYearKey_(lastYearPeriod) {
             return `feeder-manual-lastyear-${lastYearPeriod.from.slice(0, 7)}`;
@@ -315,8 +327,15 @@
 
             const sheet = document.createElement("div");
             sheet.style.cssText = "background:#ffffff; border-radius:20px 20px 0 0; padding:18px; width:100%; max-width:480px; max-height:82vh; overflow-y:auto; box-shadow:0 -12px 30px rgba(0,0,0,0.25);";
+            const nowYearMonth = (() => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`; })();
+            feederScorecardBaseYearMonth_ = nowYearMonth;
+
             sheet.innerHTML = `
                 <div style="font-size:14px; font-weight:900; color:#1e293b; text-align:center; text-transform:uppercase; margin-bottom:2px;">📊 सब स्टेशन / फीडर वाइज मासिक इनपुट स्कोरकार्ड</div>
+                <div style="display:flex; align-items:center; justify-content:center; gap:8px; margin:8px 0;">
+                    <label for="feeder-scorecard-month-select" style="font-size:11px; font-weight:800; color:#64748b;">महीना चुनें:</label>
+                    <input type="month" id="feeder-scorecard-month-select" value="${nowYearMonth}" style="border:1.5px solid #ec4899; border-radius:8px; padding:5px 8px; font-size:12px; font-weight:700; color:#831843; background:#fdf2f8; outline:none;">
+                </div>
                 <div id="feeder-scorecard-heading" style="font-size:12px; font-weight:800; color:#9d174d; text-align:center; margin-bottom:10px;"></div>
                 <div id="feeder-scorecard-body"><div style="text-align:center; padding:14px; font-size:12px; font-weight:800; color:#64748b;">लोड हो रहा है...</div></div>
                 <div style="display:flex; gap:10px; margin-top:14px;">
@@ -327,33 +346,45 @@
             overlay.appendChild(sheet);
             document.body.appendChild(overlay);
             document.getElementById("feeder-scorecard-close-btn").onclick = () => overlay.remove();
+            document.getElementById("feeder-scorecard-month-select").onchange = (e) => {
+                feederScorecardBaseYearMonth_ = e.target.value || nowYearMonth;
+                feederRecomputeScorecardPeriods_();
+            };
 
             const body = document.getElementById("feeder-scorecard-body");
             try {
                 // Ek hi baar network se poori history laate hain, phir teeno periods
                 // ke liye client-side hi filter karte hain — 3x redundant fetch nahi.
-                // Manual entry/remark edit hone par bhi yahi state dobara istemaal
-                // hoti hai, dobara network call nahi lagti.
+                // Manual entry/remark edit hone par, ya month picker se mahina badalne
+                // par bhi yahi rows dobara istemaal hoti hain, dobara network call nahi lagti.
                 await loadFeederReportData(true);
-                const allRows = getAllFeederHistoryEntries_();
-
-                const thisMonth = feederScorecardPeriod_(0, 0);
-                const lastYear = feederScorecardPeriod_(0, 1);
-                const lastMonth = feederScorecardPeriod_(1, 0);
-
-                const mapFor = (p) => feederAggregateBySubstationFeeder_(feederDedupeLatestByReading_(feederFilterRowsByDcAndDate_(allRows, p.from, p.to)));
-                feederScorecardState_ = {
-                    thisMonth, lastYear, lastMonth,
-                    mapThisMonth: mapFor(thisMonth),
-                    mapLastYearAuto: mapFor(lastYear),
-                    mapLastMonth: mapFor(lastMonth)
-                };
-                feederRenderScorecardBody_();
+                feederScorecardAllRows_ = getAllFeederHistoryEntries_();
+                feederRecomputeScorecardPeriods_();
             } catch (err) {
                 body.innerHTML = `<div style="text-align:center; padding:18px; font-size:12px; font-weight:800; color:#b91c1c;">Scorecard banane me error aaya, dobara try karein</div>`;
                 feederScorecardCsvRows_ = null;
                 feederScorecardState_ = null;
             }
+        }
+
+        // Chuna hua mahina ("feederScorecardBaseYearMonth_") base maan kar teeno
+        // periods (is mahina / pichhla mahina / pichhle saal ka yahi mahina)
+        // dobara nikalta hai — client-side hi, koi network call nahi.
+        function feederRecomputeScorecardPeriods_() {
+            const allRows = feederScorecardAllRows_ || [];
+            const baseYM = feederScorecardBaseYearMonth_;
+            const thisMonth = feederScorecardPeriod_(0, 0, baseYM);
+            const lastYear = feederScorecardPeriod_(0, 1, baseYM);
+            const lastMonth = feederScorecardPeriod_(1, 0, baseYM);
+
+            const mapFor = (p) => feederAggregateBySubstationFeeder_(feederDedupeLatestByReading_(feederFilterRowsByDcAndDate_(allRows, p.from, p.to)));
+            feederScorecardState_ = {
+                thisMonth, lastYear, lastMonth,
+                mapThisMonth: mapFor(thisMonth),
+                mapLastYearAuto: mapFor(lastYear),
+                mapLastMonth: mapFor(lastMonth)
+            };
+            feederRenderScorecardBody_();
         }
 
         // State (fetch ki hui) se HTML dobara banata hai — manual last-year entry
