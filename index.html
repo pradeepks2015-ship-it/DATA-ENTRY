@@ -95,6 +95,15 @@
 
         <main id="feeder-reading-view" class="view">
             <div class="search-panel">
+                <div style="display:flex; justify-content:flex-end; width:100%; max-width:340px; margin:0 auto 8px auto; position:relative;">
+                    <button type="button" id="feeder-menu-btn" onclick="toggleFeederMenu_()" aria-label="स्कोरकार्ड मेनू" style="background:#9d174d; border:none; color:#ffffff; width:38px; height:38px; border-radius:10px; font-size:18px; font-weight:900; cursor:pointer;">⋮</button>
+                    <div id="feeder-menu-dropdown" style="display:none; position:absolute; top:44px; right:0; width:270px; max-width:calc(100vw - 32px); background:#ffffff; border-radius:14px; box-shadow:0 8px 24px rgba(0,0,0,0.25); padding:14px; z-index:1000; text-align:left;">
+                        <div style="font-size:11px; font-weight:900; color:#9d174d; text-transform:uppercase; letter-spacing:0.4px; margin-bottom:10px;">📊 मासिक इनपुट स्कोरकार्ड</div>
+                        <button id="feeder-scorecard-btn" onclick="feederOpenMonthlyScorecard_()" style="width:100%; height:42px; border:none; border-radius:10px; background:linear-gradient(135deg, #9d174d 0%, #4a044e 100%); color:#ffffff; font-size:11px; font-weight:900; text-transform:uppercase; letter-spacing:0.4px; cursor:pointer;">
+                            📥 इस महीना / पिछला महीना / पिछले साल — तुलना Download करें
+                        </button>
+                    </div>
+                </div>
                 <div style="display:flex; flex-direction:column; gap:14px; width:100%;">
                     <!-- MIS Report Widget -->
                     <div style="width:100%; max-width:340px; margin:0 auto;">
