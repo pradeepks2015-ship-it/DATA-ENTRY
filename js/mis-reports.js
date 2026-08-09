@@ -43,6 +43,9 @@
             // Group by substation — only 11KV feeders in ssMap (33KV incoming excluded)
             // 33KV incoming meters: BS12775548, BS12775550, BS12776133, BS12775543, BS12775544
             const INCOMING_33KV_METERS = ["BS12775548","BS12775550","BS12776133","BS12775543","BS12775544","MPP28230"];
+            // ADEGAON-CB (BS12770679) meter reading nahi aa rahi — jab tak theek na ho, ise
+            // summary/loss-calc se bahar rakha hai. Reading aane par yahan se hata dena.
+            const EXCLUDED_FEEDER_METERS = ["BS12770679"];
             const ssMap = {};
             rows.forEach((r) => {
                 const ss   = r["33/11 KV SUBSTATION"] || "";
@@ -50,6 +53,7 @@
                 const mNo  = (r["METER NO"] || "").trim();
                 // Skip 33KV incoming/outgoing meters — only include 11KV feeders
                 if (INCOMING_33KV_METERS.includes(mNo)) return;
+                if (EXCLUDED_FEEDER_METERS.includes(mNo)) return;
                 const prev = Number(r["PREVIUS READING"]) || 0;
                 const curr = Number(r["CURRENT READING"]) || 0;
                 const mf   = Number(r["MF"]) || 1;
@@ -73,12 +77,12 @@
             const BS12776368 = getMeterConsumption("BS12776368"); // 11KV BIBI DL
             const BS12774694 = getMeterConsumption("BS12774694"); // 11KV BIBI AG
             const BS12774693 = getMeterConsumption("BS12774693"); // 11KV MADI (ADEGAON) MIX
-            const BS12770679 = getMeterConsumption("BS12770679"); // ADEGAON-CB
             const BS12775542 = getMeterConsumption("BS12775542"); // 11KV PATAN
             const BS12775541 = getMeterConsumption("BS12775541"); // 11KV MADHI
             const BS12775540 = getMeterConsumption("BS12775540"); // 11KV PINDRAI
 
-            const adegaon11KVTotal = BS12774695 + BS12776368 + BS12774694 + BS12774693 + BS12770679;
+            // ADEGAON-CB (BS12770679) is excluded — meter reading nahi aa rahi abhi.
+            const adegaon11KVTotal = BS12774695 + BS12776368 + BS12774694 + BS12774693;
             const madhiFeederTotal = BS12775542 + BS12775541 + BS12775540;
             const totalIncoming    = BS12775548;
 
@@ -238,6 +242,9 @@
         // ek saath dikhata hai — mahine ke aakhri din check karne par teeno
         // periods ki poori tulna mil jaati hai.
         const FEEDER_INCOMING_33KV_METERS = ["BS12775548", "BS12775550", "BS12776133", "BS12775543", "BS12775544", "MPP28230"];
+        // ADEGAON-CB (BS12770679) meter reading nahi aa rahi — jab tak theek na ho,
+        // scorecard se bahar rakha hai. Reading aane par yahan se hata dena.
+        const FEEDER_EXCLUDED_METERS = ["BS12770679"];
 
         function feederScorecardPeriod_(monthsAgo, yearsAgo) {
             const now = new Date();
@@ -254,6 +261,7 @@
             rows.forEach((r) => {
                 const meterNo = (r["METER NO"] || "").trim();
                 if (FEEDER_INCOMING_33KV_METERS.includes(meterNo)) return;
+                if (FEEDER_EXCLUDED_METERS.includes(meterNo)) return;
                 const ss = r["33/11 KV SUBSTATION"] || "";
                 const fdr = r["33 AND 11 KV FEEDER"] || "";
                 if (!ss || !fdr) return;
@@ -631,9 +639,10 @@
                         const M548=getMC("BS12775548"), M550=getMC("BS12775550"), M133=getMC("BS12776133");
                         const M543=getMC("BS12775543");
                         const M695=getMC("BS12774695"), M368=getMC("BS12776368"), M694=getMC("BS12774694");
-                        const M693=getMC("BS12774693"), M679=getMC("BS12770679");
+                        const M693=getMC("BS12774693");
                         const M542=getMC("BS12775542"), M541=getMC("BS12775541"), M540=getMC("BS12775540");
-                        const adg11Total = M695+M368+M694+M693+M679;
+                        // ADEGAON-CB (BS12770679) excluded — meter reading nahi aa rahi abhi.
+                        const adg11Total = M695+M368+M694+M693;
                         const madhiTotal = M542+M541+M540;
                         const adInput    = Math.abs(M548-M133); // BS548 - BS133 only
                         const adSSLoss   = Math.abs(adInput - adg11Total);
