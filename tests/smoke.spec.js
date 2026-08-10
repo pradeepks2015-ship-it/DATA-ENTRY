@@ -375,6 +375,46 @@ test.describe('Feeder Reading (active feature)', () => {
     await expect(body).toContainText('3.00 L');
     await expect(body).toContainText('4.00 L');
   });
+
+  test('Scorecard "महीना चुनें" ke neeche 1 tareekh se aaj tak ki progressive khapat dikhti hai', async ({ page }) => {
+    // Mahine ki 1 tareekh hamesha "aaj" se pehle ya barabar hoti hai, isliye yeh
+    // fixture kisi bhi din test chale, progressive window (1 se aaj tak) me
+    // guaranteed shamil rahega — date-brittle nahi.
+    function dateFirstOfThisMonth() {
+      const now = new Date();
+      const d = new Date(now.getFullYear(), now.getMonth(), 1);
+      return `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`;
+    }
+    const rows = [{
+      '33/11 KV SUBSTATION': 'TESTSS', '33 AND 11 KV FEEDER': 'TESTFEEDER', 'METER NO': 'MTR001',
+      'PREVIUS READING': '0', 'CURRENT READING': '250000', 'MF': '1', 'CONSUMPTION': '250000',
+      'DC NAME': 'ADEGAON', 'DATE(DD/MM/YYY)': dateFirstOfThisMonth(), 'TIME(HH/MM)': '10:00',
+    }];
+
+    await openApp(page, {
+      beforeGoto: async (p) => {
+        await p.route('**/macros/**', (route) => {
+          const url = new URL(route.request().url());
+          if (url.searchParams.get('action') === 'getFeederReadings') {
+            return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(rows) });
+          }
+          return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ status: 'success', entries: [] }) });
+        });
+      },
+    });
+    await goToDcDashboard(page);
+    await page.evaluate(() => switchView('feeder-reading'));
+    await page.waitForFunction(() => document.getElementById('feeder-reading-view').classList.contains('active'));
+
+    await page.click('#feeder-menu-btn');
+    await page.click('#feeder-scorecard-btn');
+    await expect(page.locator('#feeder-scorecard-overlay')).toBeVisible();
+    await page.waitForFunction(() => !document.getElementById('feeder-scorecard-body')?.innerText.includes('लोड हो रहा है'));
+
+    const progressiveBox = page.locator('#feeder-scorecard-progressive');
+    await expect(progressiveBox).toContainText('प्रोग्रेसिव खपत');
+    await expect(progressiveBox).toContainText('2.50 L');
+  });
 });
 
 test.describe('Broken Pole / बिजली चोरी / कर्मचारी कार्य चरित्रावली (active features)', () => {
