@@ -294,6 +294,30 @@
             return map;
         }
 
+        // Bade totals (Lakh unit, 2 dashamlav) dikhane ke liye shared helper —
+        // scorecard ke कुल/GRAND TOTAL aur progressive consumption dono me istemaal.
+        function feederFmtLakh_(n) {
+            return (n === null || n === undefined) ? "—" : (n / 100000).toFixed(2) + " L";
+        }
+
+        // "महीना चुनें" ke neeche — is (asli, aaj wale) mahine ki 1 tareekh se
+        // aaj tak ki progressive (running) khapat dikhata hai. Yeh hamesha asli
+        // current mahine ka hi hota hai — month-picker se history dekhne se
+        // iska koi lena-dena nahi, isliye month badalne par dobara compute nahi karte.
+        function feederRenderProgressiveConsumption_(allRows) {
+            const box = document.getElementById("feeder-scorecard-progressive");
+            if (!box) return;
+            const now = new Date();
+            const first = new Date(now.getFullYear(), now.getMonth(), 1);
+            const toIso = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+            const filtered = feederDedupeLatestByReading_(feederFilterRowsByDcAndDate_(allRows || [], toIso(first), toIso(now)));
+            const map = feederAggregateBySubstationFeeder_(filtered);
+            let total = 0;
+            Object.values(map).forEach((feeders) => Object.values(feeders).forEach((v) => { total += v; }));
+            const fmtDateHi = (d) => d.toLocaleDateString("hi-IN", { day: "numeric", month: "long" });
+            box.innerHTML = `📈 प्रोग्रेसिव खपत: ${fmtDateHi(first)} से ${fmtDateHi(now)} तक: <strong>${feederFmtLakh_(total)}</strong>`;
+        }
+
         function toggleFeederMenu_() {
             const menu = document.getElementById("feeder-menu-dropdown");
             if (!menu) return;
@@ -360,6 +384,7 @@
                     <label for="feeder-scorecard-month-select" style="font-size:11px; font-weight:800; color:#64748b;">महीना चुनें:</label>
                     <input type="month" id="feeder-scorecard-month-select" value="${nowYearMonth}" style="border:1.5px solid #ec4899; border-radius:8px; padding:5px 8px; font-size:12px; font-weight:700; color:#831843; background:#fdf2f8; outline:none;">
                 </div>
+                <div id="feeder-scorecard-progressive" style="text-align:center; font-size:11px; font-weight:800; color:#166534; background:#f0fdf4; border:1px solid #bbf7d0; border-radius:10px; padding:6px 10px; margin-bottom:10px;"></div>
                 <div id="feeder-scorecard-heading" style="font-size:12px; font-weight:800; color:#9d174d; text-align:center; margin-bottom:10px;"></div>
                 <div id="feeder-scorecard-body"><div style="text-align:center; padding:14px; font-size:12px; font-weight:800; color:#64748b;">लोड हो रहा है...</div></div>
                 <div style="display:flex; gap:10px; margin-top:14px;">
@@ -389,6 +414,7 @@
                 // network call lagti hai, phir yahi allRows local-refresh hoti hai.)
                 await loadFeederReportData(true);
                 feederScorecardAllRows_ = getAllFeederHistoryEntries_();
+                feederRenderProgressiveConsumption_(feederScorecardAllRows_);
                 feederRecomputeScorecardPeriods_();
             } catch (err) {
                 body.innerHTML = `<div style="text-align:center; padding:18px; font-size:12px; font-weight:800; color:#b91c1c;">Scorecard banane me error aaya, dobara try karein</div>`;
@@ -444,7 +470,7 @@
             // "कुल" aur GRAND TOTAL rows me hi Lakh unit (2 dashamlav) me dikhate
             // hain (jaise 9,13,900 kWh → "9.14 L") — individual feeder values poore
             // number me hi rehti hain. CSV me hamesha poora raw kWh number hi jaata hai.
-            const fmtLakh = (n) => (n === null ? "—" : (n / 100000).toFixed(2) + " L");
+            const fmtLakh = feederFmtLakh_;
             const csvRows = [["Substation", "Feeder", thisMonth.label, `${lastYear.label} (मैन्युअल हो सकता है)`, lastMonth.label]];
             const grandTotal = [0, 0, 0];
 
