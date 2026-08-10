@@ -256,6 +256,22 @@ test.describe('Feeder Reading (active feature)', () => {
     expect(csvText).toContain('500');
     expect(csvText).toContain('barish');
 
+    // Remark 800ms debounce ke baad cloud/local par save hoti hai — usse pehle
+    // hi close kar dein to close-button flush bhi turant save kar deta hai,
+    // lekin yahaan debounce khud poora hone dete hain (deterministic wait).
+    await page.waitForTimeout(900);
+
+    // Scorecard band karke dobara kholne par wahi remark text dikhna chahiye —
+    // aur remark ki sentinel row kisi bhi substation/feeder aggregation me
+    // nahi dikhni chahiye.
+    await page.click('#feeder-scorecard-close-btn');
+    await page.click('#feeder-menu-btn');
+    await page.click('#feeder-scorecard-btn');
+    await page.waitForFunction(() => !document.getElementById('feeder-scorecard-body')?.innerText.includes('लोड हो रहा है'));
+    await expect(page.locator('#feeder-scorecard-remark')).toHaveValue('Is mahine 8 din barish hui');
+    await expect(body).not.toContainText('_SCORECARD_');
+    await expect(body).not.toContainText('_REMARK_');
+
     // ✏️ Edit dabane par confirm modal khulni chahiye, unfreeze karne par hi input wapas aana chahiye
     await page.locator('#feeder-scorecard-body button[title="Edit"]').click();
     await expect(page.locator('#feeder-scorecard-unfreeze-overlay')).toBeVisible();
