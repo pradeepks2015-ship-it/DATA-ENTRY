@@ -304,14 +304,17 @@
         let feederScorecardAllRows_ = null; // poori history — mahina badalne par dobara network call na ho, sirf client-side re-filter
         let feederScorecardBaseYearMonth_ = null; // user ne "month" picker se chuna hua "YYYY-MM" (isi ko "is mahina" maante hain), null = aaj ka mahina
 
-        function feederManualLastYearKey_(lastYearPeriod) {
-            return `feeder-manual-lastyear-${lastYearPeriod.from.slice(0, 7)}`;
+        // "Pichhle saal ka mahina" ke jo cell abhi is baar khole gaye scorecard me
+        // "✏️ Edit" dabaakar unfreeze kiye gaye hain (feeder reading wale unfreeze
+        // jaisa hi) — tabhi tak editable rahenge, warna already-saved value frozen
+        // dikhti hai. Overlay band-khol hone par reset ho jaata hai.
+        const feederScorecardUnfrozenCells_ = new Set();
+        function feederScorecardCellKey_(ss, fdr) {
+            return `${String(ss || "").trim().toUpperCase()}|${String(fdr || "").trim().toUpperCase()}`;
         }
+
         function feederScorecardRemarkKey_(thisMonthPeriod) {
             return `feeder-scorecard-remark-${thisMonthPeriod.from.slice(0, 7)}`;
-        }
-        function feederGetManualLastYearOverrides_(lastYearPeriod) {
-            try { return JSON.parse(localStorage.getItem(feederManualLastYearKey_(lastYearPeriod)) || "{}"); } catch (_) { return {}; }
         }
 
         async function feederOpenMonthlyScorecard_() {
@@ -329,6 +332,7 @@
             sheet.style.cssText = "background:#ffffff; border-radius:20px 20px 0 0; padding:18px; width:100%; max-width:480px; max-height:82vh; overflow-y:auto; box-shadow:0 -12px 30px rgba(0,0,0,0.25);";
             const nowYearMonth = (() => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`; })();
             feederScorecardBaseYearMonth_ = nowYearMonth;
+            feederScorecardUnfrozenCells_.clear();
 
             sheet.innerHTML = `
                 <div style="font-size:14px; font-weight:900; color:#1e293b; text-align:center; text-transform:uppercase; margin-bottom:2px;">📊 सब स्टेशन / फीडर वाइज मासिक इनपुट स्कोरकार्ड</div>
@@ -355,8 +359,10 @@
             try {
                 // Ek hi baar network se poori history laate hain, phir teeno periods
                 // ke liye client-side hi filter karte hain — 3x redundant fetch nahi.
-                // Manual entry/remark edit hone par, ya month picker se mahina badalne
-                // par bhi yahi rows dobara istemaal hoti hain, dobara network call nahi lagti.
+                // Remark edit hone par, ya month picker se mahina badalne par bhi
+                // yahi rows dobara istemaal hoti hain, dobara network call nahi lagti.
+                // (Pichhle saal ki manual entry cloud par save hoti hai — usme
+                // network call lagti hai, phir yahi allRows local-refresh hoti hai.)
                 await loadFeederReportData(true);
                 feederScorecardAllRows_ = getAllFeederHistoryEntries_();
                 feederRecomputeScorecardPeriods_();
@@ -381,28 +387,27 @@
             feederScorecardState_ = {
                 thisMonth, lastYear, lastMonth,
                 mapThisMonth: mapFor(thisMonth),
-                mapLastYearAuto: mapFor(lastYear),
+                mapLastYear: mapFor(lastYear),
                 mapLastMonth: mapFor(lastMonth)
             };
             feederRenderScorecardBody_();
         }
 
-        // State (fetch ki hui) se HTML dobara banata hai — manual last-year entry
-        // edit/delete hone par ya remark badalne par isi ko dobara call karte hain,
-        // network par kabhi dobara nahi jaate.
+        // State (fetch ki hui) se HTML dobara banata hai — remark badalne par ya
+        // manual last-year entry unfreeze/cancel karne par (network ke bina) isi
+        // ko dobara call karte hain; manual entry save hone par recompute hota hai
+        // (kyunki wo naye rows allRows me judte hain).
         function feederRenderScorecardBody_() {
             const st = feederScorecardState_;
             const body = document.getElementById("feeder-scorecard-body");
             const heading = document.getElementById("feeder-scorecard-heading");
             if (!st || !body) return;
 
-            const { thisMonth, lastYear, lastMonth, mapThisMonth, mapLastYearAuto, mapLastMonth } = st;
+            const { thisMonth, lastYear, lastMonth, mapThisMonth, mapLastYear, mapLastMonth } = st;
             if (heading) heading.innerText = `${thisMonth.label} बनाम ${lastYear.label} (पिछला महीना: ${lastMonth.label})`;
 
-            const manualOverrides = feederGetManualLastYearOverrides_(lastYear);
             const ssNames = new Set();
-            [mapThisMonth, mapLastMonth, mapLastYearAuto].forEach((m) => Object.keys(m).forEach((ss) => ssNames.add(ss)));
-            Object.keys(manualOverrides).forEach((ss) => ssNames.add(ss));
+            [mapThisMonth, mapLastMonth, mapLastYear].forEach((m) => Object.keys(m).forEach((ss) => ssNames.add(ss)));
 
             if (!ssNames.size) {
                 body.innerHTML = `<div style="text-align:center; padding:18px; font-size:13px; font-weight:800; color:#64748b; background:#f8fafc; border-radius:14px;">इन periods में कोई feeder reading नहीं मिली। नीचे "${escapeHtml(lastYear.label)}" का data मैन्युअल भी भरा जा सकता है, entries आने के बाद यहाँ dobara khol kar dekhein।</div>`;
@@ -424,28 +429,39 @@
             `;
             Array.from(ssNames).sort().forEach((ss) => {
                 const feederNames = new Set();
-                [mapThisMonth, mapLastMonth, mapLastYearAuto].forEach((m) => Object.keys(m[ss] || {}).forEach((f) => feederNames.add(f)));
-                Object.keys(manualOverrides[ss] || {}).forEach((f) => feederNames.add(f));
+                [mapThisMonth, mapLastMonth, mapLastYear].forEach((m) => Object.keys(m[ss] || {}).forEach((f) => feederNames.add(f)));
 
                 const ssTotal = [0, 0, 0];
                 const feederRowsHtml = Array.from(feederNames).sort().map((fdr) => {
                     const valThisMonth = mapThisMonth[ss]?.[fdr] ?? null;
                     const valLastMonth = mapLastMonth[ss]?.[fdr] ?? null;
-                    const manualVal = manualOverrides[ss]?.[fdr];
-                    const valLastYear = manualVal !== undefined ? manualVal : (mapLastYearAuto[ss]?.[fdr] ?? null);
+                    const valLastYear = mapLastYear[ss]?.[fdr] ?? null;
 
                     if (valThisMonth !== null) ssTotal[0] += valThisMonth;
                     if (valLastYear !== null) ssTotal[1] += valLastYear;
                     if (valLastMonth !== null) ssTotal[2] += valLastMonth;
                     csvRows.push([ss, fdr, valThisMonth ?? "", valLastYear ?? "", valLastMonth ?? ""]);
 
+                    // Pehle se saved value ho aur abhi unfreeze na ki gayi ho to
+                    // frozen (read-only) dikhao, ✏️ Edit se hi dobara bhara ja
+                    // sakta hai — bilkul feeder reading ke unfreeze jaisa. Khali
+                    // cell seedhe editable rehti hai (pehli baar bharne me confirm
+                    // ki zaroorat nahi).
+                    const isUnfrozen = feederScorecardUnfrozenCells_.has(feederScorecardCellKey_(ss, fdr));
+                    const lastYearCellHtml = (valLastYear !== null && !isUnfrozen)
+                        ? `<span style="display:flex; align-items:center; justify-content:flex-end; gap:4px;">
+                                <span style="font-weight:900; color:#1d4ed8;">${fmt(valLastYear)}</span>
+                                <button type="button" onclick="feederUnfreezeLastYearCell_('${escapeHtml(ss)}','${escapeHtml(fdr)}')" title="Edit" style="border:none; background:#eff6ff; color:#1d4ed8; border-radius:6px; padding:2px 5px; font-size:9px; font-weight:900; cursor:pointer; line-height:1.4;">✏️</button>
+                           </span>`
+                        : `<input type="number" inputmode="decimal" value="${valLastYear !== null ? valLastYear : ""}" placeholder="भरें"
+                                data-ss="${escapeHtml(ss)}" data-fdr="${escapeHtml(fdr)}" onchange="feederSubmitManualLastYearEntry_(this)"
+                                style="width:100%; text-align:right; border:1.3px solid #93c5fd; border-radius:6px; font-size:10px; font-weight:900; color:#1d4ed8; padding:3px 4px; background:#eff6ff; box-sizing:border-box;">`;
+
                     return `
                         <div style="display:grid; grid-template-columns:1.3fr 1fr 1fr 1fr; gap:4px; padding:5px 0; border-bottom:1px solid #fce7f3; font-size:10.5px; align-items:center;">
                             <span style="font-weight:700; color:#334155;">${escapeHtml(fdr)}</span>
                             <span style="font-weight:900; color:#16a34a; text-align:right;">${fmt(valThisMonth)}</span>
-                            <input type="number" inputmode="decimal" value="${valLastYear !== null ? valLastYear : ""}" placeholder="भरें"
-                                data-ss="${escapeHtml(ss)}" data-fdr="${escapeHtml(fdr)}" onchange="feederSaveManualLastYear_(this)"
-                                style="width:100%; text-align:right; border:1.3px solid #93c5fd; border-radius:6px; font-size:10px; font-weight:900; color:#1d4ed8; padding:3px 4px; background:#eff6ff; box-sizing:border-box;">
+                            ${lastYearCellHtml}
                             <span style="font-weight:900; color:#b45309; text-align:right;">${fmt(valLastMonth)}</span>
                         </div>`;
                 }).join("");
@@ -482,28 +498,117 @@
             feederScorecardCsvRows_ = csvRows;
         }
 
-        function feederSaveManualLastYear_(inputEl) {
+        // Pehle se saved "pichhle saal" ki entry par ✏️ Edit dabane par confirm
+        // maang kar cell unfreeze karta hai — bilkul feeder reading ke
+        // "Edit / Unfreeze" jaisa, taaki galti se real data overwrite na ho.
+        function feederUnfreezeLastYearCell_(ss, fdr) {
+            const existing = document.getElementById("feeder-scorecard-unfreeze-overlay");
+            if (existing) existing.remove();
+            const label = feederLastYearLabelSafe_();
+
+            const overlay = document.createElement("div");
+            overlay.id = "feeder-scorecard-unfreeze-overlay";
+            overlay.style.cssText = "position:fixed; inset:0; background:rgba(0,0,0,0.55); z-index:10000; display:flex; align-items:center; justify-content:center; padding:20px;";
+            overlay.addEventListener("click", (e) => { if (e.target === overlay) overlay.remove(); });
+
+            const card = document.createElement("div");
+            card.style.cssText = "background:#ffffff; border-radius:18px; padding:18px; width:100%; max-width:320px; box-shadow:0 12px 30px rgba(0,0,0,0.25); text-align:center;";
+            card.innerHTML = `
+                <div style="font-size:14px; font-weight:900; color:#92400e; text-transform:uppercase; margin-bottom:10px;">Entry Edit करें?</div>
+                <div style="font-size:12px; font-weight:700; color:#475569; margin-bottom:16px;">
+                    "${escapeHtml(fdr)}" (${escapeHtml(ss)}) की ${escapeHtml(label)} की entry unfreeze हो जाएगी और आप नई value दोबारा भर सकेंगे।
+                </div>
+                <div style="display:flex; gap:10px;">
+                    <button id="feeder-scorecard-unfreeze-cancel-btn" style="flex:1; height:44px; border:none; border-radius:12px; background:#e2e8f0; color:#1e293b; font-size:12px; font-weight:900; text-transform:uppercase;">Cancel</button>
+                    <button id="feeder-scorecard-unfreeze-confirm-btn" style="flex:1; height:44px; border:none; border-radius:12px; background:#f59e0b; color:#fff; font-size:12px; font-weight:900; text-transform:uppercase;">Unfreeze</button>
+                </div>
+            `;
+            overlay.appendChild(card);
+            document.body.appendChild(overlay);
+            document.getElementById("feeder-scorecard-unfreeze-cancel-btn").onclick = () => overlay.remove();
+            document.getElementById("feeder-scorecard-unfreeze-confirm-btn").onclick = () => {
+                overlay.remove();
+                feederScorecardUnfrozenCells_.add(feederScorecardCellKey_(ss, fdr));
+                feederRenderScorecardBody_();
+            };
+        }
+
+        // "Pichhle saal" ke cell ki value cloud par save karta hai — feeder reading
+        // ki normal submission jaisa hi (module=feeder, offline ho to sync_queue me
+        // chala jaata hai). Isi liye yeh entry sab devices se dikhti hai aur app
+        // ka data clear hone par bhi nahi khoti.
+        async function feederSubmitManualLastYearEntry_(inputEl) {
             if (!feederScorecardState_) return;
-            const key = feederManualLastYearKey_(feederScorecardState_.lastYear);
             const ss = inputEl.dataset.ss;
             const fdr = inputEl.dataset.fdr;
+            const cellKey = feederScorecardCellKey_(ss, fdr);
             const val = inputEl.value.trim();
-            let overrides = {};
-            try { overrides = JSON.parse(localStorage.getItem(key) || "{}"); } catch (_) {}
+
             if (!val) {
-                // Khali chhodne par = delete (auto/khali value par wapas)
-                if (overrides[ss]) {
-                    delete overrides[ss][fdr];
-                    if (!Object.keys(overrides[ss]).length) delete overrides[ss];
-                }
-            } else {
-                if (!overrides[ss]) overrides[ss] = {};
-                overrides[ss][fdr] = Number(val);
+                // Khali chhodkar cancel — jo pehle se saved thi wahi frozen value wapas dikha do
+                feederScorecardUnfrozenCells_.delete(cellKey);
+                feederRenderScorecardBody_();
+                return;
             }
-            try { localStorage.setItem(key, JSON.stringify(overrides)); } catch (_) {}
-            feederRenderScorecardBody_();
-            showToast(val ? `${feederLastYearLabelSafe_()} की entry save हो गई` : "Entry हटा दी गई", true);
+
+            const period = feederScorecardState_.lastYear;
+            const [y, m] = period.from.split("-");
+            const entryDate = `01/${m}/${y}`; // period ka fixed pehla din — edit par isi date par dobara submit hota hai, taaki dedupe latest-wins se replace ho, double-count na ho
+            const entryTime = getCurrentTimeHHMM();
+            const dcName = activeDC || "ADEGAON";
+            const entry = {
+                "33/11 KV SUBSTATION": ss, "33 AND 11 KV FEEDER": fdr, "METER NO": "MANUAL",
+                "PREVIUS READING": "0", "CURRENT READING": String(val), "MF": "1", "CONSUMPTION": String(val),
+                "DC NAME": dcName, "DATE(DD/MM/YYY)": entryDate, "TIME(HH/MM)": entryTime,
+                substation: ss, feeder: fdr, meter_no: "MANUAL",
+                previous_reading: "0", current_reading: String(val), mf: "1", consumption: String(val),
+                dc_name: dcName, date: entryDate, time: entryTime,
+                ...currentEmployeeTag_()
+            };
+
+            inputEl.disabled = true;
+            try {
+                const payload = new URLSearchParams();
+                payload.append("module", "feeder");
+                payload.append("entries_json", JSON.stringify([entry]));
+                payload.append("auth_token", APPS_SCRIPT_AUTH_TOKEN);
+
+                let submitOk = false;
+                let queuedOffline = false;
+                try {
+                    const response = await fetchWithTimeout_(feederSubmitScriptUrl, {
+                        method: "POST",
+                        headers: { "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8" },
+                        body: payload.toString()
+                    });
+                    submitOk = response.ok;
+                } catch (networkError) {
+                    try {
+                        await queueOfflineSync_({ kind: "post_form", body: payload.toString() });
+                        queuedOffline = true;
+                    } catch (_) {}
+                }
+
+                // Local-first: turant dikhe, cloud sync fail ho tab bhi entry khoye nahi
+                saveRecentFeederSubmittedEntries_([entry]);
+                feederScorecardAllRows_ = getAllFeederHistoryEntries_();
+                feederScorecardUnfrozenCells_.delete(cellKey);
+                feederRecomputeScorecardPeriods_();
+
+                if (submitOk) {
+                    showToast(`${feederLastYearLabelSafe_()} की entry cloud पर save हो गई`, true);
+                } else if (queuedOffline) {
+                    showToast("Entry device पर save हो गई 🔄 Internet आने पर cloud sync हो जाएगी", true);
+                } else {
+                    showToast("Entry device पर save हो गई, लेकिन cloud sync अभी नहीं हो पाया", false);
+                }
+            } catch (err) {
+                showToast("Entry save करने में error आया, दोबारा try करें", false);
+            } finally {
+                inputEl.disabled = false;
+            }
         }
+
         function feederLastYearLabelSafe_() {
             return feederScorecardState_ ? feederScorecardState_.lastYear.label : "पिछले साल";
         }
