@@ -240,6 +240,12 @@
             return feederDedupeLatestByReading_(filtered);
         }
 
+        // employee-auth.js (login) abhi production par nahi hai — is helper se yeh
+        // file bina us feature ke bhi kaam karti hai (khaali submitted_by fields ke saath).
+        function feederEmployeeTag_() {
+            return typeof currentEmployeeTag_ === "function" ? currentEmployeeTag_() : { submitted_by_id: "", submitted_by_name: "" };
+        }
+
         // ===== Substation / 11KV Feeder-wise Monthly Input Scorecard =====
         // Is mahine, pichhle mahine, aur pichhle saal isi mahine ka input (kWh)
         // ek saath dikhata hai — mahine ke aakhri din check karne par teeno
@@ -582,7 +588,7 @@
                 substation: ss, feeder: fdr, meter_no: "MANUAL",
                 previous_reading: "0", current_reading: String(val), mf: "1", consumption: String(val),
                 dc_name: dcName, date: entryDate, time: entryTime,
-                ...currentEmployeeTag_()
+                ...feederEmployeeTag_()
             };
 
             inputEl.disabled = true;
@@ -666,7 +672,7 @@
                 substation: "_SCORECARD_", feeder: "_REMARK_", meter_no: "REMARK",
                 previous_reading: "0", current_reading: "0", mf: "1", consumption: "0",
                 dc_name: dcName, date: entryDate, time: entryTime, remark_text: text,
-                ...currentEmployeeTag_()
+                ...feederEmployeeTag_()
             };
             try {
                 const payload = new URLSearchParams();
