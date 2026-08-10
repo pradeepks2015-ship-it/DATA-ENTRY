@@ -197,6 +197,9 @@
         function feederFilterRowsByDcAndDate_(rows, fromDate, toDate) {
             const activeDcKey = normalizeDcName(activeDC || "");
             return rows.filter((r) => {
+                // Scorecard remark ek asli feeder reading nahi hai — kisi bhi
+                // report/export/loss-calculation me kabhi nahi aani chahiye.
+                if ((r["METER NO"] || r.meter_no || "").trim().toUpperCase() === "REMARK") return false;
                 const dateKey = buildFeederDateKey_(r["DATE(DD/MM/YYY)"] || r.date || "");
                 if (!misDateInRange_(dateKey, fromDate, toDate)) return false;
                 if (!activeDcKey) return true;
@@ -313,8 +316,19 @@
             return `${String(ss || "").trim().toUpperCase()}|${String(fdr || "").trim().toUpperCase()}`;
         }
 
-        function feederScorecardRemarkKey_(thisMonthPeriod) {
-            return `feeder-scorecard-remark-${thisMonthPeriod.from.slice(0, 7)}`;
+        // Remark bhi ab feeder submission endpoint ke through hi cloud par save
+        // hota hai (ek sentinel "REMARK" meter-no wali row, jo feederFilterRowsByDcAndDate_
+        // me hamesha exclude ho jaati hai — kisi report/calc me nahi ghusti).
+        // Diye gaye period (thisMonth) ke andar sabse latest wali entry hi asli remark hai.
+        function feederExtractRemarkForPeriod_(allRows, period) {
+            const matches = (allRows || []).filter((r) => {
+                if ((r["METER NO"] || r.meter_no || "").trim().toUpperCase() !== "REMARK") return false;
+                const dateKey = buildFeederDateKey_(r["DATE(DD/MM/YYY)"] || r.date || "");
+                return misDateInRange_(dateKey, period.from, period.to);
+            }).sort((a, b) => String(a["TIME(HH/MM)"] || a.time || "").localeCompare(String(b["TIME(HH/MM)"] || b.time || "")));
+            if (!matches.length) return "";
+            const latest = matches[matches.length - 1];
+            return latest["REMARK_TEXT"] || latest.remark_text || "";
         }
 
         async function feederOpenMonthlyScorecard_() {
@@ -349,8 +363,12 @@
             `;
             overlay.appendChild(sheet);
             document.body.appendChild(overlay);
-            document.getElementById("feeder-scorecard-close-btn").onclick = () => overlay.remove();
+            document.getElementById("feeder-scorecard-close-btn").onclick = () => {
+                feederFlushScorecardRemarkSave_();
+                overlay.remove();
+            };
             document.getElementById("feeder-scorecard-month-select").onchange = (e) => {
+                feederFlushScorecardRemarkSave_();
                 feederScorecardBaseYearMonth_ = e.target.value || nowYearMonth;
                 feederRecomputeScorecardPeriods_();
             };
@@ -388,7 +406,8 @@
                 thisMonth, lastYear, lastMonth,
                 mapThisMonth: mapFor(thisMonth),
                 mapLastYear: mapFor(lastYear),
-                mapLastMonth: mapFor(lastMonth)
+                mapLastMonth: mapFor(lastMonth),
+                remarkText: feederExtractRemarkForPeriod_(allRows, thisMonth)
             };
             feederRenderScorecardBody_();
         }
@@ -403,7 +422,7 @@
             const heading = document.getElementById("feeder-scorecard-heading");
             if (!st || !body) return;
 
-            const { thisMonth, lastYear, lastMonth, mapThisMonth, mapLastYear, mapLastMonth } = st;
+            const { thisMonth, lastYear, lastMonth, mapThisMonth, mapLastYear, mapLastMonth, remarkText } = st;
             if (heading) heading.innerText = `${thisMonth.label} बनाम ${lastYear.label} (पिछला महीना: ${lastMonth.label})`;
 
             const ssNames = new Set();
@@ -491,7 +510,7 @@
                 </div>
                 <div>
                     <div style="font-size:10.5px; font-weight:900; color:#9d174d; text-transform:uppercase; margin-bottom:6px;">📝 रिमार्क (विशेष परिस्थितियां जो इनपुट को प्रभावित करती हैं)</div>
-                    <textarea id="feeder-scorecard-remark" oninput="feederSaveScorecardRemark_(this)" placeholder="जैसे: इस महीने 8 दिन बारिश हुई, 5 दिन ब्रेकडाउन ज्यादा रहा..." style="width:100%; min-height:70px; border-radius:10px; border:1.5px solid #fbcfe8; padding:8px; font-size:11px; font-weight:700; color:#1e293b; resize:vertical; outline:none; box-sizing:border-box;">${escapeHtml(localStorage.getItem(feederScorecardRemarkKey_(thisMonth)) || "")}</textarea>
+                    <textarea id="feeder-scorecard-remark" oninput="feederSaveScorecardRemark_(this)" placeholder="जैसे: इस महीने 8 दिन बारिश हुई, 5 दिन ब्रेकडाउन ज्यादा रहा..." style="width:100%; min-height:70px; border-radius:10px; border:1.5px solid #fbcfe8; padding:8px; font-size:11px; font-weight:700; color:#1e293b; resize:vertical; outline:none; box-sizing:border-box;">${escapeHtml(remarkText || "")}</textarea>
                 </div>
             `;
             body.innerHTML = bodyHtml;
@@ -613,10 +632,59 @@
             return feederScorecardState_ ? feederScorecardState_.lastYear.label : "पिछले साल";
         }
 
+        // Har keystroke par cloud call nahi lagti — typing rukne ke 800ms baad
+        // (ya scorecard band/month badalne par turant flush) hi submit hoti hai.
+        let feederRemarkSaveTimer_ = null;
         function feederSaveScorecardRemark_(textareaEl) {
             if (!feederScorecardState_) return;
-            const key = feederScorecardRemarkKey_(feederScorecardState_.thisMonth);
-            try { localStorage.setItem(key, textareaEl.value); } catch (_) {}
+            feederScorecardState_.remarkText = textareaEl.value; // state/CSV turant reflect ho
+            clearTimeout(feederRemarkSaveTimer_);
+            feederRemarkSaveTimer_ = setTimeout(() => feederSubmitScorecardRemarkToCloud_(textareaEl.value), 800);
+        }
+
+        function feederFlushScorecardRemarkSave_() {
+            if (!feederRemarkSaveTimer_) return;
+            clearTimeout(feederRemarkSaveTimer_);
+            feederRemarkSaveTimer_ = null;
+            if (feederScorecardState_) feederSubmitScorecardRemarkToCloud_(feederScorecardState_.remarkText || "");
+        }
+
+        // Remark ko bhi feeder submission endpoint ke through cloud par save karta
+        // hai — ek sentinel "REMARK" meter-no wali row, jo kabhi feeder aggregation/
+        // reports me nahi ginti (feederFilterRowsByDcAndDate_ me exclude hoti hai).
+        async function feederSubmitScorecardRemarkToCloud_(text) {
+            if (!feederScorecardState_) return;
+            const period = feederScorecardState_.thisMonth;
+            const [y, m] = period.from.split("-");
+            const entryDate = `01/${m}/${y}`;
+            const entryTime = getCurrentTimeHHMM();
+            const dcName = activeDC || "ADEGAON";
+            const entry = {
+                "33/11 KV SUBSTATION": "_SCORECARD_", "33 AND 11 KV FEEDER": "_REMARK_", "METER NO": "REMARK",
+                "PREVIUS READING": "0", "CURRENT READING": "0", "MF": "1", "CONSUMPTION": "0",
+                "DC NAME": dcName, "DATE(DD/MM/YYY)": entryDate, "TIME(HH/MM)": entryTime, "REMARK_TEXT": text,
+                substation: "_SCORECARD_", feeder: "_REMARK_", meter_no: "REMARK",
+                previous_reading: "0", current_reading: "0", mf: "1", consumption: "0",
+                dc_name: dcName, date: entryDate, time: entryTime, remark_text: text,
+                ...currentEmployeeTag_()
+            };
+            try {
+                const payload = new URLSearchParams();
+                payload.append("module", "feeder");
+                payload.append("entries_json", JSON.stringify([entry]));
+                payload.append("auth_token", APPS_SCRIPT_AUTH_TOKEN);
+                try {
+                    await fetchWithTimeout_(feederSubmitScriptUrl, {
+                        method: "POST",
+                        headers: { "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8" },
+                        body: payload.toString()
+                    });
+                } catch (networkError) {
+                    try { await queueOfflineSync_({ kind: "post_form", body: payload.toString() }); } catch (_) {}
+                }
+                saveRecentFeederSubmittedEntries_([entry]);
+                feederScorecardAllRows_ = getAllFeederHistoryEntries_();
+            } catch (_) {}
         }
 
         function feederDownloadMonthlyScorecardCsv_() {
@@ -624,7 +692,7 @@
                 return showToast("पहले scorecard load होने दें", false);
             }
             const rows = feederScorecardCsvRows_.slice();
-            const remark = feederScorecardState_ ? (localStorage.getItem(feederScorecardRemarkKey_(feederScorecardState_.thisMonth)) || "") : "";
+            const remark = feederScorecardState_ ? (feederScorecardState_.remarkText || "") : "";
             if (remark.trim()) rows.push(["", "", "", "", ""], ["रिमार्क", remark, "", "", ""]);
             const csv = rows.map((row) =>
                 row.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(",")
