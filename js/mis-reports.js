@@ -415,7 +415,7 @@
             const grandTotal = [0, 0, 0];
 
             let bodyHtml = `
-                <div style="display:grid; grid-template-columns:1.3fr 1fr 1fr 1fr; gap:4px; padding:0 0 6px 0; font-size:9.5px; font-weight:900; color:#64748b; text-transform:uppercase; border-bottom:2px solid #f472b6;">
+                <div style="display:grid; grid-template-columns:1.3fr 1fr 1fr 1fr; gap:4px; padding:0 10px 6px 10px; font-size:9.5px; font-weight:900; color:#64748b; text-transform:uppercase; border-bottom:2px solid #f472b6;">
                     <span>Feeder</span>
                     <span style="text-align:right; color:#16a34a;">${escapeHtml(thisMonth.label)}</span>
                     <span style="text-align:right; color:#1d4ed8;">${escapeHtml(lastYear.label)}</span>
