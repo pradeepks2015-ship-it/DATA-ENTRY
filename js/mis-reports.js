@@ -300,22 +300,28 @@
             return (n === null || n === undefined) ? "—" : (n / 100000).toFixed(2) + " L";
         }
 
-        // "महीना चुनें" ke neeche — is (asli, aaj wale) mahine ki 1 tareekh se
-        // aaj tak ki progressive (running) khapat dikhata hai. Yeh hamesha asli
-        // current mahine ka hi hota hai — month-picker se history dekhne se
-        // iska koi lena-dena nahi, isliye month badalne par dobara compute nahi karte.
-        function feederRenderProgressiveConsumption_(allRows) {
+        // "महीना चुनें" ke neeche — selected mahine ki 1 tareekh se dikhata hai:
+        // agar wahi asli chalu mahina hai to "aaj tak" (progressive/running),
+        // agar koi pichhla (poora ho chuka) mahina select kiya hai to us mahine
+        // ki aakhri tareekh tak (poora mahina) — jo bhi pehle aaye.
+        function feederRenderProgressiveConsumption_(allRows, thisMonthPeriod) {
             const box = document.getElementById("feeder-scorecard-progressive");
             if (!box) return;
             const now = new Date();
-            const first = new Date(now.getFullYear(), now.getMonth(), 1);
             const toIso = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-            const filtered = feederDedupeLatestByReading_(feederFilterRowsByDcAndDate_(allRows || [], toIso(first), toIso(now)));
+            const todayIso = toIso(now);
+            const fromIso = thisMonthPeriod.from;
+            const toIsoVal = thisMonthPeriod.to < todayIso ? thisMonthPeriod.to : todayIso;
+            if (fromIso > toIsoVal) { box.innerHTML = ""; return; }
+
+            const filtered = feederDedupeLatestByReading_(feederFilterRowsByDcAndDate_(allRows || [], fromIso, toIsoVal));
             const map = feederAggregateBySubstationFeeder_(filtered);
             let total = 0;
             Object.values(map).forEach((feeders) => Object.values(feeders).forEach((v) => { total += v; }));
-            const fmtDateHi = (d) => d.toLocaleDateString("hi-IN", { day: "numeric", month: "long" });
-            box.innerHTML = `📈 प्रोग्रेसिव खपत: ${fmtDateHi(first)} से ${fmtDateHi(now)} तक: <strong>${feederFmtLakh_(total)}</strong>`;
+            const parseIso = (iso) => { const [y, m, d] = iso.split("-").map(Number); return new Date(y, m - 1, d); };
+            const fmtDateHi = (iso) => parseIso(iso).toLocaleDateString("hi-IN", { day: "numeric", month: "long" });
+            const label = toIsoVal === thisMonthPeriod.to ? "पूरे महीने की खपत" : "प्रोग्रेसिव खपत";
+            box.innerHTML = `📈 ${label}: ${fmtDateHi(fromIso)} से ${fmtDateHi(toIsoVal)} तक: <strong>${feederFmtLakh_(total)}</strong>`;
         }
 
         function toggleFeederMenu_() {
@@ -414,7 +420,6 @@
                 // network call lagti hai, phir yahi allRows local-refresh hoti hai.)
                 await loadFeederReportData(true);
                 feederScorecardAllRows_ = getAllFeederHistoryEntries_();
-                feederRenderProgressiveConsumption_(feederScorecardAllRows_);
                 feederRecomputeScorecardPeriods_();
             } catch (err) {
                 body.innerHTML = `<div style="text-align:center; padding:18px; font-size:12px; font-weight:800; color:#b91c1c;">Scorecard banane me error aaya, dobara try karein</div>`;
@@ -441,6 +446,7 @@
                 mapLastMonth: mapFor(lastMonth),
                 remarkText: feederExtractRemarkForPeriod_(allRows, thisMonth)
             };
+            feederRenderProgressiveConsumption_(allRows, thisMonth);
             feederRenderScorecardBody_();
         }
 
