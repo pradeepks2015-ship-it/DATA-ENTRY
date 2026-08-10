@@ -164,7 +164,7 @@ test.describe('Feeder Reading (active feature)', () => {
     expect(errors).toEqual([]);
   });
 
-  test('⋮ menu se substation/feeder-wise mahina-wise kWh scorecard dikhta hai, pichhle saal ka data manual edit/delete hota hai, remark save hota hai, aur download hota hai', async ({ page }) => {
+  test('⋮ menu se substation/feeder-wise mahina-wise kWh scorecard dikhta hai, pichhle saal ka data manual entry cloud par save/edit hota hai, remark save hota hai, aur download hota hai', async ({ page }) => {
     const errors = [];
     page.on('pageerror', (e) => errors.push(e.message));
 
@@ -189,6 +189,9 @@ test.describe('Feeder Reading (active feature)', () => {
     await openApp(page, {
       beforeGoto: async (p) => {
         await p.route('**/macros/**', (route) => {
+          if (route.request().method() === 'POST') {
+            return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ status: 'success' }) });
+          }
           const url = new URL(route.request().url());
           if (url.searchParams.get('action') === 'getFeederReadings') {
             return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(rows) });
@@ -220,22 +223,26 @@ test.describe('Feeder Reading (active feature)', () => {
     await expect(body).toContainText('200'); // pichhla mahina (auto)
     await expect(body).toContainText('GRAND TOTAL');
 
-    // Pichhle saal isi mahine ka koi record nahi tha — input khali hona chahiye
+    // Pichhle saal isi mahine ka koi record nahi tha — cell seedhe editable input honi chahiye (khali)
     const lastYearInput = page.locator('input[data-ss="TESTSS"][data-fdr="TESTFEEDER"]');
     await expect(lastYearInput).toHaveValue('');
+    const editBtn = page.locator('#feeder-scorecard-body button[title="Edit"]');
+    await expect(editBtn).toHaveCount(0); // khali cell par abhi edit button nahi hona chahiye
 
-    // Manual entry bharte hain — save hokar re-render hona chahiye, grand total me bhi jud jaana chahiye
+    // Manual entry bharte hain — cloud par submit hokar frozen (read-only + ✏️ Edit) ban jaani chahiye
     await lastYearInput.fill('500');
     await lastYearInput.dispatchEvent('change');
-    await page.waitForFunction(() => document.querySelector('input[data-ss="TESTSS"][data-fdr="TESTFEEDER"]')?.value === '500');
+    await page.waitForFunction(() => !document.querySelector('input[data-ss="TESTSS"][data-fdr="TESTFEEDER"]'));
     await expect(body).toContainText('500');
+    await expect(editBtn).toHaveCount(1); // ab save ho chuki hai, edit button dikhna chahiye
 
-    // Scorecard band-khol karne par bhi manual entry save rahni chahiye (localStorage persist)
+    // Scorecard band-khol karne par bhi manual entry save rahni chahiye (local + cloud persist)
     await page.click('#feeder-scorecard-close-btn');
     await page.click('#feeder-menu-btn');
     await page.click('#feeder-scorecard-btn');
     await page.waitForFunction(() => !document.getElementById('feeder-scorecard-body')?.innerText.includes('लोड हो रहा है'));
-    await expect(page.locator('input[data-ss="TESTSS"][data-fdr="TESTFEEDER"]')).toHaveValue('500');
+    await expect(page.locator('input[data-ss="TESTSS"][data-fdr="TESTFEEDER"]')).toHaveCount(0);
+    await expect(body).toContainText('500');
 
     // Remark likhte hain
     await page.fill('#feeder-scorecard-remark', 'Is mahine 8 din barish hui');
@@ -249,10 +256,29 @@ test.describe('Feeder Reading (active feature)', () => {
     expect(csvText).toContain('500');
     expect(csvText).toContain('barish');
 
-    // Khali karke delete karte hain — auto value (yahaan khali) par wapas aa jaana chahiye
+    // ✏️ Edit dabane par confirm modal khulni chahiye, unfreeze karne par hi input wapas aana chahiye
+    await page.locator('#feeder-scorecard-body button[title="Edit"]').click();
+    await expect(page.locator('#feeder-scorecard-unfreeze-overlay')).toBeVisible();
+    await expect(lastYearInput).toHaveCount(0); // confirm se pehle input nahi hona chahiye
+    await page.click('#feeder-scorecard-unfreeze-confirm-btn');
+    await expect(page.locator('#feeder-scorecard-unfreeze-overlay')).toHaveCount(0);
+    await expect(lastYearInput).toHaveValue('500'); // unfreeze hote hi pehli value pre-filled honi chahiye
+
+    // Naya value bharte hain — purani (500) ki jagah nayi (700) frozen dikhni chahiye
+    await lastYearInput.fill('700');
+    await lastYearInput.dispatchEvent('change');
+    await page.waitForFunction(() => !document.querySelector('input[data-ss="TESTSS"][data-fdr="TESTFEEDER"]'));
+    await expect(body).toContainText('700');
+    await expect(body).not.toContainText('500');
+
+    // Unfreeze karke khali chhod dein to edit cancel ho jaana chahiye — purani (700) frozen value wapas dikhni chahiye
+    await page.locator('#feeder-scorecard-body button[title="Edit"]').click();
+    await page.click('#feeder-scorecard-unfreeze-confirm-btn');
+    await expect(lastYearInput).toHaveValue('700');
     await lastYearInput.fill('');
     await lastYearInput.dispatchEvent('change');
-    await page.waitForFunction(() => document.querySelector('input[data-ss="TESTSS"][data-fdr="TESTFEEDER"]')?.value === '');
+    await page.waitForFunction(() => !document.querySelector('input[data-ss="TESTSS"][data-fdr="TESTFEEDER"]'));
+    await expect(body).toContainText('700');
 
     await page.click('#feeder-scorecard-close-btn');
     await expect(page.locator('#feeder-scorecard-overlay')).toHaveCount(0);
