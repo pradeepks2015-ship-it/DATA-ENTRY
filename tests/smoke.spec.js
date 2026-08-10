@@ -374,6 +374,13 @@ test.describe('Feeder Reading (active feature)', () => {
     await expect(body).toContainText('4,00,000');
     await expect(body).toContainText('3.00 L');
     await expect(body).toContainText('4.00 L');
+
+    // Purana (poora ho chuka) mahina select karne par progressive box "1 tareekh
+    // se aaj tak" nahi, balki "1 tareekh se us mahine ki aakhri tareekh tak"
+    // (poora mahina) dikhaana chahiye — us mahine ka poora total (3.00 L).
+    const progressiveBox = page.locator('#feeder-scorecard-progressive');
+    await expect(progressiveBox).toContainText('पूरे महीने की खपत');
+    await expect(progressiveBox).toContainText('3.00 L');
   });
 
   test('Scorecard "महीना चुनें" ke neeche 1 tareekh se aaj tak ki progressive khapat dikhti hai', async ({ page }) => {
