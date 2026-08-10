@@ -172,9 +172,12 @@ test.describe('Feeder Reading (active feature)', () => {
       'PREVIUS READING': '0', 'CURRENT READING': String(current), 'MF': '1', 'CONSUMPTION': String(current),
       'DC NAME': 'ADEGAON', 'DATE(DD/MM/YYY)': dateStr, 'TIME(HH/MM)': '10:00',
     });
+    // "कुल"/GRAND TOTAL rows Lakh unit me (2 dashamlav) dikhti hain, isliye
+    // fixtures Lakh-range me rakhte hain taaki total ka Lakh-format bhi test ho
+    // sake — individual feeder cells ab bhi poore number (comma-format) me hi dikhti hain.
     const rows = [
-      feederRow(dateMonthsAgo(0), 100),  // is mahina
-      feederRow(dateMonthsAgo(1), 200),  // pichhla mahina
+      feederRow(dateMonthsAgo(0), 100000),  // is mahina — "1,00,000", total "1.00 L"
+      feederRow(dateMonthsAgo(1), 200000),  // pichhla mahina — "2,00,000", total "2.00 L"
       // pichhle saal isi mahine ki koi record nahi — manual entry se bharenge
     ];
 
@@ -211,8 +214,10 @@ test.describe('Feeder Reading (active feature)', () => {
     const body = page.locator('#feeder-scorecard-body');
     await expect(body).toContainText('TESTSS');
     await expect(body).toContainText('TESTFEEDER');
-    await expect(body).toContainText('100'); // is mahina (auto)
-    await expect(body).toContainText('200'); // pichhla mahina (auto)
+    await expect(body).toContainText('1,00,000'); // is mahina (auto) individual cell — poora number
+    await expect(body).toContainText('2,00,000'); // pichhla mahina (auto) individual cell — poora number
+    await expect(body).toContainText('1.00 L'); // is mahina ka कुल/GRAND TOTAL — Lakh format
+    await expect(body).toContainText('2.00 L'); // pichhla mahina ka कुल/GRAND TOTAL — Lakh format
     await expect(body).toContainText('GRAND TOTAL');
 
     // Pichhle saal isi mahine ka koi record nahi tha — cell seedhe editable input honi chahiye (khali)
@@ -221,11 +226,13 @@ test.describe('Feeder Reading (active feature)', () => {
     const editBtn = page.locator('#feeder-scorecard-body button[title="Edit"]');
     await expect(editBtn).toHaveCount(0); // khali cell par abhi edit button nahi hona chahiye
 
-    // Manual entry bharte hain — cloud par submit hokar frozen (read-only + ✏️ Edit) ban jaani chahiye
-    await lastYearInput.fill('500');
+    // Manual entry poore raw kWh number me bharte hain (individual cell format) —
+    // cloud par submit hokar frozen (read-only + ✏️ Edit) ban jaani chahiye
+    await lastYearInput.fill('300000');
     await lastYearInput.dispatchEvent('change');
     await page.waitForFunction(() => !document.querySelector('input[data-ss="TESTSS"][data-fdr="TESTFEEDER"]'));
-    await expect(body).toContainText('500');
+    await expect(body).toContainText('3,00,000'); // individual cell — poora number
+    await expect(body).toContainText('3.00 L'); // कुल/GRAND TOTAL — Lakh format
     await expect(editBtn).toHaveCount(1); // ab save ho chuki hai, edit button dikhna chahiye
 
     // Scorecard band-khol karne par bhi manual entry save rahni chahiye (local + cloud persist)
@@ -234,18 +241,19 @@ test.describe('Feeder Reading (active feature)', () => {
     await page.click('#feeder-scorecard-btn');
     await page.waitForFunction(() => !document.getElementById('feeder-scorecard-body')?.innerText.includes('लोड हो रहा है'));
     await expect(page.locator('input[data-ss="TESTSS"][data-fdr="TESTFEEDER"]')).toHaveCount(0);
-    await expect(body).toContainText('500');
+    await expect(body).toContainText('3,00,000');
 
     // Remark likhte hain
     await page.fill('#feeder-scorecard-remark', 'Is mahine 8 din barish hui');
 
-    // Download CSV me manual entry aur remark dono aane chahiye
+    // Download CSV me manual entry raw kWh me (300000) aur remark dono aane
+    // chahiye — CSV precision ke liye hamesha raw number hi rakhta hai.
     await page.click('#feeder-scorecard-download-btn');
     await page.waitForFunction(() => window.__lastFeederCsvBlob !== null);
     const csvText = await page.evaluate(async () => await window.__lastFeederCsvBlob.text());
     expect(csvText).toContain('TESTSS');
     expect(csvText).toContain('TESTFEEDER');
-    expect(csvText).toContain('500');
+    expect(csvText).toContain('300000');
     expect(csvText).toContain('barish');
 
     // Remark 800ms debounce ke baad cloud/local par save hoti hai — usse pehle
@@ -270,23 +278,25 @@ test.describe('Feeder Reading (active feature)', () => {
     await expect(lastYearInput).toHaveCount(0); // confirm se pehle input nahi hona chahiye
     await page.click('#feeder-scorecard-unfreeze-confirm-btn');
     await expect(page.locator('#feeder-scorecard-unfreeze-overlay')).toHaveCount(0);
-    await expect(lastYearInput).toHaveValue('500'); // unfreeze hote hi pehli value pre-filled honi chahiye
+    await expect(lastYearInput).toHaveValue('300000'); // unfreeze hote hi pehli value (poora number) pre-filled honi chahiye
 
-    // Naya value bharte hain — purani (500) ki jagah nayi (700) frozen dikhni chahiye
-    await lastYearInput.fill('700');
+    // Naya value bharte hain — purani (3,00,000 / 3.00 L) ki jagah nayi (4,00,000 / 4.00 L) frozen dikhni chahiye
+    await lastYearInput.fill('400000');
     await lastYearInput.dispatchEvent('change');
     await page.waitForFunction(() => !document.querySelector('input[data-ss="TESTSS"][data-fdr="TESTFEEDER"]'));
-    await expect(body).toContainText('700');
-    await expect(body).not.toContainText('500');
+    await expect(body).toContainText('4,00,000');
+    await expect(body).toContainText('4.00 L');
+    await expect(body).not.toContainText('3,00,000');
+    await expect(body).not.toContainText('3.00 L');
 
-    // Unfreeze karke khali chhod dein to edit cancel ho jaana chahiye — purani (700) frozen value wapas dikhni chahiye
+    // Unfreeze karke khali chhod dein to edit cancel ho jaana chahiye — purani (4,00,000) frozen value wapas dikhni chahiye
     await page.locator('#feeder-scorecard-body button[title="Edit"]').click();
     await page.click('#feeder-scorecard-unfreeze-confirm-btn');
-    await expect(lastYearInput).toHaveValue('700');
+    await expect(lastYearInput).toHaveValue('400000');
     await lastYearInput.fill('');
     await lastYearInput.dispatchEvent('change');
     await page.waitForFunction(() => !document.querySelector('input[data-ss="TESTSS"][data-fdr="TESTFEEDER"]'));
-    await expect(body).toContainText('700');
+    await expect(body).toContainText('4,00,000');
 
     await page.click('#feeder-scorecard-close-btn');
     await expect(page.locator('#feeder-scorecard-overlay')).toHaveCount(0);
@@ -309,11 +319,12 @@ test.describe('Feeder Reading (active feature)', () => {
       'PREVIUS READING': '0', 'CURRENT READING': String(current), 'MF': '1', 'CONSUMPTION': String(current),
       'DC NAME': 'ADEGAON', 'DATE(DD/MM/YYY)': dateStr, 'TIME(HH/MM)': '10:00',
     });
+    // Scorecard values Lakh unit me dikhti hain — fixtures Lakh-range me rakhte hain.
     const rows = [
-      feederRow(dateMonthsAgo(0), 100), // is mahina
-      feederRow(dateMonthsAgo(1), 200), // pichhla mahina
-      feederRow(dateMonthsAgo(2), 300), // 2 mahine pehle
-      feederRow(dateMonthsAgo(3), 400), // 3 mahine pehle
+      feederRow(dateMonthsAgo(0), 100000), // is mahina — 1.00 L
+      feederRow(dateMonthsAgo(1), 200000), // pichhla mahina — 2.00 L
+      feederRow(dateMonthsAgo(2), 300000), // 2 mahine pehle — 3.00 L
+      feederRow(dateMonthsAgo(3), 400000), // 3 mahine pehle — 4.00 L
     ];
 
     await openApp(page, {
@@ -339,18 +350,22 @@ test.describe('Feeder Reading (active feature)', () => {
     const body = page.locator('#feeder-scorecard-body');
     const monthInput = page.locator('#feeder-scorecard-month-select');
 
-    // Default open par aaj ka mahina hi selected hona chahiye, 100/200 dikhne chahiye
+    // Default open par aaj ka mahina hi selected hona chahiye — individual cell
+    // poore number me, कुल/GRAND TOTAL Lakh format me dikhne chahiye
     await expect(monthInput).toHaveValue(yearMonthAgo(0));
-    await expect(body).toContainText('100');
-    await expect(body).toContainText('200');
+    await expect(body).toContainText('1,00,000');
+    await expect(body).toContainText('2,00,000');
+    await expect(body).toContainText('1.00 L');
+    await expect(body).toContainText('2.00 L');
 
     // 2 mahine pehle wala mahina select karte hain — "is mahina" ab wahi ban jaata
-    // hai, to 300 (usi mahine ka) aur 400 (uske pichhle mahine ka) dikhna chahiye
+    // hai, to 3,00,000 (usi mahine ka) aur 4,00,000 (uske pichhle mahine ka) dikhna chahiye
     await monthInput.fill(yearMonthAgo(2));
     await monthInput.dispatchEvent('change');
-    await page.waitForFunction(() => document.getElementById('feeder-scorecard-body')?.innerText.includes('300'));
-    await expect(body).toContainText('300');
-    await expect(body).toContainText('400');
+    await page.waitForFunction(() => document.getElementById('feeder-scorecard-body')?.innerText.includes('3,00,000'));
+    await expect(body).toContainText('4,00,000');
+    await expect(body).toContainText('3.00 L');
+    await expect(body).toContainText('4.00 L');
   });
 });
 
