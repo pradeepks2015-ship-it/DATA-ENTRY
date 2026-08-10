@@ -441,6 +441,10 @@
             }
 
             const fmt = (n) => (n === null ? "—" : Math.round(n).toLocaleString("en-IN"));
+            // "कुल" aur GRAND TOTAL rows me hi Lakh unit (2 dashamlav) me dikhate
+            // hain (jaise 9,13,900 kWh → "9.14 L") — individual feeder values poore
+            // number me hi rehti hain. CSV me hamesha poora raw kWh number hi jaata hai.
+            const fmtLakh = (n) => (n === null ? "—" : (n / 100000).toFixed(2) + " L");
             const csvRows = [["Substation", "Feeder", thisMonth.label, `${lastYear.label} (मैन्युअल हो सकता है)`, lastMonth.label]];
             const grandTotal = [0, 0, 0];
 
@@ -497,9 +501,9 @@
                         ${feederRowsHtml}
                         <div style="display:grid; grid-template-columns:1.3fr 1fr 1fr 1fr; gap:4px; padding-top:6px; margin-top:4px; border-top:2px solid #ec4899;">
                             <span style="font-weight:900; color:#1e293b; font-size:10.5px;">कुल</span>
-                            <span style="font-weight:900; color:#16a34a; text-align:center; font-size:10.5px;">${fmt(ssTotal[0])}</span>
-                            <span style="font-weight:900; color:#1d4ed8; text-align:center; font-size:10.5px;">${fmt(ssTotal[1])}</span>
-                            <span style="font-weight:900; color:#b45309; text-align:center; font-size:10.5px;">${fmt(ssTotal[2])}</span>
+                            <span style="font-weight:900; color:#16a34a; text-align:center; font-size:10.5px;">${fmtLakh(ssTotal[0])}</span>
+                            <span style="font-weight:900; color:#1d4ed8; text-align:center; font-size:10.5px;">${fmtLakh(ssTotal[1])}</span>
+                            <span style="font-weight:900; color:#b45309; text-align:center; font-size:10.5px;">${fmtLakh(ssTotal[2])}</span>
                         </div>
                     </div>`;
             });
@@ -509,9 +513,9 @@
                 <div style="background:#4a044e; border-radius:10px; padding:10px; margin-bottom:12px;">
                     <div style="display:grid; grid-template-columns:1.3fr 1fr 1fr 1fr; gap:4px; align-items:center;">
                         <span style="font-weight:900; color:#fce7f3; font-size:11px; text-transform:uppercase;">GRAND TOTAL</span>
-                        <span style="font-weight:900; color:#86efac; text-align:center; font-size:11px;">${fmt(grandTotal[0])}</span>
-                        <span style="font-weight:900; color:#93c5fd; text-align:center; font-size:11px;">${fmt(grandTotal[1])}</span>
-                        <span style="font-weight:900; color:#fde68a; text-align:center; font-size:11px;">${fmt(grandTotal[2])}</span>
+                        <span style="font-weight:900; color:#86efac; text-align:center; font-size:11px;">${fmtLakh(grandTotal[0])}</span>
+                        <span style="font-weight:900; color:#93c5fd; text-align:center; font-size:11px;">${fmtLakh(grandTotal[1])}</span>
+                        <span style="font-weight:900; color:#fde68a; text-align:center; font-size:11px;">${fmtLakh(grandTotal[2])}</span>
                     </div>
                 </div>
                 <div>
