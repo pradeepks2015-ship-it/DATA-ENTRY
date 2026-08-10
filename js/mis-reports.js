@@ -447,9 +447,9 @@
             let bodyHtml = `
                 <div style="display:grid; grid-template-columns:1.3fr 1fr 1fr 1fr; gap:4px; padding:0 10px 6px 10px; font-size:9.5px; font-weight:900; color:#64748b; text-transform:uppercase; border-bottom:2px solid #f472b6;">
                     <span>Feeder</span>
-                    <span style="text-align:right; color:#16a34a;">${escapeHtml(thisMonth.label)}</span>
-                    <span style="text-align:right; color:#1d4ed8;">${escapeHtml(lastYear.label)}</span>
-                    <span style="text-align:right; color:#b45309;">${escapeHtml(lastMonth.label)}</span>
+                    <span style="text-align:center; color:#16a34a;">${escapeHtml(thisMonth.label)}</span>
+                    <span style="text-align:center; color:#1d4ed8;">${escapeHtml(lastYear.label)}</span>
+                    <span style="text-align:center; color:#b45309;">${escapeHtml(lastMonth.label)}</span>
                 </div>
             `;
             Array.from(ssNames).sort().forEach((ss) => {
@@ -474,20 +474,20 @@
                     // ki zaroorat nahi).
                     const isUnfrozen = feederScorecardUnfrozenCells_.has(feederScorecardCellKey_(ss, fdr));
                     const lastYearCellHtml = (valLastYear !== null && !isUnfrozen)
-                        ? `<span style="display:flex; align-items:center; justify-content:flex-end; gap:4px;">
+                        ? `<span style="display:flex; align-items:center; justify-content:center; gap:4px;">
                                 <span style="font-weight:900; color:#1d4ed8;">${fmt(valLastYear)}</span>
                                 <button type="button" onclick="feederUnfreezeLastYearCell_('${escapeHtml(ss)}','${escapeHtml(fdr)}')" title="Edit" style="border:none; background:#eff6ff; color:#1d4ed8; border-radius:6px; padding:2px 5px; font-size:9px; font-weight:900; cursor:pointer; line-height:1.4;">✏️</button>
                            </span>`
                         : `<input type="number" inputmode="decimal" value="${valLastYear !== null ? valLastYear : ""}" placeholder="भरें"
                                 data-ss="${escapeHtml(ss)}" data-fdr="${escapeHtml(fdr)}" onchange="feederSubmitManualLastYearEntry_(this)"
-                                style="width:100%; text-align:right; border:1.3px solid #93c5fd; border-radius:6px; font-size:10px; font-weight:900; color:#1d4ed8; padding:3px 4px; background:#eff6ff; box-sizing:border-box;">`;
+                                style="width:100%; text-align:center; border:1.3px solid #93c5fd; border-radius:6px; font-size:10px; font-weight:900; color:#1d4ed8; padding:3px 4px; background:#eff6ff; box-sizing:border-box;">`;
 
                     return `
                         <div style="display:grid; grid-template-columns:1.3fr 1fr 1fr 1fr; gap:4px; padding:5px 0; border-bottom:1px solid #fce7f3; font-size:10.5px; align-items:center;">
                             <span style="font-weight:700; color:#334155;">${escapeHtml(fdr)}</span>
-                            <span style="font-weight:900; color:#16a34a; text-align:right;">${fmt(valThisMonth)}</span>
+                            <span style="font-weight:900; color:#16a34a; text-align:center;">${fmt(valThisMonth)}</span>
                             ${lastYearCellHtml}
-                            <span style="font-weight:900; color:#b45309; text-align:right;">${fmt(valLastMonth)}</span>
+                            <span style="font-weight:900; color:#b45309; text-align:center;">${fmt(valLastMonth)}</span>
                         </div>`;
                 }).join("");
                 grandTotal[0] += ssTotal[0]; grandTotal[1] += ssTotal[1]; grandTotal[2] += ssTotal[2];
@@ -497,9 +497,9 @@
                         ${feederRowsHtml}
                         <div style="display:grid; grid-template-columns:1.3fr 1fr 1fr 1fr; gap:4px; padding-top:6px; margin-top:4px; border-top:2px solid #ec4899;">
                             <span style="font-weight:900; color:#1e293b; font-size:10.5px;">कुल</span>
-                            <span style="font-weight:900; color:#16a34a; text-align:right; font-size:10.5px;">${fmt(ssTotal[0])}</span>
-                            <span style="font-weight:900; color:#1d4ed8; text-align:right; font-size:10.5px;">${fmt(ssTotal[1])}</span>
-                            <span style="font-weight:900; color:#b45309; text-align:right; font-size:10.5px;">${fmt(ssTotal[2])}</span>
+                            <span style="font-weight:900; color:#16a34a; text-align:center; font-size:10.5px;">${fmt(ssTotal[0])}</span>
+                            <span style="font-weight:900; color:#1d4ed8; text-align:center; font-size:10.5px;">${fmt(ssTotal[1])}</span>
+                            <span style="font-weight:900; color:#b45309; text-align:center; font-size:10.5px;">${fmt(ssTotal[2])}</span>
                         </div>
                     </div>`;
             });
@@ -509,9 +509,9 @@
                 <div style="background:#4a044e; border-radius:10px; padding:10px; margin-bottom:12px;">
                     <div style="display:grid; grid-template-columns:1.3fr 1fr 1fr 1fr; gap:4px; align-items:center;">
                         <span style="font-weight:900; color:#fce7f3; font-size:11px; text-transform:uppercase;">GRAND TOTAL</span>
-                        <span style="font-weight:900; color:#86efac; text-align:right; font-size:11px;">${fmt(grandTotal[0])}</span>
-                        <span style="font-weight:900; color:#93c5fd; text-align:right; font-size:11px;">${fmt(grandTotal[1])}</span>
-                        <span style="font-weight:900; color:#fde68a; text-align:right; font-size:11px;">${fmt(grandTotal[2])}</span>
+                        <span style="font-weight:900; color:#86efac; text-align:center; font-size:11px;">${fmt(grandTotal[0])}</span>
+                        <span style="font-weight:900; color:#93c5fd; text-align:center; font-size:11px;">${fmt(grandTotal[1])}</span>
+                        <span style="font-weight:900; color:#fde68a; text-align:center; font-size:11px;">${fmt(grandTotal[2])}</span>
                     </div>
                 </div>
                 <div>
