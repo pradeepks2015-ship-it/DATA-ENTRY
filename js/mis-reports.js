@@ -514,9 +514,12 @@
                                 <span style="font-weight:900; color:#1d4ed8;">${fmt(valLastYear)}</span>
                                 <button type="button" onclick="feederUnfreezeLastYearCell_('${escapeHtml(ss)}','${escapeHtml(fdr)}')" title="Edit" style="border:none; background:#eff6ff; color:#1d4ed8; border-radius:6px; padding:2px 5px; font-size:9px; font-weight:900; cursor:pointer; line-height:1.4;">✏️</button>
                            </span>`
-                        : `<input type="number" inputmode="decimal" value="${valLastYear !== null ? valLastYear : ""}" placeholder="भरें"
-                                data-ss="${escapeHtml(ss)}" data-fdr="${escapeHtml(fdr)}" onchange="feederSubmitManualLastYearEntry_(this)"
-                                style="width:100%; text-align:center; border:1.3px solid #93c5fd; border-radius:6px; font-size:10px; font-weight:900; color:#1d4ed8; padding:3px 4px; background:#eff6ff; box-sizing:border-box;">`;
+                        : `<span style="display:flex; align-items:center; justify-content:center; gap:3px;">
+                                <input type="number" inputmode="decimal" value="${valLastYear !== null ? valLastYear : ""}" placeholder="भरें"
+                                    data-ss="${escapeHtml(ss)}" data-fdr="${escapeHtml(fdr)}" onchange="feederSubmitManualLastYearEntry_(this)"
+                                    style="width:100%; min-width:0; text-align:center; border:1.3px solid #93c5fd; border-radius:6px; font-size:10px; font-weight:900; color:#1d4ed8; padding:3px 2px; background:#eff6ff; box-sizing:border-box;">
+                                <button type="button" onclick="feederSubmitManualLastYearEntry_(this.previousElementSibling)" title="Save" style="flex-shrink:0; border:none; background:#dcfce7; color:#15803d; border-radius:6px; padding:2px 5px; font-size:9px; font-weight:900; cursor:pointer; line-height:1.4;">✔</button>
+                           </span>`;
 
                     return `
                         <div style="display:grid; grid-template-columns:1.3fr 1fr 1fr 1fr; gap:4px; padding:5px 0; border-bottom:1px solid #fce7f3; font-size:10.5px; align-items:center;">
@@ -553,6 +556,7 @@
                 <div>
                     <div style="font-size:10.5px; font-weight:900; color:#9d174d; text-transform:uppercase; margin-bottom:6px;">📝 रिमार्क (विशेष परिस्थितियां जो इनपुट को प्रभावित करती हैं)</div>
                     <textarea id="feeder-scorecard-remark" oninput="feederSaveScorecardRemark_(this)" placeholder="जैसे: इस महीने 8 दिन बारिश हुई, 5 दिन ब्रेकडाउन ज्यादा रहा..." style="width:100%; min-height:70px; border-radius:10px; border:1.5px solid #fbcfe8; padding:8px; font-size:11px; font-weight:700; color:#1e293b; resize:vertical; outline:none; box-sizing:border-box;">${escapeHtml(remarkText || "")}</textarea>
+                    <button type="button" id="feeder-scorecard-remark-save-btn" onclick="feederSaveScorecardRemarkNow_()" style="width:100%; height:38px; margin-top:8px; border:none; border-radius:10px; background:linear-gradient(135deg,#16a34a,#15803d); color:#fff; font-size:11px; font-weight:900; text-transform:uppercase; cursor:pointer;">✔ रिमार्क Save करें</button>
                 </div>
             `;
             body.innerHTML = bodyHtml;
@@ -676,25 +680,42 @@
 
         // Har keystroke par cloud call nahi lagti — typing rukne ke 800ms baad
         // (ya scorecard band/month badalne par turant flush) hi submit hoti hai.
+        // Yeh auto-save chup-chaap (silent) hoti hai — taaki typing ke beech baar
+        // baar toast na aaye; confirmation ke liye "✔ रिमार्क Save करें" button hai.
         let feederRemarkSaveTimer_ = null;
         function feederSaveScorecardRemark_(textareaEl) {
             if (!feederScorecardState_) return;
             feederScorecardState_.remarkText = textareaEl.value; // state/CSV turant reflect ho
             clearTimeout(feederRemarkSaveTimer_);
-            feederRemarkSaveTimer_ = setTimeout(() => feederSubmitScorecardRemarkToCloud_(textareaEl.value), 800);
+            feederRemarkSaveTimer_ = setTimeout(() => feederSubmitScorecardRemarkToCloud_(textareaEl.value, { silent: true }), 800);
         }
 
         function feederFlushScorecardRemarkSave_() {
             if (!feederRemarkSaveTimer_) return;
             clearTimeout(feederRemarkSaveTimer_);
             feederRemarkSaveTimer_ = null;
-            if (feederScorecardState_) feederSubmitScorecardRemarkToCloud_(feederScorecardState_.remarkText || "");
+            if (feederScorecardState_) feederSubmitScorecardRemarkToCloud_(feederScorecardState_.remarkText || "", { silent: true });
+        }
+
+        // "✔ रिमार्क Save करें" button — turant submit karta hai aur hamesha
+        // confirmation toast dikhata hai (chahe save ho jaaye ya offline queue ho jaaye).
+        function feederSaveScorecardRemarkNow_() {
+            const textareaEl = document.getElementById("feeder-scorecard-remark");
+            const btn = document.getElementById("feeder-scorecard-remark-save-btn");
+            if (!textareaEl || !feederScorecardState_) return;
+            clearTimeout(feederRemarkSaveTimer_);
+            feederRemarkSaveTimer_ = null;
+            feederScorecardState_.remarkText = textareaEl.value;
+            if (btn) { btn.disabled = true; btn.innerText = "Saving..."; }
+            feederSubmitScorecardRemarkToCloud_(textareaEl.value, { silent: false }).finally(() => {
+                if (btn) { btn.disabled = false; btn.innerText = "✔ रिमार्क Save करें"; }
+            });
         }
 
         // Remark ko bhi feeder submission endpoint ke through cloud par save karta
         // hai — ek sentinel "REMARK" meter-no wali row, jo kabhi feeder aggregation/
         // reports me nahi ginti (feederFilterRowsByDcAndDate_ me exclude hoti hai).
-        async function feederSubmitScorecardRemarkToCloud_(text) {
+        async function feederSubmitScorecardRemarkToCloud_(text, { silent = true } = {}) {
             if (!feederScorecardState_) return;
             const period = feederScorecardState_.thisMonth;
             const [y, m] = period.from.split("-");
@@ -715,18 +736,37 @@
                 payload.append("module", "feeder");
                 payload.append("entries_json", JSON.stringify([entry]));
                 payload.append("auth_token", APPS_SCRIPT_AUTH_TOKEN);
+
+                let submitOk = false;
+                let queuedOffline = false;
                 try {
-                    await fetchWithTimeout_(feederSubmitScriptUrl, {
+                    const response = await fetchWithTimeout_(feederSubmitScriptUrl, {
                         method: "POST",
                         headers: { "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8" },
                         body: payload.toString()
                     });
+                    submitOk = response.ok;
                 } catch (networkError) {
-                    try { await queueOfflineSync_({ kind: "post_form", body: payload.toString() }); } catch (_) {}
+                    try {
+                        await queueOfflineSync_({ kind: "post_form", body: payload.toString() });
+                        queuedOffline = true;
+                    } catch (_) {}
                 }
                 saveRecentFeederSubmittedEntries_([entry]);
                 feederScorecardAllRows_ = getAllFeederHistoryEntries_();
-            } catch (_) {}
+
+                if (!silent) {
+                    if (submitOk) {
+                        showToast("रिमार्क cloud पर save हो गई", true);
+                    } else if (queuedOffline) {
+                        showToast("रिमार्क device पर save हो गई 🔄 Internet आने पर cloud sync हो जाएगी", true);
+                    } else {
+                        showToast("रिमार्क device पर save हो गई, लेकिन cloud sync अभी नहीं हो पाया", false);
+                    }
+                }
+            } catch (err) {
+                if (!silent) showToast("रिमार्क save करने में error आया, दोबारा try करें", false);
+            }
         }
 
         function feederDownloadMonthlyScorecardCsv_() {

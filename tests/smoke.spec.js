@@ -234,14 +234,17 @@ test.describe('Feeder Reading (active feature)', () => {
     const editBtn = page.locator('#feeder-scorecard-body button[title="Edit"]');
     await expect(editBtn).toHaveCount(0); // khali cell par abhi edit button nahi hona chahiye
 
-    // Manual entry poore raw kWh number me bharte hain (individual cell format) —
-    // cloud par submit hokar frozen (read-only + ✏️ Edit) ban jaani chahiye
+    // Manual entry poore raw kWh number me bharte hain aur "✔ Save" button
+    // dabate hain (explicit save, sirf blur/onchange par bharosa nahi) — cloud
+    // par submit hokar frozen (read-only + ✏️ Edit) ban jaani chahiye, aur
+    // confirmation toast bhi aani chahiye.
     await lastYearInput.fill('300000');
-    await lastYearInput.dispatchEvent('change');
+    await page.locator('#feeder-scorecard-body button[title="Save"]').click();
     await page.waitForFunction(() => !document.querySelector('input[data-ss="TESTSS"][data-fdr="TESTFEEDER"]'));
     await expect(body).toContainText('3,00,000'); // individual cell — poora number
     await expect(body).toContainText('3.00 L'); // कुल/GRAND TOTAL — Lakh format
     await expect(editBtn).toHaveCount(1); // ab save ho chuki hai, edit button dikhna chahiye
+    await expect(page.locator('#toast-notif')).toContainText('save');
 
     // Scorecard band-khol karne par bhi manual entry save rahni chahiye (local + cloud persist)
     await page.click('#feeder-scorecard-close-btn');
@@ -251,8 +254,12 @@ test.describe('Feeder Reading (active feature)', () => {
     await expect(page.locator('input[data-ss="TESTSS"][data-fdr="TESTFEEDER"]')).toHaveCount(0);
     await expect(body).toContainText('3,00,000');
 
-    // Remark likhte hain
+    // Remark likhte hain aur "✔ रिमार्क Save करें" button dabate hain — explicit
+    // save, confirmation toast bhi aani chahiye (silent auto-save se alag).
     await page.fill('#feeder-scorecard-remark', 'Is mahine 8 din barish hui');
+    await page.click('#feeder-scorecard-remark-save-btn');
+    await page.waitForFunction(() => document.getElementById('toast-notif')?.textContent?.includes('रिमार्क'));
+    await expect(page.locator('#toast-notif')).toContainText('रिमार्क');
 
     // Download CSV me manual entry raw kWh me (300000) aur remark dono aane
     // chahiye — CSV precision ke liye hamesha raw number hi rakhta hai.
@@ -263,11 +270,6 @@ test.describe('Feeder Reading (active feature)', () => {
     expect(csvText).toContain('TESTFEEDER');
     expect(csvText).toContain('300000');
     expect(csvText).toContain('barish');
-
-    // Remark 800ms debounce ke baad cloud/local par save hoti hai — usse pehle
-    // hi close kar dein to close-button flush bhi turant save kar deta hai,
-    // lekin yahaan debounce khud poora hone dete hain (deterministic wait).
-    await page.waitForTimeout(900);
 
     // Scorecard band karke dobara kholne par wahi remark text dikhna chahiye —
     // aur remark ki sentinel row kisi bhi substation/feeder aggregation me
