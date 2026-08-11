@@ -736,12 +736,15 @@
             document.body.appendChild(overlay);
 
             document.getElementById("mc-scorecard-close-btn").onclick = () => overlay.remove();
-            document.getElementById("mc-sc-from").onchange = mcRefreshScorecard_;
-            document.getElementById("mc-sc-to").onchange = mcRefreshScorecard_;
-            mcRefreshScorecard_();
+            document.getElementById("mc-sc-from").onchange = () => mcRefreshScorecard_("cache");
+            document.getElementById("mc-sc-to").onchange = () => mcRefreshScorecard_("cache");
+            // Cache-first: turant jo data pehle se load ho chuka hai usi se dikhao
+            // (network ka wait nahi), phir background me force-refresh karke
+            // dobara render karo — "लोड हो रहा है" der tak atka nahi rehta.
+            mcRefreshScorecard_("cache").then(() => mcRefreshScorecard_("force"));
         }
 
-        async function mcRefreshScorecard_() {
+        async function mcRefreshScorecard_(mode = "cache") {
             const body = document.getElementById("mc-scorecard-body");
             if (!body) return;
             const fromDate = document.getElementById("mc-sc-from")?.value || "";
@@ -756,7 +759,7 @@
             if (toTs) toTs.setHours(23, 59, 59, 999);
 
             const dcFilter = activeDC || "";
-            const all = await getMobileCorrectionEntries_();
+            const all = await getMobileCorrectionEntries_(mode);
             const entries = all.filter((e) => {
                 if (dcFilter && e.dc_name !== dcFilter) return false;
                 if (!fromTs && !toTs) return true;
