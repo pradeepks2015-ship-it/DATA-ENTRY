@@ -19,9 +19,26 @@ self.addEventListener("activate", (e) => {
   );
 });
 
+// App-update check/button explicitly {cache:"reload"} fetch karte hain — usse
+// SW cache bilkul bypass karke seedhe network se fresh jawab milta hai, taaki
+// version check aur "अभी अपडेट करें" hamesha bharosemand rahein.
+self.addEventListener("message", (e) => {
+  if (e.data?.type !== "FORCE_REFRESH") return;
+  e.waitUntil(
+    caches.open(CACHE)
+      .then((c) => c.keys().then((keys) => Promise.all(keys.map((req) =>
+        fetch(req.url, { cache: "reload" })
+          .then((res) => { if (res && res.ok) return c.put(req, res); })
+          .catch(() => {})
+      ))))
+      .then(() => { e.source?.postMessage({ type: "FORCE_REFRESH_DONE" }); })
+  );
+});
+
 self.addEventListener("fetch", (e) => {
   const req = e.request;
   if (req.method !== "GET") return; // POST (data submit) ko kabhi intercept nahi karte
+  if (req.cache === "reload") return; // explicit force-fresh request — SW cache bypass, seedha network
 
   let url;
   try {
