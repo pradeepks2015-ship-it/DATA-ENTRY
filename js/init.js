@@ -13,3 +13,51 @@
                 navigator.serviceWorker.register("./sw.js").catch(() => {});
             });
         }
+
+        // ===== App Update Banner =====
+        // Har naye deploy par version.json ka "v" badhaya jaata hai (index.html ke
+        // window.__APP_VERSION__ ke saath). Yeh check periodically dekhta hai ki
+        // server par naya version aaya hai ya nahi — agar haan, to neeche ek patti
+        // dikhti hai "अभी अपडेट करें" button ke saath. Dabane par SW ka poora cache
+        // force-refresh hokar app reload ho jaati hai — dobara install/close-reopen
+        // ki zaroorat nahi padti.
+        let appUpdateAvailable_ = false;
+        async function checkForAppUpdate_() {
+            if (appUpdateAvailable_ || !navigator.onLine) return;
+            try {
+                const res = await fetch("./version.json?t=" + Date.now(), { cache: "reload" });
+                if (!res.ok) return;
+                const data = await res.json();
+                if (data && typeof data.v !== "undefined" && data.v !== window.__APP_VERSION__) {
+                    appUpdateAvailable_ = true;
+                    const banner = document.getElementById("app-update-banner");
+                    if (banner) banner.style.display = "flex";
+                }
+            } catch (_) {}
+        }
+
+        function applyAppUpdate_() {
+            const btn = document.getElementById("app-update-btn");
+            if (btn) { btn.disabled = true; btn.innerText = "अपडेट हो रहा है..."; }
+            let done = false;
+            const finish = () => { if (!done) { done = true; location.reload(); } };
+            if (navigator.serviceWorker && navigator.serviceWorker.controller) {
+                const onMsg = (e) => {
+                    if (e.data && e.data.type === "FORCE_REFRESH_DONE") {
+                        navigator.serviceWorker.removeEventListener("message", onMsg);
+                        finish();
+                    }
+                };
+                navigator.serviceWorker.addEventListener("message", onMsg);
+                navigator.serviceWorker.controller.postMessage({ type: "FORCE_REFRESH" });
+                setTimeout(finish, 8000); // safety fallback — kabhi response na aaye tab bhi atke na
+            } else {
+                finish();
+            }
+        }
+
+        setTimeout(checkForAppUpdate_, 5000);
+        setInterval(checkForAppUpdate_, 5 * 60 * 1000);
+        document.addEventListener("visibilitychange", () => {
+            if (document.visibilityState === "visible") checkForAppUpdate_();
+        });
