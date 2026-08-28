@@ -536,13 +536,11 @@ test.describe('App Update Banner', () => {
   });
 
   test('server ka version wahi (badla nahi) ho to update banner nahi dikhta', async ({ page }) => {
-    await openApp(page, {
-      beforeGoto: async (p) => {
-        await p.route('**/version.json*', (route) => {
-          return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ v: 1 }) });
-        });
-      },
-    });
+    // version.json ko mock nahi karte — asli file serve hoti hai, jo index.html
+    // ke window.__APP_VERSION__ se hamesha sync rehti hai (deploy ke waqt saath
+    // badhaate hain), isliye yeh "no update" case ko naturally represent karta
+    // hai — version bump hone par is test ko hardcoded number update nahi karna padta.
+    await openApp(page);
     await page.evaluate(() => checkForAppUpdate_());
     await page.waitForTimeout(300);
     await expect(page.locator('#app-update-banner')).toBeHidden();
