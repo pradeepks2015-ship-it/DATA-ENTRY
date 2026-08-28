@@ -504,6 +504,43 @@ test.describe('XSS सुरक्षा', () => {
   });
 });
 
+test.describe('App Update Banner', () => {
+  test('naya version.json milne par update banner dikhta hai, button dabane par app reload hoti hai', async ({ page }) => {
+    const errors = [];
+    page.on('pageerror', (e) => errors.push(e.message));
+    await openApp(page, {
+      beforeGoto: async (p) => {
+        await p.route('**/version.json*', (route) => {
+          return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ v: 999 }) });
+        });
+      },
+    });
+
+    await expect(page.locator('#app-update-banner')).toBeHidden();
+    await page.evaluate(() => checkForAppUpdate_());
+    await expect(page.locator('#app-update-banner')).toBeVisible();
+    await expect(page.locator('#app-update-banner')).toContainText('नया अपडेट उपलब्ध है');
+
+    const loadPromise = page.waitForEvent('load');
+    await page.click('#app-update-btn');
+    await loadPromise;
+    expect(errors).toEqual([]);
+  });
+
+  test('server ka version wahi (badla nahi) ho to update banner nahi dikhta', async ({ page }) => {
+    await openApp(page, {
+      beforeGoto: async (p) => {
+        await p.route('**/version.json*', (route) => {
+          return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ v: 1 }) });
+        });
+      },
+    });
+    await page.evaluate(() => checkForAppUpdate_());
+    await page.waitForTimeout(300);
+    await expect(page.locator('#app-update-banner')).toBeHidden();
+  });
+});
+
 test.describe('Entry detail view (UX fix — instant feedback + no redundant refetch)', () => {
   test('View click par turant loading overlay dikhta hai (data aane se pehle hi)', async ({ page }) => {
     let resolveEntries;
