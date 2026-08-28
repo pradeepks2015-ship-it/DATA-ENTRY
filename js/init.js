@@ -16,11 +16,12 @@
 
         // ===== App Update Banner =====
         // Har naye deploy par version.json ka "v" badhaya jaata hai (index.html ke
-        // window.__APP_VERSION__ ke saath). Yeh check periodically dekhta hai ki
-        // server par naya version aaya hai ya nahi — agar haan, to neeche ek patti
-        // dikhti hai "अभी अपडेट करें" button ke saath. Dabane par SW ka poora cache
-        // force-refresh hokar app reload ho jaati hai — dobara install/close-reopen
-        // ki zaroorat nahi padti.
+        // window.__APP_VERSION__ ke saath). App khulte waqt aur foreground me wapas
+        // aane par (fixed timer-loop nahi, taaki idle padi app baar-baar network
+        // data na khaaye) yeh dekhta hai ki server par naya version aaya hai ya
+        // nahi — agar haan, to neeche ek patti dikhti hai "अभी अपडेट करें" button
+        // ke saath. Dabane par SW ka poora cache force-refresh hokar app reload ho
+        // jaati hai — dobara install/close-reopen ki zaroorat nahi padti.
         let appUpdateAvailable_ = false;
         async function checkForAppUpdate_() {
             if (appUpdateAvailable_ || !navigator.onLine) return;
@@ -56,8 +57,12 @@
             }
         }
 
+        // Fixed timer-loop (jaise har 5 min) nahi rakhte — usse app khuli/idle padi
+        // rahe tab bhi baar-baar network call lagti rehti, data cost badhta.
+        // Sirf natural checkpoints par check karte hain: app khulte waqt (ek baar),
+        // aur jab bhi user wapas app par aaye (background se foreground) — yeh
+        // dono waise bhi user ki apni activity se hi trigger hote hain.
         setTimeout(checkForAppUpdate_, 5000);
-        setInterval(checkForAppUpdate_, 5 * 60 * 1000);
         document.addEventListener("visibilitychange", () => {
             if (document.visibilityState === "visible") checkForAppUpdate_();
         });
