@@ -689,6 +689,57 @@ test.describe('Offline sync queue (Karya Charitra)', () => {
     expect(after.queueLen).toBe(0);
     expect(after.entryId).toBe('E_REPLAYED');
   });
+
+  test('queue mein ek entry permanently (backend se) fail ho to baaki entries phir bhi sync ho jaani chahiye (poison-message fix)', async ({ page }) => {
+    let online = false;
+    await openApp(page, {
+      beforeGoto: (p) => p.route('**/macros/**', (route) => {
+        if (!online) return route.abort('failed');
+        // postData() form-urlencoded raw body deta hai — entry_json nikalne ke
+        // liye URLSearchParams se decode karna padta hai (raw string me "%22"
+        // jaisa encoded hota hai, seedha ".includes" match nahi karta).
+        const entryJson = new URLSearchParams(route.request().postData() || '').get('entry_json') || '';
+        if (entryJson.includes('"dispatch_no":7777')) {
+          // Yeh entry hamesha backend-reject hoti hai (network down nahi) —
+          // permanent/logical failure simulate karta hai (jaise validation error).
+          return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ status: 'error', message: 'Validation failed' }) });
+        }
+        return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ status: 'success', entry_id: 'E_GOOD' }) });
+      }),
+    });
+
+    await page.evaluate(async () => {
+      await kcSaveRecord_({
+        emp_id: 'TEST_BAD', emp_name: 'Bad Entry', dispatch_no: 7777,
+        scn_date_iso: '2026-01-01', incident_date: '2026-01-01',
+        violation_type: 'Bad', violation_desc: 'always fails',
+      });
+      await kcSaveRecord_({
+        emp_id: 'TEST_GOOD', emp_name: 'Good Entry', dispatch_no: 8899,
+        scn_date_iso: '2026-01-01', incident_date: '2026-01-01',
+        violation_type: 'Good', violation_desc: 'should sync fine',
+      });
+    });
+
+    online = true;
+    const after = await page.evaluate(async () => {
+      await processSyncQueue_();
+      const queue = await idbGetAll_('sync_queue');
+      const local = await idbGetAll_('karya_charitra');
+      return {
+        queueDispatchNos: queue.map((q) => q.entry?.dispatch_no),
+        failCount: queue[0]?.failCount || 0,
+        goodEntryId: local.find((r) => r.dispatch_no === 8899)?.entry_id,
+      };
+    });
+
+    // Bad entry (7777) queue me hi rukni chahiye (backend hamesha reject karta
+    // hai) — lekin isse good entry (8899) block nahi honi chahiye, wo sync
+    // hokar queue se hat jaani chahiye.
+    expect(after.queueDispatchNos).toEqual([7777]);
+    expect(after.failCount).toBeGreaterThanOrEqual(1);
+    expect(after.goodEntryId).toBe('E_GOOD');
+  });
 });
 
 test.describe('Admin Dashboard (Phase-1)', () => {

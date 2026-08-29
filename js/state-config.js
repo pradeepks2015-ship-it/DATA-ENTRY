@@ -753,10 +753,33 @@
                 const items = await idbGetAll_("sync_queue");
                 if (items.length) {
                     badge.style.display = "inline-flex";
-                    badge.innerText = `🔄 ${items.length} pending`;
+                    // Kai baar fail ho chuki entries alag se dikhati hain — ye
+                    // apne aap kabhi sync nahi hongi, JE ko dekhna padega
+                    // (Diagnostics me ctx "sync-..." dhoondh sakte hain).
+                    const stuckCount = items.filter((it) => (it.failCount || 0) >= STUCK_ENTRY_THRESHOLD).length;
+                    if (stuckCount) {
+                        badge.style.background = "#dc2626";
+                        badge.style.color = "#ffffff";
+                        badge.innerText = `⚠️ ${items.length} pending (${stuckCount} अटकी हुई)`;
+                    } else {
+                        badge.style.background = "#fff7ed";
+                        badge.style.color = "#9a3412";
+                        badge.innerText = `🔄 ${items.length} pending`;
+                    }
                 } else {
                     badge.style.display = "none";
                 }
+            } catch (err) { console.error(err); }
+        }
+
+        // Ek entry baar-baar (STUCK_ENTRY_THRESHOLD baar) fail ho jaaye to use
+        // "stuck" maante hain — badge me alag se dikhega taaki JE ko pata chale
+        // ki iske liye manual dekhna padega (queue khud kabhi nahi rukegi).
+        const STUCK_ENTRY_THRESHOLD = 5;
+        async function bumpSyncQueueFailCount_(item) {
+            try {
+                item.failCount = (item.failCount || 0) + 1;
+                await idbPut_("sync_queue", item);
             } catch (err) { console.error(err); }
         }
 
@@ -766,22 +789,34 @@
             if (navigator.onLine === false) return;
             syncQueueProcessing_ = true;
             let done = 0;
+            let networkDown = false;
             try {
                 const items = (await idbGetAll_("sync_queue")).sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0));
                 for (const item of items) {
+                    // Network hi down ho gaya ho to baaki items try karne ka fayda
+                    // nahi — sab isi wajah se fail honge, agli baar poori queue
+                    // dobara try hogi. Lekin ek item ka apna (backend/logical)
+                    // fail baaki queue ko kabhi block nahi karta — bas usi item
+                    // ko skip karke aage badhte hain.
+                    if (networkDown) break;
+                    let ok = false;
                     try {
                         if (item.kind === "shared_entry") {
                             const entryId = await syncEntryToCloud_(item.module, item.entry, true);
-                            if (!entryId) break; // abhi bhi fail — order banaye rakhne ke liye yahin ruko
-                            await backfillEntryId_(item.module, item.entry.client_id, entryId);
-                            sharedModuleLastFetch[item.module] = 0;
+                            if (entryId) {
+                                await backfillEntryId_(item.module, item.entry.client_id, entryId);
+                                sharedModuleLastFetch[item.module] = 0;
+                                ok = true;
+                            } else if (window.__lastSyncErrorReason === "network") {
+                                networkDown = true;
+                            }
                         } else if (item.kind === "post_form") {
                             const response = await fetchWithTimeout_(APPS_SCRIPT_EXEC_URL, {
                                 method: "POST",
                                 headers: { "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8" },
                                 body: item.body
                             });
-                            if (!response.ok) break;
+                            ok = response.ok;
                         } else if (item.kind === "kc_update") {
                             const payload = new URLSearchParams();
                             payload.append("module", "karya_charitra");
@@ -794,8 +829,8 @@
                                 headers: { "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8" },
                                 body: payload.toString()
                             });
-                            if (!response.ok) break;
-                            sharedModuleLastFetch["karya_charitra"] = 0;
+                            ok = response.ok;
+                            if (ok) sharedModuleLastFetch["karya_charitra"] = 0;
                         } else if (item.kind === "entry_update") {
                             // Generic version of kc_update — kisi bhi module ke liye
                             // (jaise mobile_correction) offline me hui update ko replay karta hai.
@@ -810,12 +845,21 @@
                                 headers: { "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8" },
                                 body: payload.toString()
                             });
-                            if (!response.ok) break;
-                            sharedModuleLastFetch[item.module] = 0;
+                            ok = response.ok;
+                            if (ok) sharedModuleLastFetch[item.module] = 0;
                         }
+                    } catch (err) {
+                        console.error(err);
+                        const isNetworkErr = navigator.onLine === false || err instanceof TypeError || err?.name === "AbortError";
+                        if (isNetworkErr) networkDown = true;
+                    }
+
+                    if (ok) {
                         await idbDelete_("sync_queue", item.id);
                         done++;
-                    } catch (err) { console.error(err); break; }
+                    } else if (!networkDown) {
+                        await bumpSyncQueueFailCount_(item);
+                    }
                 }
             } finally {
                 syncQueueProcessing_ = false;
