@@ -13,8 +13,14 @@ module.exports = [
   { ignores: ["js/vendor/**"] }, // third-party libraries, in kaa lint check nahi karte
   js.configs.recommended,
   {
-    files: ["eslint.config.js", "scripts/**/*.js"],
+    files: ["eslint.config.js"],
     languageOptions: { sourceType: "commonjs", ecmaVersion: 2021, globals: { ...globals.node } },
+  },
+  {
+    // capture-screenshots.js jaisi scripts me Playwright page.waitForFunction(() => {...})
+    // callbacks browser context me chalti hain, isliye document/window bhi chahiye.
+    files: ["scripts/**/*.js"],
+    languageOptions: { sourceType: "commonjs", ecmaVersion: 2021, globals: { ...globals.node, ...globals.browser } },
   },
   {
     files: ["js/**/*.js"],

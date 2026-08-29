@@ -927,6 +927,22 @@ test.describe('Admin Dashboard (Phase-1)', () => {
   });
 });
 
+test.describe('PWA manifest shortcuts (home-screen icon long-press)', () => {
+  test('?shortcut=admin se seedhe PIN overlay khulta hai', async ({ page }) => {
+    await blockExternal(page);
+    await page.goto('/?shortcut=admin');
+    await page.waitForFunction(() => document.getElementById('home-view').classList.contains('active'));
+    await expect(page.locator('#admin-pin-overlay')).toBeVisible();
+  });
+
+  test('?shortcut=errorlog se seedhe error-log modal khulta hai', async ({ page }) => {
+    await blockExternal(page);
+    await page.goto('/?shortcut=errorlog');
+    await page.waitForFunction(() => document.getElementById('home-view').classList.contains('active'));
+    await expect(page.locator('#error-log-overlay')).toBeVisible();
+  });
+});
+
 test.describe('Home reminders (Push Notification lite)', () => {
   /** @param {import('@playwright/test').Page} page */
   /** @param {{scn_date_iso: string, reply_text?: string}[]} entries */

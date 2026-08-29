@@ -33,5 +33,13 @@
             // ka koi "skip/cancel" raasta nahi hai, isliye enable karne se pehle ussi backend
             // ka deploy hona zaroori hai (warna sabhi devices permanently gate par atak jaayenge).
             switchView("home");
+
+            // manifest.json ke "shortcuts" (home-screen icon long-press) se ?shortcut=...
+            // ke saath khulta hai — sirf wahi targets jo bina kisi DC/Division select
+            // kiye bhi seedhe kaam karte hain (Admin Dashboard PIN-gated hai, Error Log
+            // is device ka apna hai — dono state-independent hain).
+            const shortcut = new URLSearchParams(location.search).get("shortcut");
+            if (shortcut === "admin") openAdminDashboardGate_();
+            else if (shortcut === "errorlog") openErrorLogModal_();
         });
 
