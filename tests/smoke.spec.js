@@ -1001,88 +1001,12 @@ test.describe('Home reminders (Push Notification lite)', () => {
   });
 });
 
-test.describe('Employee Login (accountability)', () => {
-  /** @param {import('@playwright/test').Page} page */
-  async function mockEmployeeBackend(page) {
-    await page.route('**/macros/**', (route) => {
-      const req = route.request();
-      const url = new URL(req.url());
-      if (req.method() === 'GET' && url.searchParams.get('action') === 'getEmployeeNames') {
-        return route.fulfill({
-          status: 200, contentType: 'application/json',
-          body: JSON.stringify({ status: 'success', employees: [{ emp_id: 'E1', emp_name: 'Ram Kumar', emp_designation: 'Lineman' }] }),
-        });
-      }
-      if (req.method() === 'POST') {
-        const params = new URLSearchParams(req.postData() || '');
-        if (params.get('action') === 'verifyEmployeePin') {
-          // '1234' ka SHA-256 hash — asli PIN kabhi network par nahi jaata, sirf hash
-          const CORRECT_PIN_HASH = '03ac674216f3e15c761ee1a5e255f067953623c8b388b4459e13f978d7c846f4';
-          if (params.get('emp_id') === 'E1' && params.get('pin_hash') === CORRECT_PIN_HASH) {
-            return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ status: 'success', emp_id: 'E1', emp_name: 'Ram Kumar', emp_designation: 'Lineman' }) });
-          }
-          return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ status: 'error', message: 'गलत PIN' }) });
-        }
-      }
-      return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ status: 'success', entries: [] }) });
-    });
-  }
-
-  test('login किए बिना app खुलने पर सीधे employee-login gate दिखता है, home नहीं', async ({ page }) => {
-    await blockExternal(page);
-    await mockEmployeeBackend(page);
-    await page.goto('/');
-    await page.waitForFunction(() => document.getElementById('employee-login-modal').style.display === 'flex');
-    expect(await page.evaluate(() => document.getElementById('home-view').classList.contains('active') && document.getElementById('employee-login-modal').style.display !== 'flex')).toBe(false);
-  });
-
-  test('naam chune bina login submit karne par validation message dikhta hai', async ({ page }) => {
-    await blockExternal(page);
-    await mockEmployeeBackend(page);
-    await page.goto('/');
-    await page.waitForFunction(() => document.getElementById('employee-login-modal').style.display === 'flex');
-    await page.fill('#emp-login-pin', '0000');
-    await page.click('#employee-login-modal .pwd-card-btn');
-    await expect(page.locator('#emp-login-status')).toContainText('नाम चुनें');
-    expect(await page.evaluate(() => document.getElementById('employee-login-modal').style.display)).toBe('flex');
-  });
-
-  test('galat PIN se login fail hota hai, gate khula rehta hai', async ({ page }) => {
-    await blockExternal(page);
-    await mockEmployeeBackend(page);
-    await page.goto('/');
-    await page.waitForFunction(() => document.getElementById('employee-login-modal').style.display === 'flex');
-    await page.selectOption('#emp-login-select', 'E1');
-    await page.fill('#emp-login-pin', '9999');
-    await page.click('#employee-login-modal .pwd-card-btn');
-    await expect(page.locator('#emp-login-status')).toContainText('गलत PIN');
-    expect(await page.evaluate(() => document.getElementById('employee-login-modal').style.display)).toBe('flex');
-    expect(await page.evaluate(() => localStorage.getItem('seoni-circle-employee-v1'))).toBeNull();
-  });
-
-  test('sahi PIN se login hone par home khulta hai aur localStorage me save ho jaata hai', async ({ page }) => {
-    await blockExternal(page);
-    await mockEmployeeBackend(page);
-    await page.goto('/');
-    await page.waitForFunction(() => document.getElementById('employee-login-modal').style.display === 'flex');
-    await page.selectOption('#emp-login-select', 'E1');
-    await page.fill('#emp-login-pin', '1234');
-    await page.click('#employee-login-modal .pwd-card-btn');
-    await page.waitForFunction(() => document.getElementById('home-view').classList.contains('active'));
-    await expect(page.locator('#employee-login-modal')).toBeHidden();
-    const stored = await page.evaluate(() => JSON.parse(localStorage.getItem('seoni-circle-employee-v1')));
-    expect(stored).toEqual({ emp_id: 'E1', emp_name: 'Ram Kumar', emp_designation: 'Lineman' });
-  });
-
-  test('logout karne par gate dobara khulta hai aur localStorage saaf ho jaata hai', async ({ page }) => {
-    await openApp(page, { beforeGoto: mockEmployeeBackend });
-    await page.click('#header-menu-btn');
-    await page.click('text=🚪 Logout (कर्मचारी बदलें)');
-    await expect(page.locator('#employee-login-modal')).toBeVisible();
-    const stored = await page.evaluate(() => localStorage.getItem('seoni-circle-employee-v1'));
-    expect(stored).toBeNull();
-  });
-
+test.describe('Employee Login (accountability) — plumbing (gate abhi disabled hai, deploy nahi hua)', () => {
+  // employee-auth.js code me maujood hai (backend Apps Script action abhi manual deploy
+  // nahi hui isliye) par boot-gate jaan-bujhkar disabled hai — isliye gate-flow (naya
+  // login, galat PIN, logout-se-gate-khulna) ke tests yahan nahi hain, sirf yeh 2 jo
+  // submitted_by tagging plumbing check karte hain (openApp() ke default pre-seeded
+  // localStorage employee se, gate se independent).
   test('Broken Pole entry submit karte waqt submitted_by_id/name payload me jaate hain', async ({ page }) => {
     /** @type {URLSearchParams[]} */
     const posts = [];
