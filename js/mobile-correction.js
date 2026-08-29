@@ -505,7 +505,6 @@
 
             const groups = mcGroupByHq_(entries);
             const hqNames = Object.keys(groups).sort();
-            const totalConsumersByHq = mcTotalConsumersByHq_();
             const totalFlagged = entries.length;
             const totalCorrected = entries.filter((e) => e.status === "corrected").length;
 

@@ -15,11 +15,19 @@ async function blockExternal(page) {
  * specific route जोड़ने देता है — Playwright बाद में register हुए route को पहले चेक
  * करता है, इसलिए specific route (जैसे सिर्फ़ **\/macros/**) blockExternal के catch-all
  * से पहले माना जाएगा।
+ * डिफ़ॉल्ट रूप से employee login pre-seed कर देता है (localStorage) ताकि बाकी सभी
+ * tests employee-login gate की परवाह किए बिना सीधे home तक पहुँच जाएँ — सिर्फ़
+ * employee-login वाले tests इसे `employeeLoggedIn: false` से बंद करते हैं।
  * @param {import('@playwright/test').Page} page
- * @param {{ beforeGoto?: (page: import('@playwright/test').Page) => Promise<void> }} [opts]
+ * @param {{ beforeGoto?: (page: import('@playwright/test').Page) => Promise<void>, employeeLoggedIn?: boolean }} [opts]
  */
 async function openApp(page, opts = {}) {
   await blockExternal(page);
+  if (opts.employeeLoggedIn !== false) {
+    await page.addInitScript(() => {
+      localStorage.setItem('seoni-circle-employee-v1', JSON.stringify({ emp_id: 'TEST_EMP', emp_name: 'Test Employee', emp_designation: 'Lineman' }));
+    });
+  }
   if (opts.beforeGoto) await opts.beforeGoto(page);
   await page.goto('/');
   await page.waitForFunction(() => document.getElementById('home-view').classList.contains('active'), null, { timeout: 15000 });
@@ -735,6 +743,14 @@ test.describe('Offline sync queue (Karya Charitra)', () => {
 });
 
 test.describe('Admin Dashboard (Phase-1)', () => {
+  // Admin dashboard default date-range "is mahine ke 1 se aaj tak" hai (admDefaultFromDate_
+  // + localTodayIso_) — isliye mock entries ki date hamesha "aaj" honi chahiye, koi hardcoded
+  // mahina/saal nahi, warna agle mahine yeh test apne-aap fail hone lagta (calendar rollover).
+  const today = new Date();
+  const ddmmyyyyDash = `${String(today.getDate()).padStart(2, '0')}-${String(today.getMonth() + 1).padStart(2, '0')}-${today.getFullYear()}`;
+  const ddmmyyyySlash = ddmmyyyyDash.replace(/-/g, '/');
+  const isoDate = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+
   /** @param {import('@playwright/test').Page} page */
   async function mockAdminBackend(page) {
     await page.route('**/macros/**', (route) => {
@@ -742,16 +758,16 @@ test.describe('Admin Dashboard (Phase-1)', () => {
       const action = url.searchParams.get('action');
       const module = url.searchParams.get('module');
       if (action === 'getEntries' && module === 'broken_pole') {
-        return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ status: 'success', entries: [{ date: '01-07-2026', remark1: 'Pole A', entry_id: 'bp1' }] }) });
+        return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ status: 'success', entries: [{ date: ddmmyyyyDash, remark1: 'Pole A', entry_id: 'bp1' }] }) });
       }
       if (action === 'getEntries' && module === 'bijli_chori') {
-        return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ status: 'success', entries: [{ date: '05-07-2026', name: 'Consumer X', photos: [], entry_id: 'bc1' }] }) });
+        return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ status: 'success', entries: [{ date: ddmmyyyyDash, name: 'Consumer X', photos: [], entry_id: 'bc1' }] }) });
       }
       if (action === 'getEntries' && module === 'karya_charitra') {
-        return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ status: 'success', entries: [{ scn_date_iso: '2026-07-10', emp_name: 'Ram Kumar', dispatch_no: 3, entry_id: 'kc1' }] }) });
+        return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ status: 'success', entries: [{ scn_date_iso: isoDate, emp_name: 'Ram Kumar', dispatch_no: 3, entry_id: 'kc1' }] }) });
       }
       if (action === 'getFeederReadings') {
-        return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify([{ '33/11 KV SUBSTATION': 'SS1', '33 AND 11 KV FEEDER': 'F1', 'DATE(DD/MM/YYY)': '12/07/2026' }]) });
+        return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify([{ '33/11 KV SUBSTATION': 'SS1', '33 AND 11 KV FEEDER': 'F1', 'DATE(DD/MM/YYY)': ddmmyyyySlash }]) });
       }
       if (action === 'getSummary') {
         return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify([{ dc: 'DC1', ivrs: '111' }, { dc: 'DC1', ivrs: '222' }]) });
@@ -985,6 +1001,60 @@ test.describe('Home reminders (Push Notification lite)', () => {
   });
 });
 
+test.describe('Employee Login (accountability) — plumbing (gate abhi disabled hai, deploy nahi hua)', () => {
+  // employee-auth.js code me maujood hai (backend Apps Script action abhi manual deploy
+  // nahi hui isliye) par boot-gate jaan-bujhkar disabled hai — isliye gate-flow (naya
+  // login, galat PIN, logout-se-gate-khulna) ke tests yahan nahi hain, sirf yeh 2 jo
+  // submitted_by tagging plumbing check karte hain (openApp() ke default pre-seeded
+  // localStorage employee se, gate se independent).
+  test('Broken Pole entry submit karte waqt submitted_by_id/name payload me jaate hain', async ({ page }) => {
+    /** @type {URLSearchParams[]} */
+    const posts = [];
+    await openApp(page, {
+      beforeGoto: (p) => p.route('**/macros/**', (route) => {
+        const req = route.request();
+        if (req.method() === 'POST') posts.push(new URLSearchParams(req.postData() || ''));
+        route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ status: 'success', entry_id: 'BP1' }) });
+      }),
+    });
+    await page.evaluate(async () => {
+      const entry = { date: '01-07-2026', remark1: 'Test Pole', remark2: '', ...currentEmployeeTag_() };
+      await syncEntryToCloud_('broken_pole', entry);
+    });
+    const relevant = posts.find((p) => p.get('module') === 'broken_pole');
+    const sentEntry = JSON.parse(relevant?.get('entry_json') || '{}');
+    expect(sentEntry.submitted_by_id).toBe('TEST_EMP');
+    expect(sentEntry.submitted_by_name).toBe('Test Employee');
+  });
+
+  test('Admin Dashboard "कर्मचारी अनुसार" breakdown submitted_by_name se count karta hai', async ({ page }) => {
+    await openApp(page, {
+      beforeGoto: (p) => p.route('**/macros/**', (route) => {
+        const url = new URL(route.request().url());
+        const action = url.searchParams.get('action');
+        const module = url.searchParams.get('module');
+        if (action === 'getEntries' && module === 'broken_pole') {
+          // Admin dashboard default date-range "is mahine ke 1 se aaj tak" hai, isliye
+          // entries ki date hamesha "aaj" honi chahiye — hardcoded mahina/saal nahi
+          // (warna agle mahine yeh test calendar rollover par fail hone lagta).
+          const today = new Date();
+          const ddmmyyyy = `${String(today.getDate()).padStart(2, '0')}-${String(today.getMonth() + 1).padStart(2, '0')}-${today.getFullYear()}`;
+          return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ status: 'success', entries: [
+            { date: ddmmyyyy, remark1: 'A', entry_id: 'bp1', submitted_by_name: 'Ram Kumar' },
+            { date: ddmmyyyy, remark1: 'B', entry_id: 'bp2', submitted_by_name: 'Ram Kumar' },
+          ] }) });
+        }
+        return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ status: 'success', entries: [] }) });
+      }),
+    });
+    await page.evaluate(() => { adminDashboardUnlocked_ = true; openAdminDashboardGate_(); });
+    await page.waitForFunction(() => !document.getElementById('admin-dashboard-body')?.innerText.includes('लोड हो रहा है'));
+    const body = page.locator('#admin-dashboard-body');
+    await expect(body).toContainText('Ram Kumar');
+    await expect(body).toContainText('कर्मचारी अनुसार');
+  });
+});
+
 test.describe('Mobile Correction Tracker (galat mobile number flag + monitor)', () => {
   const CONSUMER_CSV = 'IVRS NO,NAME,FATHER,OLD MOBILE,ADDRESS,HQ,TARIFF,LOAD\n1234567890,Test Consumer,Test Father,9998887771,"Test Address, Adegaon",ADEGAON HQ,LV1,1\n2345678901,Doosra Consumer,Doosra Father,9998887772,"Doosra Address, Bibi",BIBI HQ,LV1,1\n';
 
@@ -1029,7 +1099,7 @@ test.describe('Mobile Correction Tracker (galat mobile number flag + monitor)', 
     expect(entries.length).toBe(1);
     expect(entries[0]).toMatchObject({
       ivrs: '1234567890', name: 'Test Consumer', hq: 'ADEGAON HQ',
-      old_mobile: '9998887771', status: 'pending',
+      old_mobile: '9998887771', status: 'pending', submitted_by_name: 'Test Employee',
     });
   });
 

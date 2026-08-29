@@ -71,16 +71,17 @@
                     ? [activeDC]
                     : (activeViewLevel === "DIVISION" ? getDivisionDcNames(activeDiv) : getAllDcNames());
                 await ensureConsumerDataLoadedFor(targetMobileDcs);
+                if (refreshToken !== summaryRefreshToken) return; // ek naya refreshSummary() beech me shuru ho chuka hai
                 const cloudData = await loadRemoteJson(`${scriptURL}?action=getSummary&auth_token=${encodeURIComponent(APPS_SCRIPT_AUTH_TOKEN)}`);
+                if (refreshToken !== summaryRefreshToken) return; // isi tarah — is purani response ko discard karo
                 uiListSummary = [];
                 grandTC = 0;
                 grandTU = 0;
 
                 const getStats = (dcName) => {
-                    let tc = 0;
                     let tu = 0;
                     const normDc = normalizeDcName(dcName);
-                    tc = getConsumerRows(normDc).length;
+                    const tc = getConsumerRows(normDc).length;
                     cloudData.forEach((u) => {
                         const ts = (u.date || "").trim();
                         const uDc = (u.dc || "").trim().toUpperCase();
@@ -327,13 +328,6 @@
             if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) {
                 const [year, month, day] = raw.split("-");
                 return `${day}-${month}-${year}`;
-            }
-            if (/^\d{2}\/\d{2}\/\d{4}$/.test(raw)) {
-                return raw.replace(/\//g, "-");
-            }
-            const normalized = normalizeFeederDateInput(raw);
-            if (/^\d{2}\/\d{2}\/\d{4}$/.test(normalized)) {
-                return normalized.replace(/\//g, "-");
             }
             return raw.replace(/\//g, "-");
         }

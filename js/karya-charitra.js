@@ -248,7 +248,6 @@
             const tv = document.getElementById("kc-tab-view");
             const te = document.getElementById("kc-tab-emp");
             const tj = document.getElementById("kc-tab-je");
-            const inactiveStyle = { background: "#e2e8f0", color: "#1e293b" };
             [vp, ep, jp].forEach((p) => { if (p) p.style.display = "none"; });
             [tv, te, tj].forEach((b) => { if (b) { b.style.background = "#e2e8f0"; b.style.color = "#1e293b"; } });
 
@@ -672,7 +671,8 @@
                 created_at: new Date().toISOString(),
                 reply_text: "",
                 reply_date_iso: "",
-                remark_text: ""
+                remark_text: "",
+                ...currentEmployeeTag_()
             };
 
             const ok = await kcSaveRecord_(record);
