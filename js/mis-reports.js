@@ -84,7 +84,6 @@
             // ADEGAON-CB (BS12770679) is excluded — meter reading nahi aa rahi abhi.
             const adegaon11KVTotal = BS12774695 + BS12776368 + BS12774694 + BS12774693;
             const madhiFeederTotal = BS12775542 + BS12775541 + BS12775540;
-            const totalIncoming    = BS12775548;
 
             // Network diagram ke hisaab se formulas:
             // BS12775548 = Adegaon SS ka TOTAL incoming (isi se BS550 Chamari aur BS133 Madhi lines nikalti hain)
@@ -97,7 +96,6 @@
             const madhiSSLineLoss      = Math.abs(BS12775543 - madhiFeederTotal);
 
             const pct = (n, base) => base > 0 ? (n / base * 100).toFixed(2) + "%" : "—";
-            const pctInc = (n) => pct(n, totalIncoming);
 
             // SS_INCOMING for each substation (33KV input to SS)
             const SS_INCOMING = { "ADEGAON": adegaonSSInput, "MADHI": BS12775543, "CHAMARI": BS12775550 }; // adegaonSSInput = BS548
@@ -922,7 +920,7 @@
                             const p=Number(r["PREVIUS READING"])||0, c=Number(r["CURRENT READING"])||0, mf=Number(r["MF"])||1;
                             return s+Math.abs(Number(r["CONSUMPTION"])||Math.abs(c-p)*mf);
                         },0));
-                        const M548=getMC("BS12775548"), M550=getMC("BS12775550"), M133=getMC("BS12776133");
+                        const M548=getMC("BS12775548"), M133=getMC("BS12776133");
                         const M543=getMC("BS12775543");
                         const M695=getMC("BS12774695"), M368=getMC("BS12776368"), M694=getMC("BS12774694");
                         const M693=getMC("BS12774693");

@@ -347,7 +347,8 @@
                         dc_name: item.dcName || "",
                         dc_percent: String(item.percent || ""),
                         date: entryDate,
-                        time: entryTime
+                        time: entryTime,
+                        ...currentEmployeeTag_()
                     });
                 });
             }

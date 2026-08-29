@@ -998,6 +998,11 @@
             });
 
             initChhaparaFeederCalculator();
+            updateHeaderMenuEmpName_();
+            // Employee-login gate abhi jaan-bujhkar disabled hai — backend Apps Script
+            // (getEmployeeNames/verifyEmployeePin) abhi manually deploy nahi hui, aur gate
+            // ka koi "skip/cancel" raasta nahi hai, isliye enable karne se pehle ussi backend
+            // ka deploy hona zaroori hai (warna sabhi devices permanently gate par atak jaayenge).
             switchView("home");
         });
 

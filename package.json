@@ -4,9 +4,14 @@
   "description": "Seoni Circle App — smoke tests",
   "private": true,
   "scripts": {
-    "test": "playwright test"
+    "test": "playwright test",
+    "lint": "eslint js tests playwright.config.js eslint.config.js scripts"
   },
   "devDependencies": {
-    "@playwright/test": "^1.61.1"
+    "@eslint/js": "^10.0.1",
+    "@playwright/test": "^1.61.1",
+    "eslint": "^10.9.1",
+    "espree": "^11.2.0",
+    "globals": "^17.11.0"
   }
 }
