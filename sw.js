@@ -1,7 +1,10 @@
-// Seoni Circle App — cache-first (stale-while-revalidate) service worker (v3.0)
-// App ki apni files (JS/CSS/HTML/CSV data) turant cache se milti hain — network
-// ka wait nahi karna padta. Background me fresh copy laakar cache update kar
-// di jaati hai, taaki agli baar naya version mile. Apps Script/Google Sheets
+// Seoni Circle App — pure cache-first service worker (v3.0)
+// App ki apni files (JS/CSS/HTML) ek baar cache hone ke baad seedhe cache se
+// milti hain — koi background revalidation nahi (pehle har request par bhi
+// ek chupchaap network refetch chalti thi, jisse data cost bewajah badhta
+// tha). Naya version aane par App Update Banner (index.html) hi ise pakadta
+// hai aur "अभी अपडेट करें" dabane par poora cache ek saath force-refresh
+// hota hai (neeche FORCE_REFRESH message handler). Apps Script/Google Sheets
 // jaisi external API calls yahaan chhuti nahi — wo apni jagah (app code me)
 // alag se handle hoti hain, isliye humesha live/fresh rehti hain.
 const CACHE = "seoni-circle-v3.0";
@@ -54,7 +57,13 @@ self.addEventListener("fetch", (e) => {
 
   e.respondWith(
     caches.match(cacheKey).then((cached) => {
-      const networkFetch = fetch(req)
+      // Cache me mil gaya to seedha wahi de do — koi background refetch nahi
+      // (data cost bachane ke liye). Fresh content sirf Update Banner ke
+      // FORCE_REFRESH se hi aati hai.
+      if (cached) return cached;
+
+      // Cache me nahi mila (pehli baar) — network se laao aur cache kar lo.
+      return fetch(req)
         .then((res) => {
           if (res && res.ok) {
             const copy = res.clone();
@@ -62,15 +71,7 @@ self.addEventListener("fetch", (e) => {
           }
           return res;
         })
-        .catch(() => null);
-
-      if (cached) {
-        // Turant purani (lekin theek-thaak) copy de do, background me refresh chalti rahe.
-        e.waitUntil(networkFetch);
-        return cached;
-      }
-      // Pehli baar — cache me kuch nahi, network try karo; wo bhi fail ho to app shell do.
-      return networkFetch.then((res) => res || caches.match("./index.html"));
+        .catch(() => caches.match("./index.html"));
     })
   );
 });
