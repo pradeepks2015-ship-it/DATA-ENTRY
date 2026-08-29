@@ -195,11 +195,11 @@
             overlay.appendChild(sheet);
             document.body.appendChild(overlay);
 
-            document.getElementById("error-log-list").innerHTML = renderErrorLogRows_(getErrorLogs_());
+            document.getElementById("error-log-list").innerHTML = trustedHtml_(renderErrorLogRows_(getErrorLogs_()));
             document.getElementById("error-log-close-btn").onclick = () => overlay.remove();
             document.getElementById("error-log-clear-btn").onclick = () => {
                 clearErrorLogs_();
-                document.getElementById("error-log-list").innerHTML = renderErrorLogRows_([]);
+                document.getElementById("error-log-list").innerHTML = trustedHtml_(renderErrorLogRows_([]));
                 showToast("लॉग साफ़ हो गए", true);
             };
         }

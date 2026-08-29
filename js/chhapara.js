@@ -88,10 +88,10 @@
             `).join("");
 
             previewBox.innerHTML = `
-                <div class="chhapara-calc-preview-line"><strong>Difference:</strong> ${formatChhaparaNumber(calc.difference)}</div>
-                <div class="chhapara-calc-preview-line"><strong>Total Consumption:</strong> ${formatChhaparaNumber(calc.totalConsumption)} units</div>
-                <div class="chhapara-calc-preview-line"><strong>Formula:</strong> (${formatChhaparaNumber(formData.currentReading)} - ${formatChhaparaNumber(formData.previousReading)}) x ${formatChhaparaNumber(formData.mf)}</div>
-                ${shareHtml}
+                <div class="chhapara-calc-preview-line"><strong>Difference:</strong> ${trustedHtml_(formatChhaparaNumber(calc.difference))}</div>
+                <div class="chhapara-calc-preview-line"><strong>Total Consumption:</strong> ${trustedHtml_(formatChhaparaNumber(calc.totalConsumption))} units</div>
+                <div class="chhapara-calc-preview-line"><strong>Formula:</strong> (${trustedHtml_(formatChhaparaNumber(formData.currentReading))} - ${trustedHtml_(formatChhaparaNumber(formData.previousReading))}) x ${trustedHtml_(formatChhaparaNumber(formData.mf))}</div>
+                ${trustedHtml_(shareHtml)}
             `;
         }
 
@@ -156,14 +156,16 @@
                 return;
             }
 
-            listBox.innerHTML = chhaparaFeederEntries.map((item) => {
+            listBox.innerHTML = trustedHtml_(chhaparaFeederEntries.map((item) => {
                 const shares = Array.isArray(item.shares) ? item.shares : [];
                 const shareRows = shares.map((share) => `
                     <div class="chhapara-share-row">
-                        <span>${escapeHtml(share.name)} (${formatChhaparaNumber(share.percent)}%)</span>
-                        <span>${formatChhaparaNumber(share.output)} units</span>
+                        <span>${escapeHtml(share.name)} (${trustedHtml_(formatChhaparaNumber(share.percent))}%)</span>
+                        <span>${trustedHtml_(formatChhaparaNumber(share.output))} units</span>
                     </div>
                 `).join("");
+                // item.id device par hi `chhapara-${Date.now()}` se banta hai (kabhi cloud
+                // sync ya user input se nahi aata) — isliye trustedHtml_ istemal safe hai.
                 return `
                     <div class="chhapara-entry-card">
                         <div class="chhapara-entry-top">
@@ -172,15 +174,15 @@
                                 <div class="chhapara-entry-meta">${escapeHtml(item.feederType)} | ${escapeHtml(item.date)}</div>
                             </div>
                             <div style="display:flex; flex-direction:column; align-items:flex-end; gap:8px;">
-                                <div class="chhapara-entry-total">${formatChhaparaNumber(item.totalConsumption)} units</div>
-                                <button class="chhapara-delete-btn" onclick="deleteChhaparaFeederEntry('${item.id}')">Delete</button>
+                                <div class="chhapara-entry-total">${trustedHtml_(formatChhaparaNumber(item.totalConsumption))} units</div>
+                                <button class="chhapara-delete-btn" onclick="deleteChhaparaFeederEntry('${trustedHtml_(item.id)}')">Delete</button>
                             </div>
                         </div>
-                        <div class="chhapara-share-list">${shareRows}</div>
-                        <div class="chhapara-entry-note">Reading Diff: ${formatChhaparaNumber(item.difference)} | MF: ${formatChhaparaNumber(item.mf)}${item.note ? ` | ${escapeHtml(item.note)}` : ""}</div>
+                        <div class="chhapara-share-list">${trustedHtml_(shareRows)}</div>
+                        <div class="chhapara-entry-note">Reading Diff: ${trustedHtml_(formatChhaparaNumber(item.difference))} | MF: ${trustedHtml_(formatChhaparaNumber(item.mf))}${item.note ? ` | ${escapeHtml(item.note)}` : ""}</div>
                     </div>
                 `;
-            }).join("");
+            }).join(""));
         }
 
         function deleteChhaparaFeederEntry(entryId) {

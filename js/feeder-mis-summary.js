@@ -177,7 +177,9 @@
                     </div>
                 </div>`;
 
-            card.innerHTML = `
+            // period (date-input value), ssHtml/lossHtml (numbers + hardcoded labels +
+            // escapeHtml'd feeder/substation names) sabhi upar verify kiye — safe.
+            card.innerHTML = trustedHtml_(`
                 <div style="background:linear-gradient(135deg,#9d174d,#ec4899); border-radius:16px; padding:14px; color:#fff;">
                     <div style="font-size:13px; font-weight:900; text-transform:uppercase; text-align:center; margin-bottom:4px;">📊 Feeder Monthly Summary</div>
                     <div style="font-size:10px; font-weight:700; text-align:center; margin-bottom:12px; opacity:0.85;">अवधि: ${period}</div>
@@ -189,7 +191,7 @@
                         <div style="font-size:11px; font-weight:700; opacity:0.8;">kWh</div>
                     </div>
                     <button onclick="document.getElementById('feeder-summary-card').style.display='none'" style="width:100%; height:36px; border:none; border-radius:10px; background:rgba(255,255,255,0.2); color:#fff; font-size:11px; font-weight:900; margin-top:10px;">✕ बंद करें</button>
-                </div>`;
+                </div>`);
         }
 
         function feederFilterRowsByDcAndDate_(rows, fromDate, toDate) {

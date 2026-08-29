@@ -158,10 +158,10 @@
                 return;
             }
 
-            previewBox.innerHTML = `
+            previewBox.innerHTML = trustedHtml_(`
                 Difference: ${formatChhaparaNumber(result.difference)} | MF: ${formatChhaparaNumber(result.mf)}<br>
                 Consumption: ${formatChhaparaNumber(result.consumption)}
-            `;
+            `);
         }
 
         function renderFeederRows() {
@@ -210,7 +210,7 @@
             if (allRowsSubmitted && !blockingPendingKeys.length) {
                 setFeederStatus("Is date ki feeder reading pehle se submit ho chuki hai.", true, "success");
             }
-            listBox.innerHTML = rows.map((row, index) => {
+            listBox.innerHTML = trustedHtml_(rows.map((row, index) => {
                 const autoPreviousReading = getFeederAutoPreviousReading_(row, selectedDateKey);
                 const submittedEntry = getFeederSubmittedRowForDate_(row, selectedDateKey);
                 const lockedPreviousReading = submittedEntry ? String(submittedEntry["PREVIUS READING"] || submittedEntry.previous_reading || "").trim() : "";
@@ -229,7 +229,7 @@
                         <div class="feeder-card-meta">${meterDetails}</div>
                         ${isAlreadySubmitted ? `
                             <div style="display:flex; justify-content:flex-end; margin-top:6px;">
-                                <button type="button" onclick="unfreezeFeederEntryConfirm_('${escapeHtml(row.substation)}', '${escapeHtml(row.feeder)}', '${selectedDateKey}')" style="border:none; background:#fef3c7; color:#92400e; border-radius:999px; padding:6px 12px; font-size:10px; font-weight:900; text-transform:uppercase;">✏️ Edit / Unfreeze</button>
+                                <button type="button" onclick="unfreezeFeederEntryConfirm_('${mcJsEscape_(row.substation)}', '${mcJsEscape_(row.feeder)}', '${mcJsEscape_(selectedDateKey)}')" style="border:none; background:#fef3c7; color:#92400e; border-radius:999px; padding:6px 12px; font-size:10px; font-weight:900; text-transform:uppercase;">✏️ Edit / Unfreeze</button>
                             </div>
                         ` : ""}
                           <div class="feeder-reading-grid">
@@ -245,7 +245,7 @@
                         <div id="feeder-consumption-${index}" class="feeder-consumption-box">${isAlreadySubmitted ? "Is feeder ki is date ki reading pehle se submit ho chuki hai." : "Consumption: reading dalte hi yahan auto calculation dikhegi."}</div>
                       </div>
                   `;
-            }).join("");
+            }).join(""));
             rows.forEach((_, index) => updateFeederConsumptionPreview(index));
             renderFeederProgressivePanel_(rows, selectedDateKey);
         }

@@ -79,7 +79,7 @@
             const parseIso = (iso) => { const [y, m, d] = iso.split("-").map(Number); return new Date(y, m - 1, d); };
             const fmtDateHi = (iso) => parseIso(iso).toLocaleDateString("hi-IN", { day: "numeric", month: "long" });
             const label = toIsoVal === thisMonthPeriod.to ? "पूरे महीने की खपत" : "प्रोग्रेसिव खपत";
-            box.innerHTML = `📈 ${label}: ${fmtDateHi(fromIso)} से ${fmtDateHi(toIsoVal)} तक: <strong>${feederFmtLakh_(total)}</strong>`;
+            box.innerHTML = trustedHtml_(`📈 ${label}: ${fmtDateHi(fromIso)} से ${fmtDateHi(toIsoVal)} तक: <strong>${feederFmtLakh_(total)}</strong>`);
         }
 
         function toggleFeederMenu_() {
@@ -142,7 +142,7 @@
             feederScorecardBaseYearMonth_ = nowYearMonth;
             feederScorecardUnfrozenCells_.clear();
 
-            sheet.innerHTML = `
+            sheet.innerHTML = trustedHtml_(`
                 <div style="font-size:14px; font-weight:900; color:#1e293b; text-align:center; text-transform:uppercase; margin-bottom:2px;">📊 सब स्टेशन / फीडर वाइज मासिक इनपुट स्कोरकार्ड</div>
                 <div style="display:flex; align-items:center; justify-content:center; gap:8px; margin:8px 0;">
                     <label for="feeder-scorecard-month-select" style="font-size:11px; font-weight:800; color:#64748b;">महीना चुनें:</label>
@@ -155,7 +155,7 @@
                     <button id="feeder-scorecard-close-btn" style="flex:1; height:42px; border:none; border-radius:12px; background:#e2e8f0; color:#1e293b; font-size:12px; font-weight:900; text-transform:uppercase;">बंद करें</button>
                     <button id="feeder-scorecard-download-btn" onclick="feederDownloadMonthlyScorecardCsv_()" style="flex:1; height:42px; border:none; border-radius:12px; background:linear-gradient(135deg,#16a34a,#15803d); color:#fff; font-size:12px; font-weight:900; text-transform:uppercase;">📥 Download</button>
                 </div>
-            `;
+            `);
             overlay.appendChild(sheet);
             document.body.appendChild(overlay);
             document.getElementById("feeder-scorecard-close-btn").onclick = () => {
@@ -317,7 +317,7 @@
                     <button type="button" id="feeder-scorecard-remark-save-btn" onclick="feederSaveScorecardRemarkNow_()" style="width:100%; height:38px; margin-top:8px; border:none; border-radius:10px; background:linear-gradient(135deg,#16a34a,#15803d); color:#fff; font-size:11px; font-weight:900; text-transform:uppercase; cursor:pointer;">✔ रिमार्क Save करें</button>
                 </div>
             `;
-            body.innerHTML = bodyHtml;
+            body.innerHTML = trustedHtml_(bodyHtml);
             feederScorecardCsvRows_ = csvRows;
         }
 

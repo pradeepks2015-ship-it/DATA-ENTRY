@@ -50,22 +50,22 @@
             const yearSelect = document.getElementById("feeder-date-year");
             if (!daySelect || !monthSelect || !yearSelect) return;
             if (!daySelect.innerHTML) {
-                daySelect.innerHTML = Array.from({ length: 31 }, (_, index) => {
+                daySelect.innerHTML = trustedHtml_(Array.from({ length: 31 }, (_, index) => {
                     const value = index + 1;
                     return `<option value="${value}">${String(value).padStart(2, "0")}</option>`;
-                }).join("");
+                }).join(""));
             }
             if (!monthSelect.innerHTML) {
-                monthSelect.innerHTML = Array.from({ length: 12 }, (_, index) => {
+                monthSelect.innerHTML = trustedHtml_(Array.from({ length: 12 }, (_, index) => {
                     const value = index + 1;
                     return `<option value="${value}">${String(value).padStart(2, "0")}</option>`;
-                }).join("");
+                }).join(""));
             }
             if (!yearSelect.innerHTML) {
                 const currentYear = new Date().getFullYear();
-                yearSelect.innerHTML = [currentYear - 1, currentYear, currentYear + 1]
+                yearSelect.innerHTML = trustedHtml_([currentYear - 1, currentYear, currentYear + 1]
                     .map((year) => `<option value="${year}">${year}</option>`)
-                    .join("");
+                    .join(""));
             }
         }
 
@@ -235,7 +235,7 @@
                 </div>
                 <div style="display:flex; gap:10px;">
                     <button onclick="document.getElementById('feeder-unfreeze-overlay').remove()" style="flex:1; height:44px; border:none; border-radius:12px; background:#e2e8f0; color:#1e293b; font-size:12px; font-weight:900; text-transform:uppercase;">Cancel</button>
-                    <button onclick="confirmUnfreezeFeederEntry_('${escapeHtml(substation)}', '${escapeHtml(feeder)}', '${dateKey}')" style="flex:1; height:44px; border:none; border-radius:12px; background:#f59e0b; color:#fff; font-size:12px; font-weight:900; text-transform:uppercase;">Unfreeze</button>
+                    <button onclick="confirmUnfreezeFeederEntry_('${mcJsEscape_(substation)}', '${mcJsEscape_(feeder)}', '${mcJsEscape_(dateKey)}')" style="flex:1; height:44px; border:none; border-radius:12px; background:#f59e0b; color:#fff; font-size:12px; font-weight:900; text-transform:uppercase;">Unfreeze</button>
                 </div>
             `;
             overlay.appendChild(card);
@@ -462,7 +462,9 @@
                 `;
             }
 
-            panel.innerHTML = `
+            // feederLines/incomingHtml poore tarah escapeHtml() se banaye gaye pieces se
+            // compose hote hain (upar verify kiya) — isliye trustedHtml_ se wrap karna safe hai.
+            panel.innerHTML = trustedHtml_(`
                 <div style="background:linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%); border:1.5px solid #10b981; border-radius:14px; padding:12px;">
                     <div style="font-size:11px; font-weight:900; color:#065f46; text-transform:uppercase; margin-bottom:4px;">📈 Monthly Progressive Consumption (${escapeHtml(kvLabel)})</div>
                     <div style="font-size:10px; font-weight:700; color:#047857; margin-bottom:8px;">Period: ${escapeHtml(fromLabel)} to ${escapeHtml(toLabel)} (${escapeHtml(monthLabel)})</div>
@@ -472,7 +474,7 @@
                     </div>
                 </div>
                 ${thirtyThreeKvOnlySubstation ? "" : incomingHtml}
-            `;
+            `);
         }
 
         // Returns the required reading dates for a given year-month: 1st, 10th, 20th, last day

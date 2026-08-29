@@ -46,8 +46,8 @@
                     statusEl.textContent = "सूची लोड नहीं हो पाई — इंटरनेट जाँचें और फिर से खोलें";
                     return;
                 }
-                select.innerHTML = `<option value="">-- अपना नाम चुनें --</option>` +
-                    employees.map((e) => `<option value="${escapeHtml(e.emp_id)}">${escapeHtml(e.emp_name)}${e.emp_designation ? " (" + escapeHtml(e.emp_designation) + ")" : ""}</option>`).join("");
+                select.innerHTML = trustedHtml_(`<option value="">-- अपना नाम चुनें --</option>` +
+                    employees.map((e) => `<option value="${escapeHtml(e.emp_id)}">${escapeHtml(e.emp_name)}${e.emp_designation ? " (" + escapeHtml(e.emp_designation) + ")" : ""}</option>`).join(""));
             } catch (_) {
                 select.innerHTML = `<option value="">लोड नहीं हुआ</option>`;
                 statusEl.textContent = "सूची लोड नहीं हो पाई — इंटरनेट जाँचें और फिर से खोलें";

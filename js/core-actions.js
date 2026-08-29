@@ -20,7 +20,7 @@
                 item.className = "option-item";
                 if (isComingSoon) {
                     item.style.cssText = "display:flex; align-items:center; justify-content:space-between; gap:8px; cursor:default;";
-                    item.innerHTML = `<span>${escapeHtml(dc)}</span><span style="color:#94a3b8; font-weight:700; font-size:11px; text-transform:uppercase; letter-spacing:0.3px;">Coming Soon</span>`;
+                    item.innerHTML = trustedHtml_(`<span>${escapeHtml(dc)}</span><span style="color:#94a3b8; font-weight:700; font-size:11px; text-transform:uppercase; letter-spacing:0.3px;">Coming Soon</span>`);
                     item.onclick = () => showToast("यह DC जल्द उपलब्ध होगा", false);
                 } else {
                     item.innerText = dc;

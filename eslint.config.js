@@ -4,6 +4,7 @@
 // no-unused-vars sirf function ke andar wale local variables par lagu hai, top-level par nahi.
 const js = require("@eslint/js");
 const globals = require("globals");
+const noUnsanitized = require("eslint-plugin-no-unsanitized");
 
 // js/*.js me pariभाषित sabhi top-level var/function — baaki files me istemal hote hain
 const sharedGlobals = require("./eslint.shared-globals.json");
@@ -17,6 +18,7 @@ module.exports = [
   },
   {
     files: ["js/**/*.js"],
+    plugins: { "no-unsanitized": noUnsanitized },
     languageOptions: {
       sourceType: "script",
       ecmaVersion: 2021,
@@ -38,6 +40,11 @@ module.exports = [
       // jaisa lagta hai, jabki yah is no-build-step, multi-file shared-namespace architecture
       // ka samanya pattern hai, koi asli bug nahi
       "no-redeclare": "off",
+      // XSS suraksha: .innerHTML = ya insertAdjacentHTML() me kisi bhi non-literal
+      // (variable-based) HTML string ko istemal karne se pehle escapeHtml()/mcJsEscape_()
+      // se guzarna zaroori hai — yeh rule ab CI me automated check ke roop me lagu hai.
+      "no-unsanitized/property": ["error", { escape: { methods: ["escapeHtml", "mcJsEscape_", "trustedHtml_"] } }],
+      "no-unsanitized/method": ["error", { escape: { methods: ["escapeHtml", "mcJsEscape_", "trustedHtml_"] } }],
     },
   },
   {

@@ -63,11 +63,12 @@
                 ? `<div style="text-align:center; padding:6px; margin-bottom:8px; font-size:10.5px; font-weight:800; color:#78350f; background:#fef9c3; border-radius:8px;">☁️ बाकी SCN load हो रहे हैं...</div>`
                 : "";
             if (!records.length) {
-                container.innerHTML = `${syncingNoteHtml}<div style="text-align:center; padding:18px; font-size:13px; font-weight:800; color:#64748b; background:#f8fafc; border-radius:14px;">आपके नाम पर कोई SCN जारी नहीं है।</div>`;
+                container.innerHTML = `${trustedHtml_(syncingNoteHtml)}<div style="text-align:center; padding:18px; font-size:13px; font-weight:800; color:#64748b; background:#f8fafc; border-radius:14px;">आपके नाम पर कोई SCN जारी नहीं है।</div>`;
                 return;
             }
-            container.innerHTML = syncingNoteHtml + records.map((r) => {
+            container.innerHTML = trustedHtml_(syncingNoteHtml + records.map((r) => {
                 const uid = r.entry_id || String(r.id);
+                const uidJs = mcJsEscape_(uid);
                 const hasReplied = !!r.reply_text;
                 return `
                 <div style="border:2px solid ${hasReplied ? "#86efac" : "#fbbf24"}; border-radius:16px; margin-bottom:14px; overflow:hidden;">
@@ -89,9 +90,9 @@
                             ${hasReplied
                                 ? `<div style="font-size:12px; font-weight:700; color:#1e293b; line-height:1.5;">${escapeHtml(r.reply_text)}</div>
                                    <div style="font-size:10px; font-weight:700; color:#64748b; margin-top:4px;">(${kcFormatDate_(r.reply_date_iso)})</div>
-                                   <button onclick="kcEmpEditReply('${uid}')" style="margin-top:8px; border:none; background:#dbeafe; color:#1d4ed8; border-radius:8px; padding:6px 12px; font-size:10px; font-weight:900; text-transform:uppercase;">✏️ उत्तर बदलें</button>`
-                                : `<textarea id="kc-emp-self-reply-${uid}" placeholder="यहाँ अपना स्पष्टीकरण लिखें... (7 दिन के अंदर उत्तर देना अनिवार्य है)" style="width:100%; min-height:90px; border-radius:8px; border:1.5px solid #93c5fd; padding:8px; font-size:13px; font-weight:700; resize:vertical; outline:none; margin-bottom:8px;"></textarea>
-                                   <button onclick="kcSaveMyReply('${uid}')" style="width:100%; height:42px; border:none; border-radius:10px; background:linear-gradient(135deg,#1d4ed8,#1e3a5f); color:#fff; font-size:12px; font-weight:900; text-transform:uppercase;">💾 स्पष्टीकरण Submit करें</button>`
+                                   <button onclick="kcEmpEditReply('${uidJs}')" style="margin-top:8px; border:none; background:#dbeafe; color:#1d4ed8; border-radius:8px; padding:6px 12px; font-size:10px; font-weight:900; text-transform:uppercase;">✏️ उत्तर बदलें</button>`
+                                : `<textarea id="kc-emp-self-reply-${escapeHtml(uid)}" placeholder="यहाँ अपना स्पष्टीकरण लिखें... (7 दिन के अंदर उत्तर देना अनिवार्य है)" style="width:100%; min-height:90px; border-radius:8px; border:1.5px solid #93c5fd; padding:8px; font-size:13px; font-weight:700; resize:vertical; outline:none; margin-bottom:8px;"></textarea>
+                                   <button onclick="kcSaveMyReply('${uidJs}')" style="width:100%; height:42px; border:none; border-radius:10px; background:linear-gradient(135deg,#1d4ed8,#1e3a5f); color:#fff; font-size:12px; font-weight:900; text-transform:uppercase;">💾 स्पष्टीकरण Submit करें</button>`
                             }
                         </div>
                         ${r.remark_text ? `
@@ -100,12 +101,12 @@
                             <div style="font-size:12px; font-weight:700; color:#334155; line-height:1.5;">${escapeHtml(r.remark_text)}</div>
                         </div>` : ""}
                         <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:6px;">
-                            <button onclick="kcOpenShareModal('${uid}')" style="height:36px; border:none; border-radius:8px; background:linear-gradient(135deg,#25D366,#128C7E); color:#fff; font-size:10px; font-weight:900; text-transform:uppercase;">📤 WhatsApp</button>
-                            <button onclick="kcCopyScnText('${uid}')" style="height:36px; border:none; border-radius:8px; background:linear-gradient(135deg,#3b82f6,#1d4ed8); color:#fff; font-size:10px; font-weight:900; text-transform:uppercase;">📋 Copy</button>
+                            <button onclick="kcOpenShareModal('${uidJs}')" style="height:36px; border:none; border-radius:8px; background:linear-gradient(135deg,#25D366,#128C7E); color:#fff; font-size:10px; font-weight:900; text-transform:uppercase;">📤 WhatsApp</button>
+                            <button onclick="kcCopyScnText('${uidJs}')" style="height:36px; border:none; border-radius:8px; background:linear-gradient(135deg,#3b82f6,#1d4ed8); color:#fff; font-size:10px; font-weight:900; text-transform:uppercase;">📋 Copy</button>
                         </div>
                     </div>
                 </div>`;
-            }).join("");
+            }).join(""));
         }
 
         async function kcSaveMyReply(uid) {
@@ -287,7 +288,7 @@
                 ? `<div style="text-align:center; padding:6px; margin-bottom:8px; font-size:10.5px; font-weight:800; color:#78350f; background:#fef9c3; border-radius:8px;">☁️ बाकी SCN load हो रहे हैं...</div>`
                 : "";
             if (!allRecords.length) {
-                container.innerHTML = `${syncingNoteHtml}<div style="text-align:center; padding:18px; font-size:13px; font-weight:800; color:#64748b; background:#f8fafc; border-radius:14px;">अभी तक कोई SCN दर्ज नहीं किया गया है।</div>`;
+                container.innerHTML = `${trustedHtml_(syncingNoteHtml)}<div style="text-align:center; padding:18px; font-size:13px; font-weight:800; color:#64748b; background:#f8fafc; border-radius:14px;">अभी तक कोई SCN दर्ज नहीं किया गया है।</div>`;
                 return;
             }
 
@@ -300,7 +301,7 @@
                 empGroups[r.emp_id].records.push(r);
             });
 
-            container.innerHTML = syncingNoteHtml + Object.entries(empGroups).map(([empId, group]) => `
+            container.innerHTML = trustedHtml_(syncingNoteHtml + Object.entries(empGroups).map(([empId, group]) => `
                 <div style="border:2px solid #1e3a5f; border-radius:16px; margin-bottom:16px; overflow:hidden;">
                     <!-- Employee Header -->
                     <div style="background:linear-gradient(135deg,#1e3a5f,#0f172a); padding:12px 14px; display:flex; align-items:center; justify-content:space-between;">
@@ -313,7 +314,10 @@
 
                     <!-- SCN Cards for this employee -->
                     <div style="padding:10px;">
-                        ${group.records.map((r, idx) => `
+                        ${group.records.map((r, idx) => {
+                            const recId = r.entry_id || r.id;
+                            const recIdJs = mcJsEscape_(recId);
+                            return `
                             <div style="border:1px solid ${r.reply_text ? "#bbf7d0" : "#fde68a"}; border-radius:12px; padding:10px; margin-bottom:${idx < group.records.length - 1 ? "10px" : "0"}; background:${r.reply_text ? "#f0fdf4" : "#fffbeb"};">
                                 <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:6px; margin-bottom:6px;">
                                     <div>
@@ -331,8 +335,8 @@
                                     <div style="font-size:10px; font-weight:900; color:#1d4ed8; margin-bottom:6px;">कर्मचारी का स्पष्टीकरण/उत्तर:</div>
                                     ${r.reply_text
                                         ? `<div style="font-size:12px; font-weight:700; color:#1e293b; line-height:1.5; margin-bottom:6px;">${escapeHtml(r.reply_text)}</div><div style="font-size:10px; font-weight:700; color:#64748b;">(${kcFormatDate_(r.reply_date_iso)})</div>`
-                                        : `<textarea id="kc-emp-reply-${r.entry_id || r.id}" placeholder="यहाँ अपना स्पष्टीकरण / उत्तर लिखें..." style="width:100%; min-height:70px; border-radius:8px; border:1.5px solid #bfdbfe; padding:8px; font-size:12px; font-weight:700; resize:vertical; outline:none; margin-bottom:6px;"></textarea>
-                                        <button onclick="kcSaveEmpReply('${r.entry_id || r.id}')" style="width:100%; height:36px; border:none; border-radius:8px; background:linear-gradient(135deg,#1d4ed8,#1e3a5f); color:#fff; font-size:11px; font-weight:900; text-transform:uppercase;">💾 उत्तर Save करें</button>`
+                                        : `<textarea id="kc-emp-reply-${escapeHtml(recId)}" placeholder="यहाँ अपना स्पष्टीकरण / उत्तर लिखें..." style="width:100%; min-height:70px; border-radius:8px; border:1.5px solid #bfdbfe; padding:8px; font-size:12px; font-weight:700; resize:vertical; outline:none; margin-bottom:6px;"></textarea>
+                                        <button onclick="kcSaveEmpReply('${recIdJs}')" style="width:100%; height:36px; border:none; border-radius:8px; background:linear-gradient(135deg,#1d4ed8,#1e3a5f); color:#fff; font-size:11px; font-weight:900; text-transform:uppercase;">💾 उत्तर Save करें</button>`
                                     }
                                 </div>
 
@@ -346,14 +350,15 @@
 
                                 <!-- Share buttons -->
                                 <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:6px;">
-                                    <button onclick="kcOpenShareModal('${r.entry_id || r.id}')" style="height:36px; border:none; border-radius:8px; background:linear-gradient(135deg,#25D366,#128C7E); color:#fff; font-size:10px; font-weight:900; text-transform:uppercase;">📤 WhatsApp</button>
-                                    <button onclick="kcCopyScnText('${r.entry_id || r.id}')" style="height:36px; border:none; border-radius:8px; background:linear-gradient(135deg,#3b82f6,#1d4ed8); color:#fff; font-size:10px; font-weight:900; text-transform:uppercase;">📋 Word Copy</button>
+                                    <button onclick="kcOpenShareModal('${recIdJs}')" style="height:36px; border:none; border-radius:8px; background:linear-gradient(135deg,#25D366,#128C7E); color:#fff; font-size:10px; font-weight:900; text-transform:uppercase;">📤 WhatsApp</button>
+                                    <button onclick="kcCopyScnText('${recIdJs}')" style="height:36px; border:none; border-radius:8px; background:linear-gradient(135deg,#3b82f6,#1d4ed8); color:#fff; font-size:10px; font-weight:900; text-transform:uppercase;">📋 Word Copy</button>
                                 </div>
                             </div>
-                        `).join("")}
+                        `;
+                        }).join("")}
                     </div>
                 </div>
-            `).join("");
+            `).join(""));
         }
 
         async function kcSaveEmpReply(recordId) {
@@ -627,18 +632,23 @@
                 return;
             }
 
-            container.innerHTML = records.map((r) => `
+            container.innerHTML = trustedHtml_(records.map((r) => {
+                const recId = r.entry_id || r.id;
+                const recIdJs = mcJsEscape_(recId);
+                const dispDigits = String(r.dispatch_no || "").padStart(4, "0");
+                return `
                 <div style="border:1.5px solid #1e3a5f; border-radius:10px; padding:10px; margin-bottom:10px; background:#f8fafc;">
-                    <div style="font-size:11px; font-weight:900; color:#1e3a5f;">SCN-${String(r.dispatch_no || "").padStart(4,"0")} | ${kcFormatDate_(r.scn_date_iso)} — ${escapeHtml(r.violation_type || "")}</div>
+                    <div style="font-size:11px; font-weight:900; color:#1e3a5f;">SCN-${escapeHtml(dispDigits)} | ${kcFormatDate_(r.scn_date_iso)} — ${escapeHtml(r.violation_type || "")}</div>
                     <div style="font-size:11px; font-weight:700; color:#334155; margin:4px 0 8px 0;">${escapeHtml((r.violation_desc || "").slice(0, 80))}...</div>
                     ${r.reply_text ? `<div style="font-size:11px; font-weight:700; color:#1d4ed8; background:#eff6ff; border-radius:6px; padding:6px; margin-bottom:8px;">कर्मचारी उत्तर: ${escapeHtml(r.reply_text.slice(0, 60))}...</div>` : ""}
-                    <textarea id="kc-je-remark-${r.entry_id || r.id}" placeholder="JE रिमार्क / अंतिम टिप्पणी (वैकल्पिक)..." style="width:100%; min-height:60px; border-radius:8px; border:1.5px solid #cbd5e1; padding:8px; font-size:12px; font-weight:700; resize:vertical; outline:none; margin-bottom:6px;">${escapeHtml(r.remark_text || "")}</textarea>
+                    <textarea id="kc-je-remark-${escapeHtml(recId)}" placeholder="JE रिमार्क / अंतिम टिप्पणी (वैकल्पिक)..." style="width:100%; min-height:60px; border-radius:8px; border:1.5px solid #cbd5e1; padding:8px; font-size:12px; font-weight:700; resize:vertical; outline:none; margin-bottom:6px;">${escapeHtml(r.remark_text || "")}</textarea>
                     <div style="display:grid; grid-template-columns:1fr auto; gap:8px;">
-                        <button onclick="kcSaveJeRemark('${r.entry_id || r.id}')" style="height:36px; border:none; border-radius:8px; background:linear-gradient(135deg,#1e3a5f,#0f172a); color:#fff; font-size:11px; font-weight:900; text-transform:uppercase;">💾 JE रिमार्क Save करें</button>
-                        <button onclick="kcDeleteScnConfirm_('${r.entry_id || r.id}', '${String(r.dispatch_no || "").padStart(4,"0")}')" style="height:36px; border:none; border-radius:8px; background:linear-gradient(135deg,#dc2626,#7f1d1d); color:#fff; font-size:11px; font-weight:900; text-transform:uppercase; padding:0 14px;">🗑 Delete</button>
+                        <button onclick="kcSaveJeRemark('${recIdJs}')" style="height:36px; border:none; border-radius:8px; background:linear-gradient(135deg,#1e3a5f,#0f172a); color:#fff; font-size:11px; font-weight:900; text-transform:uppercase;">💾 JE रिमार्क Save करें</button>
+                        <button onclick="kcDeleteScnConfirm_('${recIdJs}', '${mcJsEscape_(dispDigits)}')" style="height:36px; border:none; border-radius:8px; background:linear-gradient(135deg,#dc2626,#7f1d1d); color:#fff; font-size:11px; font-weight:900; text-transform:uppercase; padding:0 14px;">🗑 Delete</button>
                     </div>
                 </div>
-            `).join("");
+            `;
+            }).join(""));
         }
 
         async function kcSaveJeRemark(recordId) {
@@ -664,18 +674,19 @@
             const text = kcBuildScnText_(r);
             const encoded = encodeURIComponent(text);
             const dispStr = `SCN-${String(r.dispatch_no).padStart(4,"0")}`;
+            const recordIdJs = mcJsEscape_(recordId);
 
             const overlay = document.createElement("div");
             overlay.style.cssText = "position:fixed; inset:0; background:rgba(0,0,0,0.55); z-index:9999; display:flex; align-items:center; justify-content:center; padding:20px;";
             const card = document.createElement("div");
             card.style.cssText = "background:#fff; border-radius:18px; padding:18px; width:100%; max-width:340px; box-shadow:0 12px 30px rgba(0,0,0,0.25);";
-            card.innerHTML = `
-                <div style="font-size:13px; font-weight:900; color:#1e3a5f; text-align:center; margin-bottom:12px;">${dispStr} — ${escapeHtml(r.emp_name)}</div>
+            card.innerHTML = trustedHtml_(`
+                <div style="font-size:13px; font-weight:900; color:#1e3a5f; text-align:center; margin-bottom:12px;">${escapeHtml(dispStr)} — ${escapeHtml(r.emp_name)}</div>
                 ${r.emp_mobile ? `<a href="https://wa.me/91${r.emp_mobile.replace(/\D/g,"")}?text=${encoded}" target="_blank" rel="noopener" style="display:flex; align-items:center; justify-content:center; gap:6px; width:100%; height:44px; border-radius:12px; background:linear-gradient(135deg,#25D366,#128C7E); color:#fff; font-size:12px; font-weight:900; text-decoration:none; margin-bottom:8px;">📱 Direct WhatsApp (${escapeHtml(r.emp_mobile)})</a>` : ""}
                 <a href="https://wa.me/?text=${encoded}" target="_blank" rel="noopener" style="display:flex; align-items:center; justify-content:center; gap:6px; width:100%; height:44px; border-radius:12px; background:linear-gradient(135deg,#128C7E,#075e54); color:#fff; font-size:12px; font-weight:900; text-decoration:none; margin-bottom:8px;">WhatsApp Group Share</a>
-                <button onclick="kcCopyAndClose(${recordId}, this)" style="width:100%; height:44px; border:none; border-radius:12px; background:linear-gradient(135deg,#3b82f6,#1d4ed8); color:#fff; font-size:12px; font-weight:900; text-transform:uppercase; margin-bottom:8px;">📋 Word हेतु Copy करें</button>
+                <button onclick="kcCopyAndClose('${recordIdJs}', this)" style="width:100%; height:44px; border:none; border-radius:12px; background:linear-gradient(135deg,#3b82f6,#1d4ed8); color:#fff; font-size:12px; font-weight:900; text-transform:uppercase; margin-bottom:8px;">📋 Word हेतु Copy करें</button>
                 <button onclick="this.closest('[style*=fixed]').remove()" style="width:100%; height:40px; border:none; border-radius:12px; background:#e2e8f0; color:#1e293b; font-size:12px; font-weight:900; text-transform:uppercase;">बंद करें</button>
-            `;
+            `);
             overlay.appendChild(card);
             overlay.addEventListener("click", (e) => { if (e.target === overlay) overlay.remove(); });
             document.body.appendChild(overlay);

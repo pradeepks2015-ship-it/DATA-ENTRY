@@ -13,15 +13,15 @@
                 return;
             }
             metaBox.style.display = "block";
-            latLongNode.innerHTML = `<strong>Lat-Long:</strong> ${bpGeoData.latitude}, ${bpGeoData.longitude}`;
+            latLongNode.innerHTML = `<strong>Lat-Long:</strong> ${trustedHtml_(bpGeoData.latitude)}, ${trustedHtml_(bpGeoData.longitude)}`;
             locationNode.innerHTML = `<strong>Location:</strong> ${escapeHtml(bpGeoData.locationText || "GPS location captured")}`;
             if (directionsNode) {
                 const lat = bpGeoData.latitude;
                 const lon = bpGeoData.longitude;
                 const isValidCoord = /^-?\d+(\.\d+)?$/.test(String(lat)) && /^-?\d+(\.\d+)?$/.test(String(lon));
                 if (isValidCoord) {
-                    const mapsUrl = `https://www.google.com/maps/dir/?api=1&destination=${lat},${lon}`;
-                    directionsNode.innerHTML = `<a href="${mapsUrl}" target="_blank" rel="noopener" style="display:inline-flex; align-items:center; gap:6px; background:linear-gradient(135deg,#16a34a,#15803d); color:#fff; font-size:11px; font-weight:900; text-transform:uppercase; padding:8px 14px; border-radius:10px; text-decoration:none; box-shadow:0 4px 10px rgba(21,128,61,0.25);">
+                    const mapsUrl = `https://www.google.com/maps/dir/?api=1&destination=${lat},${lon}`; // lat/lon abhi-abhi regex se validate ho chuke hain
+                    directionsNode.innerHTML = `<a href="${trustedHtml_(mapsUrl)}" target="_blank" rel="noopener" style="display:inline-flex; align-items:center; gap:6px; background:linear-gradient(135deg,#16a34a,#15803d); color:#fff; font-size:11px; font-weight:900; text-transform:uppercase; padding:8px 14px; border-radius:10px; text-decoration:none; box-shadow:0 4px 10px rgba(21,128,61,0.25);">
                         <svg width="14" height="14" fill="white" viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5A2.5 2.5 0 1 1 12 6.5a2.5 2.5 0 0 1 0 5z"/></svg>
                         Get Directions (Google Maps)
                     </a>`;
@@ -233,7 +233,9 @@
                 const renderBlock = async (innerHtml) => {
                     const el = document.createElement("div");
                     el.style.cssText = "width:760px; background:#ffffff; padding:4px 2px; box-sizing:border-box;";
-                    el.innerHTML = innerHtml;
+                    // Har caller (neeche) apna dynamic data escapeHtml() se guzaar kar bhejta
+                    // hai — yeh sirf ek generic render-helper hai isliye khud verify nahi kar sakta.
+                    el.innerHTML = trustedHtml_(innerHtml);
                     holder.appendChild(el);
                     const canvas = await html2canvas(el, { scale: 2, backgroundColor: "#ffffff", logging: false });
                     holder.removeChild(el);
@@ -301,7 +303,7 @@
                         <div style="border:1.5px solid #fed7aa; border-radius:10px; padding:10px; background:#fffbf5;">
                             <div style="font-size:14px; font-weight:900; color:#1e293b; margin-bottom:8px;">एंट्री ${i + 1} — ${escapeHtml(e.date || "")} — ${escapeHtml(e.remark1 || "")}</div>
                             <div style="display:flex; gap:12px; align-items:flex-start;">
-                                <img src="${e.photo_data}" alt="अपलोड की गई फोटो" style="width:330px; height:248px; object-fit:cover; border-radius:8px; border:1px solid #e2e8f0; flex-shrink:0;">
+                                <img src="${escapeHtml(e.photo_data)}" alt="अपलोड की गई फोटो" style="width:330px; height:248px; object-fit:cover; border-radius:8px; border:1px solid #e2e8f0; flex-shrink:0;">
                                 <div style="font-size:13px; font-weight:700; color:#475569; line-height:1.7;">
                                     <div><span style="color:#1e293b; font-weight:900;">GPS:</span> ${gpsLine}</div>
                                     <div style="margin-top:4px;"><span style="color:#1e293b; font-weight:900;">स्थान:</span> ${escapeHtml(e.gps_location || "N/A")}</div>

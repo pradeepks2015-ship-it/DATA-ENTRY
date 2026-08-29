@@ -51,7 +51,7 @@
             const banner = document.createElement("div");
             banner.id = "scn-reminder-banner";
             banner.style.cssText = `margin:0 16px 12px 16px; background:${isOverdue ? "#fee2e2" : "#fef9c3"}; border:1.5px solid ${isOverdue ? "#fca5a5" : "#fde047"}; border-radius:12px; padding:10px 12px; display:flex; align-items:center; gap:10px;`;
-            banner.innerHTML = `
+            banner.innerHTML = trustedHtml_(`
                 <div style="font-size:20px; flex-shrink:0;">${isOverdue ? "🔴" : "⏳"}</div>
                 <div style="flex:1; min-width:0;">
                     <div style="font-size:12px; font-weight:900; color:#1e293b;">${isOverdue ? `${overdue} SCN का उत्तर समय सीमा (${SCN_REPLY_WINDOW_DAYS} दिन) पार कर चुका है` : `${pending} कर्मचारी SCN का उत्तर बाकी है`}</div>
@@ -59,7 +59,7 @@
                 </div>
                 <button type="button" onclick="switchView('karya-charitra')" style="border:none; background:#1e293b; color:#ffffff; border-radius:999px; padding:6px 10px; font-size:10px; font-weight:900; text-transform:uppercase; flex-shrink:0;">देखें</button>
                 <button type="button" onclick="dismissScnReminder_()" aria-label="रिमाइंडर बंद करें" style="border:none; background:none; color:#64748b; font-size:16px; font-weight:900; cursor:pointer; flex-shrink:0; width:24px; height:24px; display:flex; align-items:center; justify-content:center;">✕</button>
-            `;
+            `);
 
             const welcomeBox = homeView.querySelector(".welcome-box");
             if (welcomeBox) welcomeBox.insertAdjacentElement("afterend", banner);

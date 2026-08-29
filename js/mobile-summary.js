@@ -137,7 +137,7 @@
                 const colLabel = activeViewLevel === "DC" ? "HQ NAME" : "DC NAME";
                 let html = `<div class="summary-wrapper"><div class="summary-table-header"><div>${colLabel}</div><div>TOTAL CONS.</div><div>UPDATED MOBILE NO</div></div>`;
                 uiListSummary.forEach((r) => {
-                    html += `<div class="summary-table-row ${r.type === "DIV_TOTAL" ? "blue-bold" : ""}"><div>${r.name}</div><div>${r.tc}</div><div class="text-teal-600 font-black">${r.tu}</div></div>`;
+                    html += `<div class="summary-table-row ${r.type === "DIV_TOTAL" ? "blue-bold" : ""}"><div>${escapeHtml(r.name)}</div><div>${r.tc}</div><div class="text-teal-600 font-black">${r.tu}</div></div>`;
                 });
 
                 html += `</div><div class="summary-footer"><div class="flex justify-between font-black"><span>GRAND TOTAL (${label})</span><span class="text-rose-600 text-lg">${grandTU}</span></div>
@@ -152,7 +152,7 @@
                         </button>
                     </div>
                 </div>`;
-                cont.innerHTML = html;
+                cont.innerHTML = trustedHtml_(html);
             } catch (e) {
                 cont.innerHTML = '<p class="text-center text-red-500 py-10 font-black">ERROR FETCHING DATA</p>';
             }
