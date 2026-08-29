@@ -80,12 +80,14 @@
 
             const sheet = document.createElement("div");
             sheet.style.cssText = "background:#ffffff; border-radius:24px 24px 0 0; padding:20px; width:100%; max-width:420px; box-shadow:0 -12px 30px rgba(0,0,0,0.25); box-sizing:border-box;";
-            sheet.innerHTML = `
+            // headerHtml/cardsHtml sirf is file ke andar (do jagah) bante hain, dono
+            // apna dynamic data escapeHtml() se guzaar kar bhejte hain — verify kiya.
+            sheet.innerHTML = trustedHtml_(`
                 <div style="width:36px; height:4px; background:#cbd5e1; border-radius:99px; margin:0 auto 16px auto;"></div>
                 ${headerHtml}
                 ${cardsHtml}
                 <button id="mc-mobile-actions-close-btn" style="width:100%; height:52px; border:1.5px solid #e2e8f0; border-radius:16px; background:#ffffff; color:#1e293b; font-size:14px; font-weight:900;">रद्द करें</button>
-            `;
+            `);
             overlay.appendChild(sheet);
             document.body.appendChild(overlay);
             document.getElementById("mc-mobile-actions-close-btn").onclick = () => overlay.remove();
@@ -430,7 +432,7 @@
             (entries || []).forEach((e) => hqSet.add(e.hq || "सामान्य"));
             const hqNames = Array.from(hqSet).sort();
             const optStyle = `color:#1e293b; background:#ffffff;`;
-            select.innerHTML = `<option value="" style="${optStyle}">सभी HQ</option>` + hqNames.map((hq) => `<option value="${escapeHtml(hq)}" style="${optStyle}">${escapeHtml(hq)}</option>`).join("");
+            select.innerHTML = trustedHtml_(`<option value="" style="${optStyle}">सभी HQ</option>` + hqNames.map((hq) => `<option value="${escapeHtml(hq)}" style="${optStyle}">${escapeHtml(hq)}</option>`).join(""));
             if (hqNames.includes(prevValue)) select.value = prevValue;
         }
 
@@ -499,7 +501,7 @@
                 const msg = searchQuery
                     ? "इस खोज से कोई entry नहीं मिली।"
                     : (hqFilter ? "इस HQ में अभी कोई flag की हुई entry नहीं है।" : "इस DC में अभी कोई flag की हुई entry नहीं है।");
-                container.innerHTML = `${syncingNoteHtml}<div style="text-align:center; padding:14px; font-size:12px; font-weight:800; color:#ffffff; background:rgba(0,0,0,0.12); border-radius:12px;">${msg}</div>`;
+                container.innerHTML = `${trustedHtml_(syncingNoteHtml)}<div style="text-align:center; padding:14px; font-size:12px; font-weight:800; color:#ffffff; background:rgba(0,0,0,0.12); border-radius:12px;">${trustedHtml_(msg)}</div>`;
                 return;
             }
 
@@ -533,6 +535,8 @@
                 return rows.map((e) => {
                     sNo++;
                     const uid = getEntryUid_(e);
+                    const uidJs = mcJsEscape_(uid);
+                    const uidHtml = escapeHtml(uid);
                     const isPending = e.status !== "corrected";
                     const rowBg = isPending ? "#fee2e2" : "#f0fdf4";
                     const ivrsJs = mcJsEscape_(e.ivrs || "");
@@ -548,13 +552,13 @@
                         <td style="${mcTableCellStyle_("color:#991b1b; font-weight:900;")}"${e.old_mobile ? ` class="mc-tap-copy" onclick="mcShowMobileActions_('${oldMobileJs}','${nameJs}','${fatherJs}')"` : ""}>${escapeHtml(e.old_mobile || "N/A")}${e.flagged_date ? `<br><span style="color:#64748b; font-weight:700; text-decoration:none;">${escapeHtml(e.flagged_date)}</span>` : ""}</td>
                         <td style="${mcTableCellStyle_(isPending ? "color:#b91c1c; font-weight:900;" : "color:#15803d; font-weight:900;")}">
                             ${isPending ? "⏳ पेंडिंग" : "✅ ठीक हुआ"}
-                            <br><button onclick="mcDeleteEntryConfirm_('${uid}')" style="margin-top:4px; border:none; background:#7f1d1d; color:#fecaca; border-radius:6px; padding:2px 8px; font-size:9px; font-weight:900; text-transform:uppercase; cursor:pointer;">🗑️ हटाएं</button>
+                            <br><button onclick="mcDeleteEntryConfirm_('${uidJs}')" style="margin-top:4px; border:none; background:#7f1d1d; color:#fecaca; border-radius:6px; padding:2px 8px; font-size:9px; font-weight:900; text-transform:uppercase; cursor:pointer;">🗑️ हटाएं</button>
                         </td>
                         <td style="${mcTableCellStyle_()}">
                             ${isPending ? `
                                 <div style="display:flex; gap:4px; align-items:center;">
-                                    <input type="tel" id="mc-correct-${uid}" placeholder="10 अंक" oninput="this.value=this.value.replace(/[^0-9]/g,'').slice(0,10)" style="width:90px; height:30px; border-radius:6px; border:1.5px solid #fca5a5; padding:0 6px; font-size:10.5px; font-weight:700; box-sizing:border-box;">
-                                    <button onclick="saveCorrectMobile_('${uid}')" style="border:none; background:#16a34a; color:#ffffff; border-radius:6px; padding:0 8px; height:30px; font-size:9.5px; font-weight:900; text-transform:uppercase; flex-shrink:0;">सेव</button>
+                                    <input type="tel" id="mc-correct-${uidHtml}" placeholder="10 अंक" oninput="this.value=this.value.replace(/[^0-9]/g,'').slice(0,10)" style="width:90px; height:30px; border-radius:6px; border:1.5px solid #fca5a5; padding:0 6px; font-size:10.5px; font-weight:700; box-sizing:border-box;">
+                                    <button onclick="saveCorrectMobile_('${uidJs}')" style="border:none; background:#16a34a; color:#ffffff; border-radius:6px; padding:0 8px; height:30px; font-size:9.5px; font-weight:900; text-transform:uppercase; flex-shrink:0;">सेव</button>
                                 </div>
                             ` : `<span class="mc-tap-copy" onclick="mcShowMobileActions_('${correctMobileJs}','${nameJs}','${fatherJs}')" style="color:#15803d; font-weight:900;">${escapeHtml(e.correct_mobile || "")}</span>${e.corrected_date ? `<br><span style="color:#94a3b8; font-weight:600; text-decoration:none;">${escapeHtml(e.corrected_date)}</span>` : ""}`}
                         </td>
@@ -562,7 +566,9 @@
                 }).join("");
             }).join("");
 
-            container.innerHTML = `
+            // Sabhi pieces (summaryHtml/theadHtml/bodyHtml) upar escapeHtml()/mcJsEscape_()
+            // se ban chuke hain — verify kiya.
+            container.innerHTML = trustedHtml_(`
                 ${syncingNoteHtml}
                 ${summaryHtml}
                 <div style="overflow-x:auto; border-radius:10px; background:#ffffff;">
@@ -571,7 +577,7 @@
                         <tbody>${bodyHtml}</tbody>
                     </table>
                 </div>
-            `;
+            `);
         }
 
         // Galti se flag ho gaya IVRS ho ya sahi ho jaane ke baad bhi list se hataana
@@ -715,7 +721,7 @@
 
             const sheet = document.createElement("div");
             sheet.style.cssText = "background:#ffffff; border-radius:20px 20px 0 0; padding:18px; width:100%; max-width:480px; max-height:82vh; overflow-y:auto; box-shadow:0 -12px 30px rgba(0,0,0,0.25);";
-            sheet.innerHTML = `
+            sheet.innerHTML = trustedHtml_(`
                 <div style="font-size:14px; font-weight:900; color:#1e293b; text-align:center; text-transform:uppercase; margin-bottom:2px;">📊 मुख्यालय वार मोबाइल नंबर करेक्शन स्कोरकार्ड</div>
                 <div style="font-size:10.5px; font-weight:700; color:#64748b; text-align:center; margin-bottom:14px;">${escapeHtml(activeDC || "")}</div>
                 <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:14px;">
@@ -730,7 +736,7 @@
                 </div>
                 <div id="mc-scorecard-body"><div style="text-align:center; padding:14px; font-size:12px; font-weight:800; color:#64748b;">लोड हो रहा है...</div></div>
                 <button id="mc-scorecard-close-btn" style="width:100%; height:42px; border:none; border-radius:12px; background:#e2e8f0; color:#1e293b; font-size:12px; font-weight:900; text-transform:uppercase; margin-top:14px;">बंद करें</button>
-            `;
+            `);
             overlay.appendChild(sheet);
             document.body.appendChild(overlay);
 
@@ -804,7 +810,7 @@
                 <td style="${tdStyle} color:#b91c1c; font-weight:900;">${totalPending}</td>
             </tr>`;
 
-            body.innerHTML = `
+            body.innerHTML = trustedHtml_(`
                 <div style="border-radius:10px;">
                     <table style="border-collapse:collapse; width:100%; table-layout:fixed;">
                         <colgroup>
@@ -819,5 +825,5 @@
                         <tbody>${rowsHtml}${totalsRow}</tbody>
                     </table>
                 </div>
-            `;
+            `);
         }

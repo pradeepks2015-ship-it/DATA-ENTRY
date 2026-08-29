@@ -6,7 +6,7 @@
         function renderBcPhotoSlots() {
             const container = document.getElementById("bc-photo-slots");
             if (!container) return;
-            container.innerHTML = bcPhotoSlots.map((slot, idx) => `
+            container.innerHTML = trustedHtml_(bcPhotoSlots.map((slot, idx) => `
                 <div style="border:1.6px solid #fecaca; border-radius:14px; padding:10px 12px; margin-bottom:10px; background:#fff5f5;">
                     <div style="display:flex; align-items:center; justify-content:space-between; gap:8px;">
                         <label for="bc-photo-${idx}" style="display:flex; align-items:center; gap:8px; cursor:pointer; font-size:0.78rem; font-weight:900; color:#991b1b; text-transform:uppercase;">
@@ -20,14 +20,14 @@
                     <input type="file" id="bc-photo-${idx}" accept="image/*" capture="environment" style="display:none;" onchange="handleBcPhotoChange(${idx})">
                     ${slot ? `
                         <div style="margin-top:8px;">
-                            <img src="${slot.photoData}" alt="चुनी गई फोटो" style="width:100%; max-height:140px; object-fit:cover; border-radius:10px; border:1px solid #fecaca;">
+                            <img src="${escapeHtml(slot.photoData)}" alt="चुनी गई फोटो" style="width:100%; max-height:140px; object-fit:cover; border-radius:10px; border:1px solid #fecaca;">
                             <input type="text" value="${escapeHtml(slot.name || "")}" placeholder="Photo Name (e.g. Site Photo, Evidence)" oninput="updateBcPhotoName(${idx}, this.value)" style="width:100%; margin-top:8px; height:40px; border-radius:10px; border:1.5px solid #fecaca; padding:0 10px; font-size:0.8rem; font-weight:700; color:#7f1d1d; background:#ffffff; outline:none;">
                             <div class="photo-meta-box" style="display:block; margin-top:8px;">
-                                <div class="photo-meta-row"><strong>Lat-Long:</strong> ${slot.geo ? `${slot.geo.latitude}, ${slot.geo.longitude}` : "Not captured"}</div>
+                                <div class="photo-meta-row"><strong>Lat-Long:</strong> ${slot.geo ? `${trustedHtml_(slot.geo.latitude)}, ${trustedHtml_(slot.geo.longitude)}` : "Not captured"}</div>
                                 <div class="photo-meta-row"><strong>Location:</strong> ${slot.geo ? escapeHtml(slot.geo.locationText || "GPS location captured") : "Not captured"}</div>
                                 ${slot.geo && isValidLatLon_(slot.geo.latitude, slot.geo.longitude) ? `
                                     <div style="margin-top:8px;">
-                                        <a href="https://www.google.com/maps/dir/?api=1&destination=${slot.geo.latitude},${slot.geo.longitude}" target="_blank" rel="noopener" style="display:inline-flex; align-items:center; gap:6px; background:linear-gradient(135deg,#16a34a,#15803d); color:#fff; font-size:11px; font-weight:900; text-transform:uppercase; padding:8px 14px; border-radius:10px; text-decoration:none; box-shadow:0 4px 10px rgba(21,128,61,0.25);">
+                                        <a href="https://www.google.com/maps/dir/?api=1&destination=${trustedHtml_(slot.geo.latitude)},${trustedHtml_(slot.geo.longitude)}" target="_blank" rel="noopener" style="display:inline-flex; align-items:center; gap:6px; background:linear-gradient(135deg,#16a34a,#15803d); color:#fff; font-size:11px; font-weight:900; text-transform:uppercase; padding:8px 14px; border-radius:10px; text-decoration:none; box-shadow:0 4px 10px rgba(21,128,61,0.25);">
                                             <svg width="14" height="14" fill="white" viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5A2.5 2.5 0 1 1 12 6.5a2.5 2.5 0 0 1 0 5z"/></svg>
                                             Get Directions (Google Maps)
                                         </a>
@@ -37,7 +37,7 @@
                         </div>
                     ` : ""}
                 </div>
-            `).join("");
+            `).join(""));
         }
 
         async function handleBcPhotoChange(idx) {
@@ -246,7 +246,9 @@
                 const renderBlock = async (innerHtml) => {
                     const el = document.createElement("div");
                     el.style.cssText = "width:760px; background:#ffffff; padding:4px 2px; box-sizing:border-box;";
-                    el.innerHTML = innerHtml;
+                    // Har caller (neeche) apna dynamic data escapeHtml() se guzaar kar bhejta
+                    // hai — yeh sirf ek generic render-helper hai isliye khud verify nahi kar sakta.
+                    el.innerHTML = trustedHtml_(innerHtml);
                     holder.appendChild(el);
                     const canvas = await html2canvas(el, { scale: 2, backgroundColor: "#ffffff", logging: false });
                     holder.removeChild(el);
@@ -317,7 +319,7 @@
                             <div style="border:1.5px solid #fecaca; border-radius:10px; padding:10px; background:#fffbfb;">
                                 <div style="font-size:14px; font-weight:900; color:#1e293b; margin-bottom:8px;">Entry ${i + 1} — ${escapeHtml(e.date || "")} — ${escapeHtml(e.name || e.ivrs || "")} — ${escapeHtml(p.name || ("Photo " + (pIdx + 1)))}</div>
                                 <div style="display:flex; gap:12px; align-items:flex-start;">
-                                    <img src="${p.photo_data}" alt="अपलोड की गई फोटो" style="width:330px; height:248px; object-fit:cover; border-radius:8px; border:1px solid #e2e8f0; flex-shrink:0;">
+                                    <img src="${escapeHtml(p.photo_data)}" alt="अपलोड की गई फोटो" style="width:330px; height:248px; object-fit:cover; border-radius:8px; border:1px solid #e2e8f0; flex-shrink:0;">
                                     <div style="font-size:13px; font-weight:700; color:#475569; line-height:1.7;">
                                         <div><span style="color:#1e293b; font-weight:900;">GPS:</span> ${gpsLine}</div>
                                         <div style="margin-top:4px;"><span style="color:#1e293b; font-weight:900;">Location:</span> ${escapeHtml(p.gps_location || "N/A")}</div>

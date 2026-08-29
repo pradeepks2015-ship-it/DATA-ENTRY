@@ -117,26 +117,27 @@
                 : "";
 
             if (!sorted.length) {
-                container.innerHTML = `${syncingNoteHtml}<div style="text-align:center; padding:14px; font-size:12px; font-weight:800; color:#ffffff; background:rgba(0,0,0,0.12); border-radius:12px;">Koi saved entry nahi hai.</div>`;
+                container.innerHTML = `${trustedHtml_(syncingNoteHtml)}<div style="text-align:center; padding:14px; font-size:12px; font-weight:800; color:#ffffff; background:rgba(0,0,0,0.12); border-radius:12px;">Koi saved entry nahi hai.</div>`;
                 return;
             }
 
             container.innerHTML = `
-                ${syncingNoteHtml}
+                ${trustedHtml_(syncingNoteHtml)}
                 <div style="background:rgba(255,255,255,0.92); border-radius:14px; padding:8px; max-height:340px; overflow-y:auto;">
-                    ${sorted.map((e) => {
+                    ${trustedHtml_(sorted.map((e) => {
                         const thumb = config.getThumb(e) || "";
+                        const uidJs = mcJsEscape_(getEntryUid_(e));
                         return `
                         <div style="display:flex; align-items:center; gap:10px; padding:8px; border-bottom:1px solid #e5e7eb;">
-                            ${thumb ? `<img src="${thumb}" alt="एंट्री थंबनेल" referrerpolicy="no-referrer" style="width:46px; height:46px; object-fit:cover; border-radius:8px; border:1px solid #e5e7eb; flex-shrink:0;">` : `<div style="width:46px; height:46px; border-radius:8px; background:#f1f5f9; flex-shrink:0;"></div>`}
+                            ${thumb ? `<img src="${escapeHtml(thumb)}" alt="एंट्री थंबनेल" referrerpolicy="no-referrer" style="width:46px; height:46px; object-fit:cover; border-radius:8px; border:1px solid #e5e7eb; flex-shrink:0;">` : `<div style="width:46px; height:46px; border-radius:8px; background:#f1f5f9; flex-shrink:0;"></div>`}
                             <div style="flex:1; min-width:0;">
                                 <div style="font-size:11px; font-weight:900; color:#1e293b; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${escapeHtml(config.getTitle(e))}</div>
                                 <div style="font-size:10px; font-weight:700; color:#64748b; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${escapeHtml(config.getSubtitle(e))}</div>
                             </div>
-                            <button onclick="viewEntryDetail_('${storeName}', '${getEntryUid_(e)}')" style="border:none; background:#e0f2fe; color:#075985; border-radius:999px; padding:6px 10px; font-size:10px; font-weight:900; text-transform:uppercase; flex-shrink:0;">View</button>
-                            <button onclick="deleteEntryConfirm_('${storeName}', '${getEntryUid_(e)}')" style="border:none; background:#fee2e2; color:#b91c1c; border-radius:999px; padding:6px 10px; font-size:10px; font-weight:900; text-transform:uppercase; flex-shrink:0;">Delete</button>
+                            <button onclick="viewEntryDetail_('${storeName}', '${uidJs}')" style="border:none; background:#e0f2fe; color:#075985; border-radius:999px; padding:6px 10px; font-size:10px; font-weight:900; text-transform:uppercase; flex-shrink:0;">View</button>
+                            <button onclick="deleteEntryConfirm_('${storeName}', '${uidJs}')" style="border:none; background:#fee2e2; color:#b91c1c; border-radius:999px; padding:6px 10px; font-size:10px; font-weight:900; text-transform:uppercase; flex-shrink:0;">Delete</button>
                         </div>`;
-                    }).join("")}
+                    }).join(""))}
                 </div>
             `;
         }
@@ -172,13 +173,13 @@
             let bodyHtml = "";
             if (storeName === "broken_pole") {
                 bodyHtml = `
-                    ${entry.photo_data ? `<img src="${entry.photo_data}" alt="एंट्री फोटो" style="width:100%; max-height:240px; object-fit:cover; border-radius:10px; margin-bottom:8px;">` : (entry.photo_url ? `<img src="${normalizeDrivePhotoUrl_(entry.photo_url)}" alt="एंट्री फोटो" style="width:100%; max-height:240px; object-fit:cover; border-radius:10px; margin-bottom:8px;" referrerpolicy="no-referrer">` : "")}
+                    ${entry.photo_data ? `<img src="${escapeHtml(entry.photo_data)}" alt="एंट्री फोटो" style="width:100%; max-height:240px; object-fit:cover; border-radius:10px; margin-bottom:8px;">` : (entry.photo_url ? `<img src="${escapeHtml(normalizeDrivePhotoUrl_(entry.photo_url))}" alt="एंट्री फोटो" style="width:100%; max-height:240px; object-fit:cover; border-radius:10px; margin-bottom:8px;" referrerpolicy="no-referrer">` : "")}
                     <div class="photo-meta-row"><strong>Date:</strong> ${escapeHtml(entry.date || "")}</div>
                     <div class="photo-meta-row"><strong>Remark 1:</strong> ${escapeHtml(entry.remark1 || "")}</div>
                     <div class="photo-meta-row"><strong>Remark 2:</strong> ${escapeHtml(entry.remark2 || "")}</div>
                     <div class="photo-meta-row"><strong>GPS:</strong> ${escapeHtml((entry.gps_latitude && entry.gps_longitude) ? `${entry.gps_latitude}, ${entry.gps_longitude}` : "N/A")}</div>
                     <div class="photo-meta-row"><strong>Location:</strong> ${escapeHtml(entry.gps_location || "N/A")}</div>
-                    ${isValidLatLon_(entry.gps_latitude, entry.gps_longitude) ? `<div style="margin-top:8px;"><a href="https://www.google.com/maps/dir/?api=1&destination=${entry.gps_latitude},${entry.gps_longitude}" target="_blank" rel="noopener" style="display:inline-flex; align-items:center; gap:6px; background:linear-gradient(135deg,#16a34a,#15803d); color:#fff; font-size:11px; font-weight:900; text-transform:uppercase; padding:8px 14px; border-radius:10px; text-decoration:none;">Get Directions</a></div>` : ""}
+                    ${isValidLatLon_(entry.gps_latitude, entry.gps_longitude) ? `<div style="margin-top:8px;"><a href="https://www.google.com/maps/dir/?api=1&destination=${trustedHtml_(entry.gps_latitude)},${trustedHtml_(entry.gps_longitude)}" target="_blank" rel="noopener" style="display:inline-flex; align-items:center; gap:6px; background:linear-gradient(135deg,#16a34a,#15803d); color:#fff; font-size:11px; font-weight:900; text-transform:uppercase; padding:8px 14px; border-radius:10px; text-decoration:none;">Get Directions</a></div>` : ""}
                 `;
             } else if (storeName === "bijli_chori") {
                 bodyHtml = `
@@ -186,15 +187,15 @@
                     <div class="photo-meta-row"><strong>IVRS/Ref:</strong> ${escapeHtml(entry.ivrs || "")}</div>
                     <div class="photo-meta-row"><strong>Naam/Sthan:</strong> ${escapeHtml(entry.name || "")}</div>
                     <div class="photo-meta-row"><strong>Remark:</strong> ${escapeHtml(entry.remark || "")}</div>
-                    ${(entry.photos || []).map((p, idx) => `
+                    ${trustedHtml_((entry.photos || []).map((p, idx) => `
                         <div style="margin-top:10px; padding-top:10px; border-top:1px solid #e5e7eb;">
                             <div style="font-size:11px; font-weight:900; color:#1e293b; margin-bottom:6px;">${escapeHtml(p.name || ("Photo " + (idx + 1)))}</div>
-                            ${p.photo_data ? `<img src="${p.photo_data}" alt="एंट्री फोटो" style="width:100%; max-height:200px; object-fit:cover; border-radius:10px; margin-bottom:6px;">` : (p.photo_url ? `<img src="${normalizeDrivePhotoUrl_(p.photo_url)}" alt="एंट्री फोटो" style="width:100%; max-height:200px; object-fit:cover; border-radius:10px; margin-bottom:6px;" referrerpolicy="no-referrer">` : "")}
+                            ${p.photo_data ? `<img src="${escapeHtml(p.photo_data)}" alt="एंट्री फोटो" style="width:100%; max-height:200px; object-fit:cover; border-radius:10px; margin-bottom:6px;">` : (p.photo_url ? `<img src="${escapeHtml(normalizeDrivePhotoUrl_(p.photo_url))}" alt="एंट्री फोटो" style="width:100%; max-height:200px; object-fit:cover; border-radius:10px; margin-bottom:6px;" referrerpolicy="no-referrer">` : "")}
                             <div class="photo-meta-row"><strong>GPS:</strong> ${escapeHtml((p.gps_latitude && p.gps_longitude) ? `${p.gps_latitude}, ${p.gps_longitude}` : "N/A")}</div>
                             <div class="photo-meta-row"><strong>Location:</strong> ${escapeHtml(p.gps_location || "N/A")}</div>
-                            ${isValidLatLon_(p.gps_latitude, p.gps_longitude) ? `<div style="margin-top:6px;"><a href="https://www.google.com/maps/dir/?api=1&destination=${p.gps_latitude},${p.gps_longitude}" target="_blank" rel="noopener" style="display:inline-flex; align-items:center; gap:6px; background:linear-gradient(135deg,#16a34a,#15803d); color:#fff; font-size:11px; font-weight:900; text-transform:uppercase; padding:8px 14px; border-radius:10px; text-decoration:none;">Get Directions</a></div>` : ""}
+                            ${isValidLatLon_(p.gps_latitude, p.gps_longitude) ? `<div style="margin-top:6px;"><a href="https://www.google.com/maps/dir/?api=1&destination=${trustedHtml_(p.gps_latitude)},${trustedHtml_(p.gps_longitude)}" target="_blank" rel="noopener" style="display:inline-flex; align-items:center; gap:6px; background:linear-gradient(135deg,#16a34a,#15803d); color:#fff; font-size:11px; font-weight:900; text-transform:uppercase; padding:8px 14px; border-radius:10px; text-decoration:none;">Get Directions</a></div>` : ""}
                         </div>
-                    `).join("")}
+                    `).join(""))}
                 `;
             }
 
@@ -202,13 +203,14 @@
             card.style.cssText = "background:#ffffff; border-radius:18px; padding:16px; width:100%; max-width:360px; max-height:85vh; overflow-y:auto; box-shadow:0 12px 30px rgba(0,0,0,0.25);";
             card.innerHTML = `
                 <div style="font-size:14px; font-weight:900; color:#1e293b; text-transform:uppercase; text-align:center; margin-bottom:12px;">${escapeHtml(ENTRY_STORE_CONFIG[storeName].label)} — Entry Detail</div>
-                ${bodyHtml}
+                ${trustedHtml_(bodyHtml)}
                 <button onclick="document.getElementById('entry-detail-overlay').remove()" style="width:100%; height:44px; border:none; border-radius:12px; background:#e2e8f0; color:#1e293b; font-size:13px; font-weight:900; text-transform:uppercase; margin-top:12px;">Band Karein</button>
             `;
             overlay.appendChild(card);
         }
 
         function deleteEntryConfirm_(storeName, uid) {
+            const uidJs = mcJsEscape_(uid);
             const overlay = document.createElement("div");
             overlay.id = "entry-delete-overlay";
             overlay.style.cssText = "position:fixed; inset:0; background:rgba(0,0,0,0.55); z-index:9999; display:flex; align-items:center; justify-content:center; padding:20px;";
@@ -219,7 +221,7 @@
                 <div style="font-size:12px; font-weight:700; color:#475569; margin-bottom:16px;">Yeh entry permanently delete ho jayegi (sabhi users ke liye). Pehle MIS report download kar lein agar zaroorat ho.</div>
                 <div style="display:flex; gap:10px;">
                     <button onclick="document.getElementById('entry-delete-overlay').remove()" style="flex:1; height:44px; border:none; border-radius:12px; background:#e2e8f0; color:#1e293b; font-size:12px; font-weight:900; text-transform:uppercase;">Cancel</button>
-                    <button onclick="confirmDeleteEntry_('${storeName}', '${uid}')" style="flex:1; height:44px; border:none; border-radius:12px; background:#ef4444; color:#fff; font-size:12px; font-weight:900; text-transform:uppercase;">Delete</button>
+                    <button onclick="confirmDeleteEntry_('${trustedHtml_(storeName)}', '${uidJs}')" style="flex:1; height:44px; border:none; border-radius:12px; background:#ef4444; color:#fff; font-size:12px; font-weight:900; text-transform:uppercase;">Delete</button>
                 </div>
             `;
             overlay.appendChild(card);

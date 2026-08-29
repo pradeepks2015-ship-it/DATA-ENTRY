@@ -17,6 +17,14 @@
                 .replace(/'/g, "&#39;");
         }
 
+        // no-unsanitized lint rule ke liye marker — sirf un jagah istemal karo jahan value
+        // provably user-controlled nahi hai (number, ISO date, hardcoded/translated string,
+        // ya pehle se escapeHtml()/trustedHtml_() se guzri hui HTML) — manually verify karke.
+        // Kabhi bhi seedha kisi entry field (naam/remark/address/etc.) par mat lagao.
+        function trustedHtml_(value) {
+            return value;
+        }
+
         function normalizeLookupValue(value) {
             return (value || "").toString().trim().toUpperCase().replace(/[^A-Z0-9]/g, "");
         }

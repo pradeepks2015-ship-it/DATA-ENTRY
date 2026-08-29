@@ -124,11 +124,11 @@
                     <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
                         <div>
                             <div style="font-size:10px; font-weight:800; color:#64748b; text-transform:uppercase; margin-bottom:4px;">From Date</div>
-                            <input type="date" id="admin-from-date" value="${fromDefault}" onchange="refreshAdminDashboardData_()" style="width:100%; height:38px; border-radius:10px; border:1.5px solid #cbd5e1; padding:0 8px; font-size:0.8rem; font-weight:700; color:#1e293b; box-sizing:border-box;">
+                            <input type="date" id="admin-from-date" value="${trustedHtml_(fromDefault)}" onchange="refreshAdminDashboardData_()" style="width:100%; height:38px; border-radius:10px; border:1.5px solid #cbd5e1; padding:0 8px; font-size:0.8rem; font-weight:700; color:#1e293b; box-sizing:border-box;">
                         </div>
                         <div>
                             <div style="font-size:10px; font-weight:800; color:#64748b; text-transform:uppercase; margin-bottom:4px;">To Date</div>
-                            <input type="date" id="admin-to-date" value="${toDefault}" onchange="refreshAdminDashboardData_()" style="width:100%; height:38px; border-radius:10px; border:1.5px solid #cbd5e1; padding:0 8px; font-size:0.8rem; font-weight:700; color:#1e293b; box-sizing:border-box;">
+                            <input type="date" id="admin-to-date" value="${trustedHtml_(toDefault)}" onchange="refreshAdminDashboardData_()" style="width:100%; height:38px; border-radius:10px; border:1.5px solid #cbd5e1; padding:0 8px; font-size:0.8rem; font-weight:700; color:#1e293b; box-sizing:border-box;">
                         </div>
                     </div>
                 </div>
@@ -237,8 +237,8 @@
 
             const sorted = entries.slice().sort((a, b) => new Date(b.timestamp || b.t || 0) - new Date(a.timestamp || a.t || 0)).slice(0, 60);
             body.innerHTML = `
-                <div style="font-size:10.5px; font-weight:800; color:#64748b; margin-bottom:8px;">पिछले ${sorted.length} errors (सबसे नया पहले)</div>
-                ${sorted.map((e) => `
+                <div style="font-size:10.5px; font-weight:800; color:#64748b; margin-bottom:8px;">पिछले ${trustedHtml_(sorted.length)} errors (सबसे नया पहले)</div>
+                ${trustedHtml_(sorted.map((e) => `
                     <div style="border:1px solid #fca5a5; border-radius:10px; padding:8px 10px; margin-bottom:8px; background:#fef2f2;">
                         <div style="display:flex; justify-content:space-between; gap:8px; margin-bottom:3px;">
                             <span style="font-size:10px; font-weight:900; color:#991b1b; text-transform:uppercase;">${escapeHtml(e.ctx || "?")}</span>
@@ -247,7 +247,7 @@
                         <div style="font-size:11.5px; font-weight:700; color:#1e293b; line-height:1.4; margin-bottom:4px;">${escapeHtml(e.msg || "")}</div>
                         <div style="font-size:9.5px; font-weight:700; color:#64748b;">DC: ${escapeHtml(e.dc || "-")} | View: ${escapeHtml(e.view || "-")} | Device: ${escapeHtml((e.device_id || "").slice(0, 10))}</div>
                     </div>
-                `).join("")}
+                `).join(""))}
             `;
         }
 
@@ -288,7 +288,7 @@
                         <div style="font-size:11px; font-weight:900; color:#1e293b; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${escapeHtml(dateStr)} — ${escapeHtml(titleText)}</div>
                         <div style="font-size:10px; font-weight:700; color:#64748b; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${escapeHtml(subtitleText)}</div>
                     </div>
-                    ${viewOnClick ? `<button onclick="${viewOnClick}" style="border:none; background:#e0f2fe; color:#075985; border-radius:999px; padding:6px 10px; font-size:10px; font-weight:900; text-transform:uppercase; flex-shrink:0;">देखें</button>` : ""}
+                    ${viewOnClick ? `<button onclick="${escapeHtml(viewOnClick)}" style="border:none; background:#e0f2fe; color:#075985; border-radius:999px; padding:6px 10px; font-size:10px; font-weight:900; text-transform:uppercase; flex-shrink:0;">देखें</button>` : ""}
                 </div>
             `;
         }
@@ -340,10 +340,10 @@
             ].join("");
 
             const bpRows = bpInRange.slice().reverse().slice(0, 30).map((e) =>
-                admEntryRow_(e.date || "", e.remark1 || "Entry", e.gps_location || e.remark2 || "", `viewEntryDetail_('broken_pole','${getEntryUid_(e)}')`)
+                admEntryRow_(e.date || "", e.remark1 || "Entry", e.gps_location || e.remark2 || "", `viewEntryDetail_('broken_pole','${mcJsEscape_(getEntryUid_(e))}')`)
             );
             const bcRows = bcInRange.slice().reverse().slice(0, 30).map((e) =>
-                admEntryRow_(e.date || "", e.name || e.ivrs || "Entry", e.remark || "", `viewEntryDetail_('bijli_chori','${getEntryUid_(e)}')`)
+                admEntryRow_(e.date || "", e.name || e.ivrs || "Entry", e.remark || "", `viewEntryDetail_('bijli_chori','${mcJsEscape_(getEntryUid_(e))}')`)
             );
             const kcRows = kcInRange.slice().reverse().slice(0, 30).map((r) =>
                 admEntryRow_(kcFormatDate_ ? kcFormatDate_(r.scn_date_iso) : (r.scn_date_iso || ""), r.emp_name || "", `SCN-${String(r.dispatch_no || "").padStart(4, "0")}`)
@@ -376,20 +376,20 @@
                 <div style="margin-bottom:12px;">
                     <div style="font-size:12px; font-weight:900; color:#ffffff; margin-bottom:6px;">📷 Photos (${photoEntries.length})</div>
                     <div style="display:grid; grid-template-columns:repeat(4, 1fr); gap:6px; background:rgba(255,255,255,0.92); border-radius:14px; padding:8px;">
-                        ${photoEntries.map((p) => `<img src="${p.thumb}" alt="एंट्री फोटो" referrerpolicy="no-referrer" onclick="viewEntryDetail_('${p.storeName}','${getEntryUid_(p.entry)}')" style="width:100%; aspect-ratio:1; object-fit:cover; border-radius:8px; cursor:pointer;">`).join("")}
+                        ${photoEntries.map((p) => `<img src="${escapeHtml(p.thumb)}" alt="एंट्री फोटो" referrerpolicy="no-referrer" onclick="viewEntryDetail_('${escapeHtml(p.storeName)}','${escapeHtml(mcJsEscape_(getEntryUid_(p.entry)))}')" style="width:100%; aspect-ratio:1; object-fit:cover; border-radius:8px; cursor:pointer;">`).join("")}
                     </div>
                 </div>
             ` : "";
 
-            body.innerHTML = `
-                <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:14px;">${cards}</div>
+            body.innerHTML = trustedHtml_(`
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:14px;">${trustedHtml_(cards)}</div>
                 ${employeeBreakdownHtml}
                 ${photoGridHtml}
                 ${admEntrySection_("🔌 Feeder Reading", feederRowsHtml)}
                 ${admEntrySection_("⚡ Broken Pole", bpRows)}
                 ${admEntrySection_("⚠️ बिजली चोरी", bcRows)}
                 ${admEntrySection_("📋 कर्मचारी कार्य चरित्रावली", kcRows)}
-            `;
+            `);
         }
 
         // Long-press (700ms) on the header title, only from Home screen, opens the
