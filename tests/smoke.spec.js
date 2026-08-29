@@ -743,6 +743,14 @@ test.describe('Offline sync queue (Karya Charitra)', () => {
 });
 
 test.describe('Admin Dashboard (Phase-1)', () => {
+  // Admin dashboard default date-range "is mahine ke 1 se aaj tak" hai (admDefaultFromDate_
+  // + localTodayIso_) — isliye mock entries ki date hamesha "aaj" honi chahiye, koi hardcoded
+  // mahina/saal nahi, warna agle mahine yeh test apne-aap fail hone lagta (calendar rollover).
+  const today = new Date();
+  const ddmmyyyyDash = `${String(today.getDate()).padStart(2, '0')}-${String(today.getMonth() + 1).padStart(2, '0')}-${today.getFullYear()}`;
+  const ddmmyyyySlash = ddmmyyyyDash.replace(/-/g, '/');
+  const isoDate = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+
   /** @param {import('@playwright/test').Page} page */
   async function mockAdminBackend(page) {
     await page.route('**/macros/**', (route) => {
@@ -750,16 +758,16 @@ test.describe('Admin Dashboard (Phase-1)', () => {
       const action = url.searchParams.get('action');
       const module = url.searchParams.get('module');
       if (action === 'getEntries' && module === 'broken_pole') {
-        return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ status: 'success', entries: [{ date: '01-07-2026', remark1: 'Pole A', entry_id: 'bp1' }] }) });
+        return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ status: 'success', entries: [{ date: ddmmyyyyDash, remark1: 'Pole A', entry_id: 'bp1' }] }) });
       }
       if (action === 'getEntries' && module === 'bijli_chori') {
-        return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ status: 'success', entries: [{ date: '05-07-2026', name: 'Consumer X', photos: [], entry_id: 'bc1' }] }) });
+        return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ status: 'success', entries: [{ date: ddmmyyyyDash, name: 'Consumer X', photos: [], entry_id: 'bc1' }] }) });
       }
       if (action === 'getEntries' && module === 'karya_charitra') {
-        return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ status: 'success', entries: [{ scn_date_iso: '2026-07-10', emp_name: 'Ram Kumar', dispatch_no: 3, entry_id: 'kc1' }] }) });
+        return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ status: 'success', entries: [{ scn_date_iso: isoDate, emp_name: 'Ram Kumar', dispatch_no: 3, entry_id: 'kc1' }] }) });
       }
       if (action === 'getFeederReadings') {
-        return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify([{ '33/11 KV SUBSTATION': 'SS1', '33 AND 11 KV FEEDER': 'F1', 'DATE(DD/MM/YYY)': '12/07/2026' }]) });
+        return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify([{ '33/11 KV SUBSTATION': 'SS1', '33 AND 11 KV FEEDER': 'F1', 'DATE(DD/MM/YYY)': ddmmyyyySlash }]) });
       }
       if (action === 'getSummary') {
         return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify([{ dc: 'DC1', ivrs: '111' }, { dc: 'DC1', ivrs: '222' }]) });
@@ -1102,9 +1110,14 @@ test.describe('Employee Login (accountability)', () => {
         const action = url.searchParams.get('action');
         const module = url.searchParams.get('module');
         if (action === 'getEntries' && module === 'broken_pole') {
+          // Admin dashboard default date-range "is mahine ke 1 se aaj tak" hai, isliye
+          // entries ki date hamesha "aaj" honi chahiye — hardcoded mahina/saal nahi
+          // (warna agle mahine yeh test calendar rollover par fail hone lagta).
+          const today = new Date();
+          const ddmmyyyy = `${String(today.getDate()).padStart(2, '0')}-${String(today.getMonth() + 1).padStart(2, '0')}-${today.getFullYear()}`;
           return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ status: 'success', entries: [
-            { date: '01-07-2026', remark1: 'A', entry_id: 'bp1', submitted_by_name: 'Ram Kumar' },
-            { date: '02-07-2026', remark1: 'B', entry_id: 'bp2', submitted_by_name: 'Ram Kumar' },
+            { date: ddmmyyyy, remark1: 'A', entry_id: 'bp1', submitted_by_name: 'Ram Kumar' },
+            { date: ddmmyyyy, remark1: 'B', entry_id: 'bp2', submitted_by_name: 'Ram Kumar' },
           ] }) });
         }
         return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ status: 'success', entries: [] }) });
