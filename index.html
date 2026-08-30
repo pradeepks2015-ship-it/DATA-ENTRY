@@ -9,7 +9,7 @@
     <link rel="manifest" href="./manifest.json">
     <meta name="theme-color" content="#6cb1e1">
     <link rel="apple-touch-icon" href="./icon-192.png">
-    <script>window.__APP_VERSION__ = 8;</script>
+    <script>window.__APP_VERSION__ = 9;</script>
 </head>
 <body>
     <div id="toast-notif"></div>
@@ -143,6 +143,11 @@
                         <circle cx="22" cy="9" r="3.6" opacity="0.75"/>
                         <path d="M15,26 C15,20 18,17 22,17 C26,17 29,20 29,26 Z" opacity="0.75"/>
                     </svg> कर्मचारी कार्य चरित्रावली</button>
+                <button class="dashboard-btn" style="background: linear-gradient(135deg, #7c3aed 0%, #4c1d95 100%);" onclick="switchView('dtr-health')">7. <svg width="26" height="26" viewBox="0 0 32 32" fill="none" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-8px; margin-right:2px;" aria-hidden="true">
+                    <rect x="9" y="10" width="14" height="16" rx="2"/>
+                    <path d="M13 14 L11 19 L14.5 19 L12.5 24" stroke-width="1.8"/>
+                    <path d="M16 6 L16 10" /><path d="M11 6 L11 9" /><path d="M21 6 L21 9" />
+                    </svg> DTR (ट्रांसफार्मर) हेल्थ लॉग</button>
             </div>
         </main>
 
@@ -152,8 +157,11 @@
                     <button type="button" id="feeder-menu-btn" onclick="toggleFeederMenu_()" aria-label="स्कोरकार्ड मेनू" style="background:#9d174d; border:none; color:#ffffff; width:38px; height:38px; border-radius:10px; font-size:18px; font-weight:900; cursor:pointer;">⋮</button>
                     <div id="feeder-menu-dropdown" style="display:none; position:absolute; top:44px; right:0; width:270px; max-width:calc(100vw - 32px); background:#ffffff; border-radius:14px; box-shadow:0 8px 24px rgba(0,0,0,0.25); padding:14px; z-index:1000; text-align:left;">
                         <div style="font-size:11px; font-weight:900; color:#9d174d; text-transform:uppercase; letter-spacing:0.4px; margin-bottom:10px;">📊 मासिक इनपुट स्कोरकार्ड</div>
-                        <button id="feeder-scorecard-btn" onclick="feederOpenMonthlyScorecard_()" style="width:100%; height:42px; border:none; border-radius:10px; background:linear-gradient(135deg, #9d174d 0%, #4a044e 100%); color:#ffffff; font-size:11px; font-weight:900; text-transform:uppercase; letter-spacing:0.4px; cursor:pointer;">
+                        <button id="feeder-scorecard-btn" onclick="feederOpenMonthlyScorecard_()" style="width:100%; height:42px; border:none; border-radius:10px; background:linear-gradient(135deg, #9d174d 0%, #4a044e 100%); color:#ffffff; font-size:11px; font-weight:900; text-transform:uppercase; letter-spacing:0.4px; cursor:pointer; margin-bottom:8px;">
                             📥 इस महीना / पिछला महीना / पिछले साल — तुलना Download करें
+                        </button>
+                        <button id="feeder-trend-btn" onclick="feederOpenTrendAnalysis_()" style="width:100%; height:42px; border:none; border-radius:10px; background:linear-gradient(135deg, #16a34a 0%, #14532d 100%); color:#ffffff; font-size:11px; font-weight:900; text-transform:uppercase; letter-spacing:0.4px; cursor:pointer;">
+                            📈 फीडर ट्रेंड / असामान्य बदलाव
                         </button>
                     </div>
                 </div>
@@ -381,6 +389,78 @@
             </div>
         </main>
 
+        <main id="dtr-health-view" class="view">
+            <div class="title-box-container"><div class="title-box"><span class="title-text-bold"><svg width="26" height="26" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-8px; margin-right:2px;" aria-hidden="true"><rect x="9" y="10" width="14" height="16" rx="2"/><path d="M13 14 L11 19 L14.5 19 L12.5 24" stroke-width="1.8"/><path d="M16 6 L16 10" /><path d="M11 6 L11 9" /><path d="M21 6 L21 9" /></svg> DTR (ट्रांसफार्मर) हेल्थ लॉग</span></div></div>
+            <div class="search-panel">
+                <div id="dtr-result-box" class="result-card-custom" style="display:block;">
+
+                    <!-- Photo capture with GPS -->
+                    <div class="photo-upload-box">
+                        <label for="dtr-photo" class="photo-upload-label">
+                            <div class="camera-icon-wrap">
+                                <svg width="24" height="24" fill="none" stroke="white" stroke-width="2.2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 8.5A2.5 2.5 0 0 1 5.5 6H8l1.3-1.6A2 2 0 0 1 10.86 4h2.28a2 2 0 0 1 1.56.74L16 6h2.5A2.5 2.5 0 0 1 21 8.5v8A2.5 2.5 0 0 1 18.5 19h-13A2.5 2.5 0 0 1 3 16.5z"></path><circle cx="12" cy="12.5" r="3.5"></circle></svg>
+                            </div>
+                            PHOTO OF DTR / TRANSFORMER ISSUE
+                        </label>
+                        <input type="file" id="dtr-photo" accept="image/*" capture="environment" style="display:none;" onchange="updateDtrHealthPhoto()">
+                        <div id="dtr-photo-name" class="photo-file-name">No photo selected</div>
+                        <div id="dtr-photo-preview-wrap" style="display:none; margin-top:10px;">
+                            <img id="dtr-photo-preview" src="" alt="चुनी गई फोटो" style="width:100%; max-height:220px; object-fit:cover; border-radius:12px; border:1.5px solid #ddd6fe;">
+                        </div>
+                        <div id="dtr-photo-meta" class="photo-meta-box" style="display:none;">
+                            <div id="dtr-photo-latlong" class="photo-meta-row"><strong>Lat-Long:</strong> Not captured</div>
+                            <div id="dtr-photo-location" class="photo-meta-row"><strong>Location:</strong> Not captured</div>
+                            <div id="dtr-photo-directions" style="margin-top:8px;"></div>
+                        </div>
+                    </div>
+
+                    <!-- Details -->
+                    <div class="title-box-container" style="padding-top: 15px;"><div class="title-box" style="background-color: #ede9fe;"><span class="title-text-bold" style="color: #4c1d95;">DTR विवरण</span></div></div>
+                    <input type="text" id="dtr-no" class="teal-boundary-input" placeholder="DTR No / स्थान (जैसे: DTR-14, ग्राम मढ़ी)" style="margin-bottom:12px;">
+                    <select id="dtr-issue-type" onchange="dtrToggleOtherIssue_()" style="width:100%; height:44px; border-radius:10px; border:1.5px solid #7c3aed; padding:0 12px; font-size:13px; font-weight:700; color:#1e293b; background:#f8fafc; outline:none; margin-bottom:8px;">
+                        <option value="">-- समस्या का प्रकार *--</option>
+                        <option value="जला हुआ (Burnt)">जला हुआ (Burnt)</option>
+                        <option value="Oil Leak">Oil Leak</option>
+                        <option value="Overload">Overload</option>
+                        <option value="टूटा / क्षतिग्रस्त (Damaged)">टूटा / क्षतिग्रस्त (Damaged)</option>
+                        <option value="असामान्य आवाज़ (Noise)">असामान्य आवाज़ (Noise)</option>
+                        <option value="अन्य">अन्य</option>
+                    </select>
+                    <div id="dtr-other-issue-box" style="display:none; margin-bottom:8px;">
+                        <input type="text" id="dtr-other-issue" class="teal-boundary-input" placeholder="अन्य समस्या (विस्तार से लिखें) *">
+                    </div>
+                    <input type="text" id="dtr-remark" class="teal-boundary-input" placeholder="Remark (जैसे: की गई कार्रवाई / Status)">
+
+                </div>
+                <button id="dtr-submit-btn" class="submit-sync-btn" style="display:block;" onclick="submitDtrHealthEntry()">✅ Submit Entry (Add Another Photo After)</button>
+
+                <!-- MIS Report Section -->
+                <div style="width:100%; max-width:340px; margin: 18px auto 0 auto;">
+                    <div style="background: linear-gradient(135deg, #7c3aed 0%, #4c1d95 100%); border-radius: 18px; padding: 16px 18px; box-shadow: 0 8px 20px rgba(124,58,237,0.18);">
+                        <div style="font-size:12px; font-weight:900; color:#ede9fe; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:10px; text-align:center;">📊 MIS Report — DTR Health Log</div>
+                        <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:10px;">
+                            <div>
+                                <div style="font-size:10px; font-weight:800; color:#ede9fe; text-transform:uppercase; margin-bottom:4px;">From Date</div>
+                                <input type="date" id="dtr-mis-from-date" onchange="refreshDtrHealthMisTotal()" style="width:100%; height:38px; border-radius:10px; border:1.5px solid #7c3aed; padding:0 8px; font-size:0.8rem; font-weight:700; color:#4c1d95; background:#f5f3ff; outline:none;">
+                            </div>
+                            <div>
+                                <div style="font-size:10px; font-weight:800; color:#ede9fe; text-transform:uppercase; margin-bottom:4px;">To Date</div>
+                                <input type="date" id="dtr-mis-to-date" onchange="refreshDtrHealthMisTotal()" style="width:100%; height:38px; border-radius:10px; border:1.5px solid #7c3aed; padding:0 8px; font-size:0.8rem; font-weight:700; color:#4c1d95; background:#f5f3ff; outline:none;">
+                            </div>
+                        </div>
+                        <div id="dtr-mis-total-box" style="text-align:center; margin-bottom:10px; font-size:12px; font-weight:900; color:#ede9fe;">Total Entries: <span id="dtr-mis-total">0</span></div>
+                        <div id="dtr-storage-counter" style="text-align:center; margin-bottom:10px; font-size:11px; font-weight:800; color:#ede9fe;">Local Device Storage: <span id="dtr-storage-used">0</span> / <span id="dtr-storage-limit">0</span> photos saved</div>
+                        <button type="button" onclick="toggleEntriesList('dtr_health')" style="width:100%; height:42px; border:none; border-radius:12px; background:rgba(255,255,255,0.18); color:#ede9fe; font-size:12px; font-weight:900; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:10px;">📂 Saved Entries Dekhein / Hatayein</button>
+                        <div id="entries-list-dtr_health" style="display:none; margin-bottom:10px;"></div>
+                        <button id="dtr-mis-pdf-btn" onclick="downloadDtrHealthMisPdf()" style="width:100%; height:44px; border:none; border-radius:12px; background:linear-gradient(135deg, #ef4444 0%, #b91c1c 100%); color:#ffffff; font-size:13px; font-weight:900; text-transform:uppercase; letter-spacing:0.5px; box-shadow:0 6px 14px rgba(239,68,68,0.3); cursor:pointer; display:flex; align-items:center; justify-content:center; gap:8px;">
+                            <svg width="16" height="16" fill="white" viewBox="0 0 24 24"><path d="M20 2H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-8.5 7.5c0 .83-.67 1.5-1.5 1.5H9v2H7.5V7H10c.83 0 1.5.67 1.5 1.5v1zm5 2c0 .83-.67 1.5-1.5 1.5h-2.5V7H15c.83 0 1.5.67 1.5 1.5v3zm4-3H19v1h1.5V11H19v2h-1.5V7h3v1.5zM9 9.5h1v-1H9v1zM4 6H2v14c0 1.1.9 2 2 2h14v-2H4V6zm10 5.5h1v-3h-1v3z"/></svg>
+                            Download PDF MIS Report
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </main>
+
         <main id="bijli-chori-view" class="view">
             <div class="title-box-container"><div class="title-box"><span class="title-text-bold"><svg width="26" height="26" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-8px; margin-right:2px;" aria-hidden="true"><path d="M2 5 L20 5 L23 8 L30 5"/><path d="M2 8 L30 8"/><path d="M2 11 L30 11"/><path d="M4 30 L4 19 L28 19 L28 30" stroke="#b45309" stroke-width="1.6"/><rect x="9" y="24" width="4.5" height="6" stroke="#b45309" stroke-width="1.3"/><rect x="19" y="22" width="5" height="4.5" stroke="#b45309" stroke-width="1.3"/><circle cx="18" cy="12" r="2.2" fill="currentColor" stroke="none"/><path d="M18 14.2 L18 19"/><path d="M18 15 L23 8"/><path d="M18 15 L14.5 17.5"/><path d="M18 19 L16 19"/><path d="M18 19 L20.5 19"/><circle cx="23" cy="8" r="1.4" fill="#dc2626" stroke="none"/></svg> बिजली चोरी की जानकारी</span></div></div>
             <div class="search-panel">
@@ -588,6 +668,7 @@
     <script defer src="js/geo-photo-utils.js"></script>
     <script defer src="js/broken-pole.js"></script>
     <script defer src="js/bijli-chori.js"></script>
+    <script defer src="js/dtr-health.js"></script>
     <script defer src="js/entry-list-shared.js"></script>
     <script defer src="js/mobile-correction.js"></script>
     <script defer src="js/karya-charitra-data.js"></script>
@@ -595,6 +676,7 @@
     <script defer src="js/reminders.js"></script>
     <script defer src="js/feeder-mis-summary.js"></script>
     <script defer src="js/feeder-scorecard.js"></script>
+    <script defer src="js/feeder-trend.js"></script>
     <script defer src="js/data-loaders.js"></script>
     <script defer src="js/feeder-operator.js"></script>
     <script defer src="js/feeder-entry.js"></script>

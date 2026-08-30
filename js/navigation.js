@@ -37,6 +37,17 @@
                     const bcEntriesList = document.getElementById("entries-list-bijli_chori");
                     if (bcEntriesList) { bcEntriesList.style.display = "none"; bcEntriesList.innerHTML = ""; }
                 }
+                if (id === "dtr-health") {
+                    const today = localTodayIso_();
+                    const now = new Date();
+                    const firstOfMonth = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,"0")}-01`;
+                    if (document.getElementById("dtr-mis-from-date")) document.getElementById("dtr-mis-from-date").value = firstOfMonth;
+                    if (document.getElementById("dtr-mis-to-date")) document.getElementById("dtr-mis-to-date").value = today;
+                    refreshDtrHealthMisTotal("soft");
+                    refreshStorageCounter_("dtr_health");
+                    const dtrEntriesList = document.getElementById("entries-list-dtr_health");
+                    if (dtrEntriesList) { dtrEntriesList.style.display = "none"; dtrEntriesList.innerHTML = ""; }
+                }
                 if (id === "karya-charitra") {
                     kcInitView_();
                 }
@@ -59,6 +70,7 @@
                 if (id === "broken-pole") headerTitle = "BROKEN POLE / DAMAGE LINE";
                 if (id === "bijli-chori") headerTitle = "बिजली चोरी की जानकारी";
                 if (id === "karya-charitra") headerTitle = "कर्मचारी कार्य चरित्रावली";
+                if (id === "dtr-health") headerTitle = "DTR (ट्रांसफार्मर) हेल्थ लॉग";
                 if (id === "summary") headerTitle = "PROGRESS REPORT";
                 if (id === "admin-dashboard") headerTitle = "ADMIN DASHBOARD";
                 document.getElementById("main-header-title").innerText = headerTitle;
@@ -106,7 +118,7 @@
                 const label = document.getElementById("selected-dc-label");
                 if (label) label.innerText = "Choose DC Name...";
                 switchView("dc-selection");
-            } else if (act === "mobile-update-view" || act === "broken-pole-view" || act === "bijli-chori-view") {
+            } else if (act === "mobile-update-view" || act === "broken-pole-view" || act === "bijli-chori-view" || act === "dtr-health-view") {
                 if (act === "mobile-update-view") {
                     resetForm(true);
                 }

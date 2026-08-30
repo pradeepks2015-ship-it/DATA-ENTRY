@@ -3,7 +3,8 @@
         const sharedModuleEntriesCache = {
             broken_pole: [],
             bijli_chori: [],
-            karya_charitra: []
+            karya_charitra: [],
+            dtr_health: []
         };
         const sharedModuleLastFetch = {};
 

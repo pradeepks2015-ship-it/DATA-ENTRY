@@ -67,7 +67,7 @@ test.describe('बूट और होम स्क्रीन', () => {
 });
 
 test.describe('DC dashboard — hidden/removed features', () => {
-  test('dc-dashboard पर ठीक 6 buttons दिखते हैं, कोई SHMS/Stock/PDC/STM/PeakLoad नहीं', async ({ page }) => {
+  test('dc-dashboard पर ठीक 7 buttons दिखते हैं, कोई SHMS/Stock/PDC/STM/PeakLoad नहीं', async ({ page }) => {
     const errors = [];
     page.on('pageerror', (e) => errors.push(e.message));
     await openApp(page);
@@ -81,10 +81,11 @@ test.describe('DC dashboard — hidden/removed features', () => {
       '4. FEEDER / SS WISE INPUT',
       '5. बिजली चोरी की जानकारी',
       '6. कर्मचारी कार्य चरित्रावली',
+      '7. DTR (ट्रांसफार्मर) हेल्थ लॉग',
     ]);
-    // Sabhi 6 buttons ab custom SVG icon use karte hain (emoji nahi) — VASOOLI
+    // Sabhi 7 buttons ab custom SVG icon use karte hain (emoji nahi) — VASOOLI
     // TRACKER ke andar ₹ ek SVG <text> hai isliye woh textContent me bhi aata hai.
-    for (let i = 0; i < 6; i++) {
+    for (let i = 0; i < 7; i++) {
       await expect(page.locator('#dc-dashboard-view .dashboard-btn').nth(i).locator('svg')).toBeVisible();
     }
     expect(errors).toEqual([]);
@@ -426,6 +427,62 @@ test.describe('Feeder Reading (active feature)', () => {
     await expect(progressiveBox).toContainText('प्रोग्रेसिव खपत');
     await expect(progressiveBox).toContainText('2.50 L');
   });
+
+  test('फीडर ट्रेंड: pichhle mahine bnaam usse pichhle mahine ka badlaav sahi % ke saath dikhta hai, bada badlaav anomaly flag hota hai', async ({ page }) => {
+    function dateMonthsAgo(monthsAgo) {
+      const now = new Date();
+      const d = new Date(now.getFullYear(), now.getMonth() - monthsAgo, 10);
+      return `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`;
+    }
+    const feederRow = (dateStr, ss, fdr, current) => ({
+      '33/11 KV SUBSTATION': ss, '33 AND 11 KV FEEDER': fdr, 'METER NO': `MTR-${fdr}`,
+      'PREVIUS READING': '0', 'CURRENT READING': String(current), 'MF': '1', 'CONSUMPTION': String(current),
+      'DC NAME': 'ADEGAON', 'DATE(DD/MM/YYY)': dateStr, 'TIME(HH/MM)': '10:00',
+    });
+    const rows = [
+      // STABLEFEEDER: 1,00,000 -> 1,05,000 (+5%, koi anomaly nahi)
+      feederRow(dateMonthsAgo(2), 'TESTSS', 'STABLEFEEDER', 100000),
+      feederRow(dateMonthsAgo(1), 'TESTSS', 'STABLEFEEDER', 105000),
+      // SPIKEFEEDER: 1,00,000 -> 2,00,000 (+100%, anomaly)
+      feederRow(dateMonthsAgo(2), 'TESTSS', 'SPIKEFEEDER', 100000),
+      feederRow(dateMonthsAgo(1), 'TESTSS', 'SPIKEFEEDER', 200000),
+    ];
+
+    await openApp(page, {
+      beforeGoto: async (p) => {
+        await p.route('**/macros/**', (route) => {
+          const url = new URL(route.request().url());
+          if (url.searchParams.get('action') === 'getFeederReadings') {
+            return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(rows) });
+          }
+          return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ status: 'success', entries: [] }) });
+        });
+      },
+    });
+    await goToDcDashboard(page);
+    await page.evaluate(() => switchView('feeder-reading'));
+    await page.waitForFunction(() => document.getElementById('feeder-reading-view').classList.contains('active'));
+
+    await page.click('#feeder-menu-btn');
+    await page.click('#feeder-trend-btn');
+    await expect(page.locator('#feeder-trend-overlay')).toBeVisible();
+    await page.waitForFunction(() => !document.getElementById('feeder-trend-body')?.innerText.includes('लोड हो रहा है'));
+
+    const body = page.locator('#feeder-trend-body');
+    await expect(body).toContainText('1 feeder(s)'); // sirf SPIKEFEEDER anomaly hai
+    await expect(body).toContainText('SPIKEFEEDER');
+    await expect(body).toContainText('▲ 100.0%');
+    await expect(body).toContainText('STABLEFEEDER');
+    await expect(body).toContainText('▲ 5.0%');
+
+    // Sabse bada badlaav (SPIKEFEEDER) sabse upar sorted hona chahiye — child 0 =
+    // label, child 1 = anomaly-summary banner, child 2 = pehli feeder row
+    const firstRowText = await page.locator('#feeder-trend-body > div').nth(2).innerText();
+    expect(firstRowText).toContain('SPIKEFEEDER');
+
+    await page.click('#feeder-trend-close-btn');
+    await expect(page.locator('#feeder-trend-overlay')).toHaveCount(0);
+  });
 });
 
 test.describe('Broken Pole / बिजली चोरी / कर्मचारी कार्य चरित्रावली (active features)', () => {
@@ -433,6 +490,7 @@ test.describe('Broken Pole / बिजली चोरी / कर्मचा�
     ['broken-pole', 'broken-pole-view'],
     ['bijli-chori', 'bijli-chori-view'],
     ['karya-charitra', 'karya-charitra-view'],
+    ['dtr-health', 'dtr-health-view'],
   ]) {
     test(`${id} view बिना error के खुलता है`, async ({ page }) => {
       const errors = [];
@@ -496,6 +554,55 @@ test.describe('Broken Pole / बिजली चोरी / कर्मचा�
     await page.fill('#bp-mis-to-date', isoToday);
     await page.locator('#bp-mis-to-date').dispatchEvent('change');
     await expect(page.locator('#bp-mis-total')).toHaveText('1');
+
+    expect(errors).toEqual([]);
+  });
+
+  test('DTR हेल्थ लॉग: photo + DTR No + issue-type ke saath submit karne se entry save hoti hai, list me dikhti hai', async ({ page }) => {
+    const errors = [];
+    page.on('pageerror', (e) => errors.push(e.message));
+    await openApp(page, {
+      beforeGoto: async (p) => {
+        await p.route('**/macros/**', (route) => {
+          if (route.request().method() === 'POST') {
+            return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ status: 'success', entry_id: 'DTR_TEST_1' }) });
+          }
+          return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ status: 'success', entries: [] }) });
+        });
+      },
+    });
+    await goToDcDashboard(page);
+    await page.evaluate(() => switchView('dtr-health'));
+    await page.waitForFunction(() => document.getElementById('dtr-health-view').classList.contains('active'));
+
+    // "अन्य" issue type select karne par other-issue box zaroori ban jaana chahiye
+    await page.setInputFiles('#dtr-photo', { name: 'dtr.png', mimeType: 'image/png', buffer: Buffer.from(PNG_1PX_BASE64, 'base64') });
+    await page.waitForFunction(() => document.getElementById('dtr-photo-preview-wrap').style.display !== 'none');
+    await page.fill('#dtr-no', 'DTR-14, ग्राम मढ़ी');
+    await page.selectOption('#dtr-issue-type', 'अन्य');
+    await expect(page.locator('#dtr-other-issue-box')).toBeVisible();
+    await page.click('#dtr-submit-btn');
+    await page.waitForFunction(() => document.getElementById('toast-notif')?.textContent?.includes('अन्य समस्या'));
+
+    // Ab "अन्य" ka detail bharkar submit karte hain
+    await page.fill('#dtr-other-issue', 'Bushing crack ho gayi hai');
+    await page.fill('#dtr-remark', 'नया DTR मंगवाया गया');
+    await page.click('#dtr-submit-btn');
+    await page.waitForFunction(() => document.getElementById('toast-notif')?.textContent?.includes('Entry Saved'));
+
+    await expect(page.locator('#dtr-no')).toHaveValue('');
+    await expect(page.locator('#dtr-other-issue-box')).toBeHidden();
+
+    await page.evaluate(() => toggleEntriesList('dtr_health'));
+    const listBox = page.locator('#entries-list-dtr_health');
+    await expect(listBox).toContainText('DTR-14, ग्राम मढ़ी');
+    await expect(listBox).toContainText('अन्य: Bushing crack ho gayi hai');
+
+    const isoToday = new Date().toISOString().slice(0, 10);
+    await page.fill('#dtr-mis-from-date', isoToday);
+    await page.fill('#dtr-mis-to-date', isoToday);
+    await page.locator('#dtr-mis-to-date').dispatchEvent('change');
+    await expect(page.locator('#dtr-mis-total')).toHaveText('1');
 
     expect(errors).toEqual([]);
   });
