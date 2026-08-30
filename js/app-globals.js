@@ -355,3 +355,4 @@
         const brokenPoleStorageKey = "seoni-circle-broken-pole-entries";
         const pdcStorageKey = "seoni-circle-pdc-nontraceable-entries";
         let bpGeoData = null;
+        let dtrGeoData = null;

@@ -17,6 +17,15 @@
                 getTitle: (e) => `${e.date || ""} — ${e.name || e.ivrs || "Entry"}`,
                 getSubtitle: (e) => `${(e.photos || []).length} photo(s) | ${e.remark || ""}`,
                 refreshFn: () => refreshBijliChoriMisTotal()
+            },
+            dtr_health: {
+                label: "DTR (ट्रांसफार्मर) हेल्थ लॉग",
+                accent: "#7c3aed",
+                getEntries: getDtrHealthEntries_,
+                getThumb: (e) => e.photo_data || normalizeDrivePhotoUrl_(e.photo_url) || "",
+                getTitle: (e) => `${e.date || ""} — ${e.dtr_no || "Entry"}`,
+                getSubtitle: (e) => e.issue_type || (e.gps_location || ""),
+                refreshFn: () => refreshDtrHealthMisTotal()
             }
         };
 
@@ -57,7 +66,8 @@
         function storageCounterPrefix_(storeName) {
             const map = {
                 broken_pole: "bp",
-                bijli_chori: "bc"
+                bijli_chori: "bc",
+                dtr_health: "dtr"
             };
             return map[storeName] || storeName;
         }
@@ -196,6 +206,17 @@
                             ${isValidLatLon_(p.gps_latitude, p.gps_longitude) ? `<div style="margin-top:6px;"><a href="https://www.google.com/maps/dir/?api=1&destination=${trustedHtml_(p.gps_latitude)},${trustedHtml_(p.gps_longitude)}" target="_blank" rel="noopener" style="display:inline-flex; align-items:center; gap:6px; background:linear-gradient(135deg,#16a34a,#15803d); color:#fff; font-size:11px; font-weight:900; text-transform:uppercase; padding:8px 14px; border-radius:10px; text-decoration:none;">Get Directions</a></div>` : ""}
                         </div>
                     `).join(""))}
+                `;
+            } else if (storeName === "dtr_health") {
+                bodyHtml = `
+                    ${entry.photo_data ? `<img src="${escapeHtml(entry.photo_data)}" alt="एंट्री फोटो" style="width:100%; max-height:240px; object-fit:cover; border-radius:10px; margin-bottom:8px;">` : (entry.photo_url ? `<img src="${escapeHtml(normalizeDrivePhotoUrl_(entry.photo_url))}" alt="एंट्री फोटो" style="width:100%; max-height:240px; object-fit:cover; border-radius:10px; margin-bottom:8px;" referrerpolicy="no-referrer">` : "")}
+                    <div class="photo-meta-row"><strong>Date:</strong> ${escapeHtml(entry.date || "")}</div>
+                    <div class="photo-meta-row"><strong>DTR No / स्थान:</strong> ${escapeHtml(entry.dtr_no || "")}</div>
+                    <div class="photo-meta-row"><strong>समस्या का प्रकार:</strong> ${escapeHtml(entry.issue_type || "")}</div>
+                    <div class="photo-meta-row"><strong>Remark:</strong> ${escapeHtml(entry.remark || "")}</div>
+                    <div class="photo-meta-row"><strong>GPS:</strong> ${escapeHtml((entry.gps_latitude && entry.gps_longitude) ? `${entry.gps_latitude}, ${entry.gps_longitude}` : "N/A")}</div>
+                    <div class="photo-meta-row"><strong>Location:</strong> ${escapeHtml(entry.gps_location || "N/A")}</div>
+                    ${isValidLatLon_(entry.gps_latitude, entry.gps_longitude) ? `<div style="margin-top:8px;"><a href="https://www.google.com/maps/dir/?api=1&destination=${trustedHtml_(entry.gps_latitude)},${trustedHtml_(entry.gps_longitude)}" target="_blank" rel="noopener" style="display:inline-flex; align-items:center; gap:6px; background:linear-gradient(135deg,#16a34a,#15803d); color:#fff; font-size:11px; font-weight:900; text-transform:uppercase; padding:8px 14px; border-radius:10px; text-decoration:none;">Get Directions</a></div>` : ""}
                 `;
             }
 
