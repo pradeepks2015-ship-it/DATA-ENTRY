@@ -452,6 +452,164 @@ test.describe('Broken Pole / बिजली चोरी / कर्मचा�
     await page.evaluate(() => goBack());
     await page.waitForFunction(() => document.getElementById('dc-dashboard-view').classList.contains('active'));
   });
+
+  // 1x1 transparent PNG — resizeImageForUpload() (createImageBitmap ya <img> fallback)
+  // dono se cleanly decode ho jaata hai, isliye asli photo upload flow test karne ke
+  // liye kaafi hai.
+  const PNG_1PX_BASE64 = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=';
+
+  test('Broken Pole: photo + remark ke saath submit karne se entry save hoti hai, list aur MIS total me dikhti hai', async ({ page }) => {
+    const errors = [];
+    page.on('pageerror', (e) => errors.push(e.message));
+    await openApp(page, {
+      beforeGoto: async (p) => {
+        await p.route('**/macros/**', (route) => {
+          if (route.request().method() === 'POST') {
+            return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ status: 'success', entry_id: 'BP_TEST_1' }) });
+          }
+          return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ status: 'success', entries: [] }) });
+        });
+      },
+    });
+    await goToDcDashboard(page);
+    await page.evaluate(() => switchView('broken-pole'));
+    await page.waitForFunction(() => document.getElementById('broken-pole-view').classList.contains('active'));
+
+    await page.setInputFiles('#bp-photo', { name: 'pole.png', mimeType: 'image/png', buffer: Buffer.from(PNG_1PX_BASE64, 'base64') });
+    await page.waitForFunction(() => document.getElementById('bp-photo-preview-wrap').style.display !== 'none');
+    await page.fill('#bp-remark1', 'खंभा नंबर 42 टूटा हुआ');
+    await page.fill('#bp-remark2', 'नया खंभा भेजा गया');
+    await page.click('#bp-submit-btn');
+    await page.waitForFunction(() => document.getElementById('toast-notif')?.textContent?.includes('Entry Saved'));
+
+    // Submit ke baad form reset ho jaana chahiye
+    await expect(page.locator('#bp-remark1')).toHaveValue('');
+    await expect(page.locator('#bp-photo-name')).toHaveText('No photo selected');
+
+    // Saved Entries list me nayi entry dikhni chahiye
+    await page.evaluate(() => toggleEntriesList('broken_pole'));
+    await expect(page.locator('#entries-list-broken_pole')).toContainText('खंभा नंबर 42 टूटा हुआ');
+
+    // MIS date-range total sahi count karta hai
+    const isoToday = new Date().toISOString().slice(0, 10);
+    await page.fill('#bp-mis-from-date', isoToday);
+    await page.fill('#bp-mis-to-date', isoToday);
+    await page.locator('#bp-mis-to-date').dispatchEvent('change');
+    await expect(page.locator('#bp-mis-total')).toHaveText('1');
+
+    expect(errors).toEqual([]);
+  });
+
+  test('बिजली चोरी: IVRS/naam + remark + photo ke saath submit karne se entry save hoti hai, list me dikhti hai', async ({ page }) => {
+    const errors = [];
+    page.on('pageerror', (e) => errors.push(e.message));
+    await openApp(page, {
+      beforeGoto: async (p) => {
+        await p.route('**/macros/**', (route) => {
+          if (route.request().method() === 'POST') {
+            return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ status: 'success', entry_id: 'BC_TEST_1' }) });
+          }
+          return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ status: 'success', entries: [] }) });
+        });
+      },
+    });
+    await goToDcDashboard(page);
+    await page.evaluate(() => switchView('bijli-chori'));
+    await page.waitForFunction(() => document.getElementById('bijli-chori-view').classList.contains('active'));
+
+    await page.setInputFiles('#bc-photo-0', { name: 'evidence.png', mimeType: 'image/png', buffer: Buffer.from(PNG_1PX_BASE64, 'base64') });
+    await page.waitForFunction(() => document.querySelectorAll('#bc-photo-slots img').length > 0);
+    await page.fill('#bc-ivrs', 'IVRS-9988');
+    await page.fill('#bc-name', 'राम प्रसाद');
+    await page.fill('#bc-remark', 'मीटर से पहले सीधा तार जोड़ा हुआ पाया गया');
+    await page.click('#bc-submit-btn');
+    await page.waitForFunction(() => document.getElementById('toast-notif')?.textContent?.includes('Entry Saved'));
+
+    await expect(page.locator('#bc-ivrs')).toHaveValue('');
+
+    await page.evaluate(() => toggleEntriesList('bijli_chori'));
+    await expect(page.locator('#entries-list-bijli_chori')).toContainText('राम प्रसाद');
+
+    expect(errors).toEqual([]);
+  });
+
+  test('कर्मचारी कार्य चरित्रावली: JE login ke baad naya SCN darj karne par अभिलेख tab aur sirf sambandhit कर्मचारी ke apne tab me dikhta hai', async ({ page }) => {
+    const errors = [];
+    page.on('pageerror', (e) => errors.push(e.message));
+    await openApp(page);
+    await goToDcDashboard(page);
+    await page.evaluate(() => switchView('karya-charitra'));
+    await page.waitForFunction(() => document.getElementById('karya-charitra-view').classList.contains('active'));
+    await page.click('#kc-tab-je');
+
+    // Real JE password sirf hash (KC_JE_PASSWORD_HASH) ke roop me committed hai, tests
+    // me plaintext available nahi — isliye kcJeLogin() safal login par jo UI-state
+    // set karti hai, wahi seedhe simulate karte hain (galat-password rejection neeche
+    // alag test karta hai, jo asli hash-check ko hi exercise karta hai).
+    await page.evaluate(() => {
+      kcJeLoggedIn = true;
+      document.getElementById('kc-je-login-box').style.display = 'none';
+      document.getElementById('kc-je-logged-panel').style.display = 'block';
+      kcRefreshJeDropdowns_();
+      kcJeSetMode('new');
+    });
+
+    const isoToday = new Date().toISOString().slice(0, 10);
+
+    // Pehla SCN — श्याम यादव
+    await page.fill('#kc-new-emp-name', 'श्याम यादव');
+    await page.fill('#kc-new-emp-designation', 'लाइनमैन');
+    await page.selectOption('#kc-violation-type', 'कार्य में लापरवाही');
+    await page.fill('#kc-incident-date', isoToday);
+    await page.fill('#kc-violation-desc', 'बिना सूचना कार्यस्थल से अनुपस्थित पाया गया');
+    await page.click('button[onclick="kcSaveScn()"]');
+    await page.waitForFunction(() => document.getElementById('toast-notif')?.textContent?.includes('दर्ज हो गया'));
+
+    // Dusra SCN — गीता वर्मा (dropdown employees.forEach() ke through select bhi ho sakta
+    // hai, par naya naam direct type karna simpler hai aur "naya employee" path bhi covers)
+    await page.fill('#kc-new-emp-name', 'गीता वर्मा');
+    await page.fill('#kc-new-emp-designation', 'हेल्पर');
+    await page.selectOption('#kc-violation-type', 'अनधिकृत अनुपस्थिति');
+    await page.fill('#kc-incident-date', isoToday);
+    await page.fill('#kc-violation-desc', 'बिना अनुमति कार्यस्थल छोड़कर चली गई');
+    await page.click('button[onclick="kcSaveScn()"]');
+    await page.waitForFunction(() => document.getElementById('toast-notif')?.textContent?.includes('दर्ज हो गया'));
+
+    // अभिलेख (view) tab me dono employees ke SCN dikhne chahiye
+    await page.click('#kc-tab-view');
+    await page.waitForFunction(() => !document.getElementById('kc-all-employees-list').innerText.includes('Loading'));
+    const viewList = page.locator('#kc-all-employees-list');
+    await expect(viewList).toContainText('श्याम यादव');
+    await expect(viewList).toContainText('बिना सूचना कार्यस्थल से अनुपस्थित पाया गया');
+    await expect(viewList).toContainText('गीता वर्मा');
+    await expect(viewList).toContainText('बिना अनुमति कार्यस्थल छोड़कर चली गई');
+
+    // "मेरा SCN" tab — ek employee select karne par sirf uska hi SCN dikhna chahiye,
+    // doosre employee ka nahi (filtering by emp_id sahi kaam kar rahi hai, yeh proof hai)
+    await page.click('#kc-tab-emp');
+    await page.waitForFunction(() => document.getElementById('kc-emp-self-select').options.length > 2);
+    await page.selectOption('#kc-emp-self-select', { label: 'श्याम यादव (लाइनमैन)' });
+    await page.waitForFunction(() => document.getElementById('kc-my-scns-list').innerText.trim() !== '');
+    const myScns = page.locator('#kc-my-scns-list');
+    await expect(myScns).toContainText('बिना सूचना कार्यस्थल से अनुपस्थित पाया गया');
+    await expect(myScns).not.toContainText('बिना अनुमति कार्यस्थल छोड़कर चली गई');
+
+    expect(errors).toEqual([]);
+  });
+
+  test('कर्मचारी कार्य चरित्रावली: galat JE password se dashboard nahi khulta', async ({ page }) => {
+    await openApp(page);
+    await goToDcDashboard(page);
+    await page.evaluate(() => switchView('karya-charitra'));
+    await page.waitForFunction(() => document.getElementById('karya-charitra-view').classList.contains('active'));
+    await page.click('#kc-tab-je');
+
+    await page.fill('#kc-je-pwd', 'galat-password');
+    await page.click('button[onclick="kcJeLogin()"]');
+    await page.waitForFunction(() => document.getElementById('toast-notif')?.textContent?.includes('गलत पासवर्ड'));
+    await expect(page.locator('#kc-je-login-box')).toBeVisible();
+    await expect(page.locator('#kc-je-logged-panel')).toBeHidden();
+  });
 });
 
 test.describe('Error log (Polish)', () => {
