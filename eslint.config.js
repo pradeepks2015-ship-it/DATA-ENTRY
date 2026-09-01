@@ -34,6 +34,7 @@ module.exports = [
         XLSX: "readonly",
         ExcelJS: "readonly",
         html2canvas: "readonly",
+        L: "readonly",
       },
     },
     rules: {
@@ -66,6 +67,7 @@ module.exports = [
         ...Object.fromEntries(sharedGlobals.map((g) => [g, "writable"])),
         XLSX: "writable",
         ExcelJS: "writable",
+        L: "writable",
       },
     },
     rules: {

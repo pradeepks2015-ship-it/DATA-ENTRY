@@ -1077,6 +1077,69 @@ test.describe('Admin Dashboard (Phase-1)', () => {
     expect(cached).toEqual({ feeder: 1, bp: 1, bc: 1, kc: 1, mobile: 2 });
   });
 
+  test('घटना मैप: sirf valid-GPS entries pin ban kar dikhti hain, legend counts sahi hote hain, popup se "देखें" kaam karta hai', async ({ page }) => {
+    const errors = [];
+    page.on('pageerror', (e) => errors.push(e.message));
+    await openApp(page, {
+      beforeGoto: async (p) => {
+        await p.route('**/macros/**', (route) => {
+          const url = new URL(route.request().url());
+          const action = url.searchParams.get('action');
+          const module = url.searchParams.get('module');
+          if (action === 'getEntries' && module === 'broken_pole') {
+            return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({
+              status: 'success', entries: [
+                { date: ddmmyyyyDash, remark1: 'Pole A (GPS wali)', gps_latitude: '22.620', gps_longitude: '79.600', entry_id: 'bp1' },
+                { date: ddmmyyyyDash, remark1: 'Pole B (GPS nahi)', entry_id: 'bp2' }, // GPS nahi — map pe nahi dikhni chahiye
+              ]
+            }) });
+          }
+          if (action === 'getEntries' && module === 'bijli_chori') {
+            return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({
+              status: 'success', entries: [
+                { date: ddmmyyyyDash, name: 'Consumer X', photos: [{ gps_latitude: '22.630', gps_longitude: '79.610' }], entry_id: 'bc1' },
+              ]
+            }) });
+          }
+          if (action === 'getEntries' && module === 'dtr_health') {
+            return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({
+              status: 'success', entries: [
+                { date: ddmmyyyyDash, dtr_no: 'DTR-9', issue_type: 'Overload', gps_latitude: '22.610', gps_longitude: '79.590', entry_id: 'dtr1' },
+              ]
+            }) });
+          }
+          return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ status: 'success', entries: [] }) });
+        });
+      },
+    });
+    await goToDcDashboard(page);
+    await page.evaluate(() => openAdminDashboardGate_());
+    await page.fill('#admin-pin-input', 'SC@2026');
+    await page.click('#admin-pin-submit-btn');
+    await page.waitForFunction(() => document.getElementById('admin-dashboard-view').classList.contains('active'));
+    await page.waitForFunction(() => !document.getElementById('admin-dashboard-body').innerText.includes('लोड हो रहा है'));
+
+    await page.click('button[onclick="admOpenIncidentMap_()"]');
+    await expect(page.locator('#incident-map-overlay')).toBeVisible();
+    await page.waitForFunction(() => document.getElementById('incident-map-canvas')?.classList.contains('leaflet-container'), null, { timeout: 15000 });
+
+    const legend = page.locator('#incident-map-legend');
+    await expect(legend).toContainText('टूटा खंभा (1)');
+    await expect(legend).toContainText('बिजली चोरी (1)');
+    await expect(legend).toContainText('DTR समस्या (1)');
+
+    // GPS-wali 3 entries hi pin bani hain — "Pole B (GPS nahi)" wali chhoot gayi
+    await expect(page.locator('#incident-map-canvas .leaflet-interactive')).toHaveCount(3);
+
+    await page.locator('#incident-map-canvas .leaflet-interactive').first().click();
+    await expect(page.locator('.leaflet-popup')).toBeVisible();
+    await expect(page.locator('.leaflet-popup')).toContainText('देखें');
+
+    await page.click('#incident-map-close-btn');
+    await expect(page.locator('#incident-map-overlay')).toHaveCount(0);
+    expect(errors).toEqual([]);
+  });
+
   test('Excel export data missing hone par crash nahi karta, friendly toast deta hai', async ({ page }) => {
     await openApp(page, { beforeGoto: mockAdminBackend });
     const noDataToast = await page.evaluate(() => {

@@ -157,6 +157,22 @@
         function ensureXlsx_() {
             return loadVendorScript_("xlsx", "js/vendor/xlsx.full.min.js");
         }
+        function loadVendorStyle_(key, href) {
+            if (_vendorLoadPromises_[key]) return _vendorLoadPromises_[key];
+            _vendorLoadPromises_[key] = new Promise((resolve, reject) => {
+                const link = document.createElement("link");
+                link.rel = "stylesheet";
+                link.href = href;
+                link.onload = () => resolve();
+                link.onerror = () => { delete _vendorLoadPromises_[key]; reject(new Error(`${href} load nahi hui`)); };
+                document.head.appendChild(link);
+            });
+            return _vendorLoadPromises_[key];
+        }
+        function ensureLeaflet_() {
+            return loadVendorStyle_("leaflet-css", "js/vendor/leaflet.min.css")
+                .then(() => loadVendorScript_("leaflet", "js/vendor/leaflet.min.js"));
+        }
 
         function renderErrorLogRows_(logs) {
             if (!logs.length) return `<div style="text-align:center; padding:18px; font-size:12px; font-weight:800; color:#64748b;">कोई error नहीं — सब ठीक है ✅</div>`;

@@ -111,6 +111,9 @@
                 <div style="margin-bottom:12px;">
                     <button type="button" onclick="admOpenDiagnostics_()" style="width:100%; height:40px; border:none; border-radius:10px; background:rgba(0,0,0,0.15); color:#ffffff; font-size:10px; font-weight:900; text-transform:uppercase;">🩺 Field Devices पर क्या गड़बड़ हुई (Diagnostics)</button>
                 </div>
+                <div style="margin-bottom:12px;">
+                    <button type="button" onclick="admOpenIncidentMap_()" style="width:100%; height:40px; border:none; border-radius:10px; background:rgba(0,0,0,0.15); color:#ffffff; font-size:10px; font-weight:900; text-transform:uppercase;">📍 घटना मैप (Broken Pole / बिजली चोरी / DTR)</button>
+                </div>
                 <div style="background:rgba(255,255,255,0.95); border-radius:14px; padding:12px; margin-bottom:12px;">
                     <div style="font-size:11px; font-weight:900; color:#1e293b; margin-bottom:8px;">🔑 नए कर्मचारी के लिए PIN Hash बनाएं</div>
                     <div style="font-size:10px; font-weight:700; color:#64748b; margin-bottom:8px;">PIN डालें, hash कॉपी करके Employees sheet के pin_hash column में डालें — असली PIN कहीं save नहीं होता।</div>
