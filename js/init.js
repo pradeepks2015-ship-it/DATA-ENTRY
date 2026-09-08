@@ -1,4 +1,11 @@
         (function () {
+            // Home screen par version number dikhana — har APP_VER badhne par
+            // yahaan khud-ba-khud update ho jaata hai, kabhi hardcode nahi karna.
+            var verLabel = document.getElementById("app-version-label");
+            if (verLabel) verLabel.textContent = "App Version " + window.__APP_VERSION__;
+        })();
+
+        (function () {
             var headerLogo = document.getElementById("header-mpez-logo");
             if (headerLogo) {
                 headerLogo.onload = function () { headerLogo.style.display = "block"; };
