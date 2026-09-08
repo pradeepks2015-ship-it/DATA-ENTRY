@@ -665,6 +665,29 @@ test.describe('Broken Pole / बिजली चोरी / कर्मचा�
     expect(errors).toEqual([]);
   });
 
+  test('स्थाई विच्छेदन योग्य उपभोक्ता: IVRS No dalte hi consumer ka naam/pata (Mobile Correction Tracker jaisi hi master CSV se) auto-fill hota hai', async ({ page }) => {
+    const CONSUMER_CSV = 'IVRS NO,NAME,FATHER,OLD MOBILE,ADDRESS,HQ,TARIFF,LOAD\n1234567890,Test Consumer,Test Father,9998887771,"Test Address, Adegaon",ADEGAON HQ,LV1,1\n';
+    await openApp(page, {
+      beforeGoto: async (p) => {
+        await p.route('**/data/adegaon-consumers.csv**', (route) => {
+          route.fulfill({ status: 200, contentType: 'text/csv', body: CONSUMER_CSV });
+        });
+        await p.route('**/macros/**', (route) => {
+          route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ status: 'success', entries: [] }) });
+        });
+      },
+    });
+    await goToDcDashboard(page);
+    await page.evaluate(() => switchView('permanent-disconnect'));
+    await page.waitForFunction(() => document.getElementById('permanent-disconnect-view').classList.contains('active'));
+
+    await page.fill('#pd-ivrs', '1234567890');
+    await page.waitForFunction(() => document.getElementById('pd-consumer-name').value.includes('Test Consumer'));
+    await expect(page.locator('#pd-consumer-name')).toHaveValue('Test Consumer — IVRS 1234567890');
+    await expect(page.locator('#pd-ivrs-info')).toContainText('Test Address, Adegaon');
+    await expect(page.locator('#pd-ivrs-info')).toContainText('ADEGAON HQ');
+  });
+
   test('बिजली चोरी: IVRS/naam + remark + photo ke saath submit karne se entry save hoti hai, list me dikhti hai', async ({ page }) => {
     const errors = [];
     page.on('pageerror', (e) => errors.push(e.message));
