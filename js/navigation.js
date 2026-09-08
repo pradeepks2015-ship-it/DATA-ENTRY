@@ -54,12 +54,15 @@
                     const firstOfMonth = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,"0")}-01`;
                     if (document.getElementById("pd-mis-from-date")) document.getElementById("pd-mis-from-date").value = firstOfMonth;
                     if (document.getElementById("pd-mis-to-date")) document.getElementById("pd-mis-to-date").value = today;
+                    if (document.getElementById("pd-ivrs")) document.getElementById("pd-ivrs").value = "";
+                    if (document.getElementById("pd-ivrs-info")) document.getElementById("pd-ivrs-info").style.display = "none";
                     pdDocSlots = new Array(PD_SLOT_LABELS.length).fill(null);
                     renderPdDocSlots();
                     refreshPermanentDisconnectMisTotal("soft");
                     refreshStorageCounter_("permanent_disconnect");
                     const pdEntriesList = document.getElementById("entries-list-permanent_disconnect");
                     if (pdEntriesList) { pdEntriesList.style.display = "none"; pdEntriesList.innerHTML = ""; }
+                    if (activeDC) ensureDcDataLoaded(activeDC);
                 }
                 if (id === "karya-charitra") {
                     kcInitView_();

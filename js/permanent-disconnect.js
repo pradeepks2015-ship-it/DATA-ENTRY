@@ -96,6 +96,36 @@
             renderPdDocSlots();
         }
 
+        // Mobile Correction Tracker jaisa hi DC-wise master consumer CSV (getConsumerRows/
+        // ensureDcDataLoaded/getConsumerField, dekhein js/core-actions.js aur js/core-utils.js)
+        // IVRS No se consumer detail auto-fill karne ke liye reuse karte hain — koi naya data
+        // source nahi banaya.
+        async function pdIvrsInputChanged_() {
+            const ivrsInput = document.getElementById("pd-ivrs");
+            const infoBox = document.getElementById("pd-ivrs-info");
+            const digits = normalizeLookupDigits(ivrsInput.value);
+            if (digits.length !== 10) {
+                if (infoBox) infoBox.style.display = "none";
+                return;
+            }
+            let rows = getConsumerRows(activeDC);
+            if (!rows.length) rows = await ensureDcDataLoaded(activeDC);
+            const found = rows.find((row) => normalizeLookupDigits(getConsumerField(row, ["IVRS", "IVRS NO", "IVRS NUMBER"])) === digits);
+            if (!found) {
+                if (infoBox) infoBox.style.display = "none";
+                showToast("Record Not Found — naam manually likhein", false);
+                return;
+            }
+            const name = getConsumerField(found, ["NAME", "CONSUMER NAME"]);
+            const addr = getConsumerField(found, ["ADDRESS", "ADDR"]);
+            const hq = getConsumerField(found, ["HQ", "HQ NAME", "HEADQUARTER", "HEAD QUARTER", "H.Q."]);
+            document.getElementById("pd-consumer-name").value = name ? `${name} — IVRS ${digits}` : `IVRS ${digits}`;
+            if (infoBox) {
+                infoBox.innerText = [addr && `पता: ${addr}`, hq && `HQ: ${hq}`].filter(Boolean).join(" | ") || "पता उपलब्ध नहीं";
+                infoBox.style.display = "block";
+            }
+        }
+
         function pdToggleOtherReason_() {
             const sel = document.getElementById("pd-reason");
             const box = document.getElementById("pd-other-reason-box");
@@ -185,6 +215,8 @@
 
                 showToast("Entry Saved Successfully!", true);
 
+                document.getElementById("pd-ivrs").value = "";
+                document.getElementById("pd-ivrs-info").style.display = "none";
                 document.getElementById("pd-consumer-name").value = "";
                 document.getElementById("pd-reason").value = "";
                 document.getElementById("pd-other-reason").value = "";
