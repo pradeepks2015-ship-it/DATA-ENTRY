@@ -8,10 +8,6 @@
             try { return JSON.parse(localStorage.getItem(EMPLOYEE_LOGIN_KEY)); } catch (_) { return null; }
         }
 
-        function employeeLoggedIn_() {
-            return !!getLoggedInEmployee_();
-        }
-
         // Entries save karte waqt payload me jodne ke liye — logged-in employee ka
         // pata na ho to bhi khaali fields hi jaate hain, save block nahi hota.
         function currentEmployeeTag_() {

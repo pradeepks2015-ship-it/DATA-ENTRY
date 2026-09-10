@@ -25,10 +25,6 @@
             return value;
         }
 
-        function normalizeLookupValue(value) {
-            return (value || "").toString().trim().toUpperCase().replace(/[^A-Z0-9]/g, "");
-        }
-
         function normalizeDcName(value) {
             return (value || "").toString().trim().toUpperCase();
         }

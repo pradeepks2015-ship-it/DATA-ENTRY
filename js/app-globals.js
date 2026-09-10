@@ -250,12 +250,11 @@
         // PASTE the deployed Apps Script /exec URL here once available - leave empty to keep working
         // device-local only (entries will not sync between users until this is set).
         const sharedModuleSyncScriptUrl = APPS_SCRIPT_EXEC_URL;
-        const SHARED_SYNC_MODULES = ["broken_pole", "bijli_chori"];
         const sharedModuleSyncEnabled = !!sharedModuleSyncScriptUrl;
 
         localStorage.removeItem("stock-movements-cache");
 
-        let activeDiv = "", activeDC = "", activeGrad = "bg-teal-grad", summaryMode = "DAILY", summaryModule = "MOBILE", activeViewLevel = "", currentData = null, pendingLevel = "", dcCacheRaw = {}, dcCacheRows = {}, uiListSummary = [], grandTC = 0, grandTU = 0;
+        let activeDiv = "", activeDC = "", activeGrad = "bg-teal-grad", currentData = null, dcCacheRaw = {}, dcCacheRows = {};
         const feederCsvUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vT8bBAXJZhlwS_giGXBlS6rDXJ_auZfWZzNVPQaBnD09jB_m7jnrqeGGX5WP8V2jOD_WL90_KQ2pJa4/pub?output=csv";
         const feederSubmitScriptUrl = APPS_SCRIPT_EXEC_URL;
         const feederReportSheetCsvUrl = "https://docs.google.com/spreadsheets/d/1XnsLz_5643XqGgrcMzhIzI_cF4E4S6Zc1esNEQe554A/export?format=csv&gid=0";
@@ -362,10 +361,7 @@
         let feederReportLoadMessage = "";
         let selectedFeederSubstation = "";
         let activeFeederOperator = null;
-        let summaryRefreshToken = 0;
-        let chhaparaFeederEntries = [];
         const dcCsvCacheStoragePrefix = "seoni-circle-dc-csv-";
-        const chhaparaFeederStorageKey = "seoni-circle-chhapara-feeder-output";
         const feederRecentSubmittedStorageKey = "seoni-circle-feeder-recent-submitted";
         const feederOperatorStorageKey = "feederOperatorProfile";
         const brokenPoleStorageKey = "seoni-circle-broken-pole-entries";

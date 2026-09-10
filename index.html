@@ -9,7 +9,7 @@
     <link rel="manifest" href="./manifest.json">
     <meta name="theme-color" content="#6cb1e1">
     <link rel="apple-touch-icon" href="./icon-192.png">
-    <script>window.__APP_VERSION__ = 15;</script>
+    <script>window.__APP_VERSION__ = 16;</script>
 </head>
 <body>
     <div id="toast-notif"></div>
@@ -29,17 +29,6 @@
             <input type="password" id="emp-login-pin" inputmode="numeric" placeholder="PIN" onkeydown="if(event.key==='Enter') submitEmployeeLogin_()">
             <button class="pwd-card-btn" onclick="submitEmployeeLogin_()">🔓 Login करें</button>
             <div id="emp-login-status" style="font-size:11px; font-weight:800; color:#f87171; min-height:14px;"></div>
-        </div>
-    </div>
-
-    <div id="pwd-modal">
-        <div class="pwd-card">
-            <div class="pwd-card-icon">🔐</div>
-            <h3 id="pwd-modal-title">REPORT ACCESS</h3>
-            <div class="pwd-card-sub">आदेगांव बिजली वितरण केंद्र</div>
-            <input type="password" id="pwd-input" placeholder="••••••" onkeydown="if(event.key==='Enter') verifyPassword()">
-            <button class="pwd-card-btn" onclick="verifyPassword()">🔓 Unlock करें</button>
-            <div class="pwd-card-back" onclick="closePwdModal()">← वापस जाएं</div>
         </div>
     </div>
 
@@ -700,20 +689,6 @@
             </div>
         </main>
 
-        <main id="summary-view" class="view">
-            <div class="title-box-container"><div class="title-box flex flex-col items-center"><span class="title-text-bold" id="summary-title">PROGRESS REPORT</span></div></div>
-            <div class="px-2">
-                <div class="progress-module-box">
-                    <div id="progress-mobile-btn" class="progress-module-btn active" onclick="setProgressModule('MOBILE')">Updated Mobile No</div>
-                </div>
-                <div class="report-type-box">
-                    <div id="opt-daily" class="report-opt active" onclick="setMode('DAILY')">Daily</div>
-                    <div id="opt-monthly" class="report-opt" onclick="setMode('MONTHLY')">Monthly</div>
-                </div>
-                <input type="date" id="report-date" class="w-full h-12 border-2 border-teal-600 rounded-xl px-4 font-black text-teal-900 mb-4" style="border-color: #0d9488;" onchange="refreshSummary()">
-            </div>
-            <div id="summary-content"></div>
-        </main>
     </div>
 
     <script defer src="js/app-globals.js"></script>
@@ -722,7 +697,6 @@
     <script defer src="js/app-boot.js"></script>
     <script defer src="js/employee-auth.js"></script>
     <script defer src="js/core-actions.js"></script>
-    <script defer src="js/mobile-summary.js"></script>
     <script defer src="js/feeder-date-picker.js"></script>
     <script defer src="js/core-utils.js"></script>
     <script defer src="js/geo-photo-utils.js"></script>
