@@ -8,8 +8,6 @@
                 localStorage.removeItem(pdcStorageKey);
             } catch (_) {}
 
-            const today = localTodayIso_();
-            document.getElementById("report-date").value = today;
             getAllDcConfigs().forEach(async ({ name, csvUrl }) => {
                 if (!csvUrl) return;
                 try {
@@ -26,7 +24,6 @@
                 } catch (e) {}
             });
 
-            initChhaparaFeederCalculator();
             updateHeaderMenuEmpName_();
             // Employee-login gate abhi jaan-bujhkar disabled hai — backend Apps Script
             // (getEmployeeNames/verifyEmployeePin) abhi manually deploy nahi hui, aur gate

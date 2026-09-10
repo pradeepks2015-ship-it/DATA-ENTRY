@@ -93,36 +93,12 @@
             document.getElementById("prof-trigger").classList.toggle("active");
         }
 
-        function askPassword(level) {
-            pendingLevel = level;
-            document.getElementById("pwd-modal").style.display = "flex";
-            document.getElementById("pwd-input").value = "";
-        }
-
-        function closePwdModal() {
-            document.getElementById("pwd-modal").style.display = "none";
-        }
-
         // Passwords ab source code me plaintext me nahi hain — sirf SHA-256 hash
         // store hote hain. View Source karne wala password nahi padh sakta.
         async function sha256Hex_(text) {
             if (!window.crypto || !crypto.subtle) return null; // https zaroori hai
             const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(String(text)));
             return Array.from(new Uint8Array(buf)).map((b) => b.toString(16).padStart(2, "0")).join("");
-        }
-        const ROLE_PASSWORD_HASHES = { CIRCLE: "d1ee5bd5cdd590d6ba1e9f91d1d2acb4c203737212e8c41ffb0407d218fef7e5", DIVISION: "95794bf226adc49f12bdfe1640cd27cd40d49e57026194908ebb00e3bfea0ca8", DC: "4014bf32fe1f3427f4bfbfb1ee5f61631b258eaa1c61e22618f2e4bd275c647f", STOCK: "7c8fa042e2811a66d46aae4d0472ca260ff443b5bcb3d3e4c8cf578e104270a6" };
-
-        async function verifyPassword() {
-            const inputHash = await sha256Hex_(document.getElementById("pwd-input").value);
-            if (inputHash === null) return showToast("Secure (https) connection zaroori hai", false);
-            if (inputHash === ROLE_PASSWORD_HASHES[pendingLevel]) {
-                activeViewLevel = pendingLevel;
-                closePwdModal();
-                switchView("summary");
-                refreshSummary();
-            } else {
-                showToast("Invalid Password!", false);
-            }
         }
 
         function openMpezSite() {

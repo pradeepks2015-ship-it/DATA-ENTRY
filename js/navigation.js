@@ -88,7 +88,6 @@
                 if (id === "karya-charitra") headerTitle = "कर्मचारी कार्य चरित्रावली";
                 if (id === "dtr-health") headerTitle = "DTR (ट्रांसफार्मर) हेल्थ लॉग";
                 if (id === "permanent-disconnect") headerTitle = "स्थाई विच्छेदन योग्य उपभोक्ता";
-                if (id === "summary") headerTitle = "PROGRESS REPORT";
                 if (id === "admin-dashboard") headerTitle = "ADMIN DASHBOARD";
                 document.getElementById("main-header-title").innerText = headerTitle;
                 const header = document.getElementById("app-header");
@@ -140,10 +139,6 @@
                     resetForm(true);
                 }
                 switchView("dc-dashboard");
-            } else if (act === "summary-view") {
-                if (activeViewLevel === "DC") switchView("dc-dashboard");
-                else if (activeViewLevel === "DIVISION") switchView("dc-selection");
-                else switchView("home");
             } else {
                 switchView("home");
             }
@@ -174,19 +169,4 @@
 
             const welcomeText = document.getElementById("welcomeText");
             if (welcomeText) welcomeText.style.color = c;
-        }
-
-        function setMode(m) {
-            summaryMode = m;
-            const input = document.getElementById("report-date");
-            document.getElementById("opt-daily").classList.toggle("active", m === "DAILY");
-            document.getElementById("opt-monthly").classList.toggle("active", m === "MONTHLY");
-            if (m === "MONTHLY") {
-                input.type = "month";
-                input.value = `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, "0")}`;
-            } else {
-                input.type = "date";
-                input.value = localTodayIso_();
-            }
-            refreshSummary();
         }
