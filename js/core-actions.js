@@ -41,12 +41,12 @@
             return getAllDcConfigs().find((config) => normalizeDcName(config.name) === normalized) || null;
         }
 
-        async function ensureDcDataLoaded(dcName) {
-            const normalized = normalizeDcName(dcName);
-            if (!normalized) return [];
-            if (dcCacheRows[normalized]?.length) return dcCacheRows[normalized];
-            const config = getDcConfigByName(normalized);
-            if (!config || !config.csvUrl) return [];
+        // Sirf ek hi background refresh chale ek DC ke liye ek waqt par — warna
+        // pending IVRS searches (jab tak refresh chal rahi ho) har baar apna
+        // naya parallel fetch chhed dete.
+        const dcCacheRefreshInFlight_ = {};
+
+        async function fetchAndCacheDcData_(normalized, config) {
             try {
                 const rawCsv = await loadRemoteText(config.csvUrl);
                 const parsedRows = isLikelyCsvPayload(rawCsv) ? parseConsumerCsv(rawCsv) : [];
@@ -56,32 +56,48 @@
                     try {
                         localStorage.setItem(`${dcCsvCacheStoragePrefix}${normalized}`, rawCsv);
                     } catch (_) {}
-                } else {
-                    const cachedRaw = localStorage.getItem(`${dcCsvCacheStoragePrefix}${normalized}`) || "";
-                    const cachedRows = isLikelyCsvPayload(cachedRaw) ? parseConsumerCsv(cachedRaw) : [];
-                    if (cachedRows.length) {
-                        dcCacheRaw[normalized] = cachedRaw;
-                        dcCacheRows[normalized] = cachedRows;
-                    } else {
-                        dcCacheRows[normalized] = [];
-                    }
                 }
-            } catch (_) {
-                try {
-                    const cachedRaw = localStorage.getItem(`${dcCsvCacheStoragePrefix}${normalized}`) || "";
-                    const parsedRows = isLikelyCsvPayload(cachedRaw) ? parseConsumerCsv(cachedRaw) : [];
-                    if (parsedRows.length) {
-                        dcCacheRaw[normalized] = cachedRaw;
-                        dcCacheRows[normalized] = parsedRows;
-                    } else {
-                        localStorage.removeItem(`${dcCsvCacheStoragePrefix}${normalized}`);
-                        dcCacheRows[normalized] = [];
-                    }
-                } catch (_) {
-                    dcCacheRows[normalized] = [];
-                }
-            }
+            } catch (_) {}
             return dcCacheRows[normalized] || [];
+        }
+
+        // Consumer master CSV (10000+ rows) har DC ke liye network se aati hai —
+        // field me kamzor network par yeh download hi sabse dheema hissa hota hai
+        // (parsing/search khud milliseconds me ho jaate hain). Isliye device par
+        // pehle se cached CSV (pichhle session ki) ho to usse turant istemal karte
+        // hain (IVRS search bina network ka wait kiye chal jaata hai), aur asli
+        // fresh data background me chupchaap update hoti rehti hai. Sirf tabhi
+        // network par rukna padta hai jab is DC ka is device par koi cache hi na ho.
+        async function ensureDcDataLoaded(dcName) {
+            const normalized = normalizeDcName(dcName);
+            if (!normalized) return [];
+            if (dcCacheRows[normalized]?.length) return dcCacheRows[normalized];
+            const config = getDcConfigByName(normalized);
+            if (!config || !config.csvUrl) return [];
+
+            let cachedRows = [];
+            try {
+                const cachedRaw = localStorage.getItem(`${dcCsvCacheStoragePrefix}${normalized}`) || "";
+                cachedRows = isLikelyCsvPayload(cachedRaw) ? parseConsumerCsv(cachedRaw) : [];
+                if (cachedRows.length) dcCacheRaw[normalized] = cachedRaw;
+            } catch (_) {}
+
+            if (cachedRows.length) {
+                dcCacheRows[normalized] = cachedRows;
+                if (!dcCacheRefreshInFlight_[normalized]) {
+                    dcCacheRefreshInFlight_[normalized] = fetchAndCacheDcData_(normalized, config)
+                        .finally(() => { delete dcCacheRefreshInFlight_[normalized]; });
+                }
+                return cachedRows;
+            }
+
+            if (!dcCacheRefreshInFlight_[normalized]) {
+                dcCacheRefreshInFlight_[normalized] = fetchAndCacheDcData_(normalized, config)
+                    .finally(() => { delete dcCacheRefreshInFlight_[normalized]; });
+            }
+            const rows = await dcCacheRefreshInFlight_[normalized];
+            if (!dcCacheRows[normalized]) dcCacheRows[normalized] = [];
+            return rows;
         }
 
         function normalizeLookupDigits(value) {
