@@ -1452,7 +1452,7 @@ test.describe('Home reminders (Push Notification lite)', () => {
 
   test('✕ दबाने पर banner हट जाता है और आज दोबारा नहीं दिखता', async ({ page }) => {
     await openApp(page, {
-      beforeGoto: (p) => mockKcEntries(p, [{ scn_date_iso: '2026-07-10', emp_name: 'Ram Kumar', dispatch_no: 3, entry_id: 'kc1' }]),
+      beforeGoto: (p) => mockKcEntries(p, [{ scn_date_iso: isoDateDaysAgo(10), emp_name: 'Ram Kumar', dispatch_no: 3, entry_id: 'kc1' }]),
     });
     await page.evaluate(() => renderScnReminderBanner_());
     await expect(page.locator('#scn-reminder-banner')).toBeVisible();
@@ -1465,7 +1465,7 @@ test.describe('Home reminders (Push Notification lite)', () => {
   test('"देखें" बटन कर्मचारी कार्य चरित्रावली view बिना error के खोलता है', async ({ page }) => {
     const errors = [];
     await openApp(page, {
-      beforeGoto: (p) => mockKcEntries(p, [{ scn_date_iso: '2026-07-10', emp_name: 'Ram Kumar', dispatch_no: 3, entry_id: 'kc1' }]),
+      beforeGoto: (p) => mockKcEntries(p, [{ scn_date_iso: isoDateDaysAgo(10), emp_name: 'Ram Kumar', dispatch_no: 3, entry_id: 'kc1' }]),
     });
     page.on('pageerror', (e) => errors.push(e.message));
     await page.evaluate(() => renderScnReminderBanner_());
@@ -1575,6 +1575,38 @@ test.describe('Mobile Correction Tracker (galat mobile number flag + monitor)', 
       ivrs: '1234567890', name: 'Test Consumer', hq: 'ADEGAON HQ',
       old_mobile: '9998887771', status: 'pending', submitted_by_name: 'Test Employee',
     });
+  });
+
+  test('CSV device par pehle se cached ho to IVRS search agli baar network ke bina bhi turant kaam karta hai (dheeme/kabhi-na-milne wale network par bhi)', async ({ page }) => {
+    // Pehli baar normal (fast) load — isse consumer CSV localStorage me cache ho jaati hai
+    await openApp(page, {
+      beforeGoto: async (p) => {
+        await mockConsumerCsv(p);
+        await p.route('**/macros/**', (route) => {
+          route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ status: 'success', entry_id: 'MC1', entries: [] }) });
+        });
+      },
+    });
+    await goToMobileUpdate(page);
+    await expect(page.locator('#res-name')).toHaveText('Test Consumer');
+
+    // Ab CSV route ko jaan-bujhkar kabhi resolve na hone dein (bilkul atki hui network
+    // jaisa) — agar search abhi bhi network par depend karta hoga to yeh kabhi
+    // result nahi dega aur neeche wala turant-response check fail ho jayega.
+    await page.route('**/data/adegaon-consumers.csv**', () => {});
+    await page.goto('/');
+    await page.waitForFunction(() => document.getElementById('home-view').classList.contains('active'));
+    await page.click('.list-item.bg-orange-grad');
+    await page.waitForFunction(() => document.getElementById('dc-selection-view').classList.contains('active'));
+    await page.click('#prof-trigger');
+    await page.click('#dc-menu .option-item');
+    await page.waitForFunction(() => document.getElementById('dc-dashboard-view').classList.contains('active'));
+    await page.evaluate(() => switchView('mobile-update'));
+    await page.waitForFunction(() => document.getElementById('mobile-update-view').classList.contains('active'));
+    await page.fill('#search-ivrs', '1234567890');
+    await page.click('#search-btn');
+    await expect(page.locator('#result-box')).toBeVisible({ timeout: 3000 });
+    await expect(page.locator('#res-name')).toHaveText('Test Consumer');
   });
 
   test('IVRS aur mobile number par tap karne se ek jaisi action sheet khulti hai — sirf copy aur call ke options', async ({ page }) => {
