@@ -2189,3 +2189,65 @@ test.describe('Mobile Correction Tracker (galat mobile number flag + monitor)', 
     expect(rec?.entry_id).toBe('E_RESYNCED_1');
   });
 });
+
+test.describe('Office Assistant — master + ledger merge, gaon-waar split', () => {
+  const csv = (name, text) => ({ name, mimeType: 'text/csv', buffer: Buffer.from(text, 'utf8') });
+
+  // Master aur ledger me ek hi column alag-alag likha hota hai ("Consumer No" vs "CONSUMER_NO").
+  // Pehle iss wajah se "Select a valid key column" aata tha aur kuch bhi export nahi hota tha.
+  test('column ka naam alag vartani me ho tab bhi match ho, aur gaon-waar sheet bane', async ({ page }) => {
+    const errors = [];
+    page.on('pageerror', (e) => errors.push(e.message));
+    await openApp(page);
+    await page.evaluate(() => switchView('office-assistant'));
+
+    await page.setInputFiles('#office-assistant-master-upload', csv('master.csv',
+      'Consumer No,Name,Village\n101,Ram,Adegaon\n102,Shyam,Joba\n103,Mohan,Adegaon\n'));
+    await page.setInputFiles('#office-assistant-raw-upload', csv('ledger.csv',
+      'CONSUMER_NO,DUE\n101,5000\n103,7000\n999,1000\n'));
+
+    await expect(page.locator('#office-assistant-master-status')).toContainText('3');
+    await expect(page.locator('#office-assistant-raw-status')).toContainText('3');
+    await expect(page.locator('#office-assistant-key-column')).toHaveValue('Consumer No');
+
+    await page.selectOption('#office-assistant-split-column', 'Village');
+    const download = await Promise.all([
+      page.waitForEvent('download'),
+      page.click('#office-assistant-process-btn'),
+    ]);
+    expect(download[0].suggestedFilename()).toMatch(/^Master_Merge_\d{4}-\d{2}-\d{2}\.xlsx$/);
+    // 101 aur 103 mile (dono Adegaon), 999 master me hai hi nahi
+    await expect(page.locator('#office-assistant-result')).toContainText('2 मिले, 1 नहीं मिले');
+    expect(errors).toEqual([]);
+  });
+
+  test('namoona (sample) file di ho to nikalne wali Excel usi ke columns aur usi kram me ho', async ({ page }) => {
+    await openApp(page);
+    await page.evaluate(() => switchView('office-assistant'));
+    await page.setInputFiles('#office-assistant-master-upload', csv('master.csv',
+      'Consumer No,Name,Village\n101,Ram,Adegaon\n'));
+    await page.setInputFiles('#office-assistant-raw-upload', csv('ledger.csv',
+      'Consumer No,DUE\n101,5000\n'));
+    await page.setInputFiles('#office-assistant-sample-upload', csv('sample.csv',
+      'Village,Consumer No,Name,DUE,वसूली दिनांक\n'));
+
+    await expect(page.locator('#office-assistant-sample-status')).toContainText('5 columns');
+    await Promise.all([page.waitForEvent('download'), page.click('#office-assistant-process-btn')]);
+    await expect(page.locator('#office-assistant-result')).toContainText('नमूने के अनुसार');
+
+    // reload ke baad master aur namoona dono IndexedDB se wapas aa jaayen
+    await page.reload();
+    await page.evaluate(() => switchView('office-assistant'));
+    await expect(page.locator('#office-assistant-master-status')).toContainText('1');
+    await expect(page.locator('#office-assistant-sample-status')).toContainText('5 columns');
+  });
+
+  test('Master Data bina Raw Data ke process karne par saaf hindi sandesh mile', async ({ page }) => {
+    await openApp(page);
+    await page.evaluate(() => switchView('office-assistant'));
+    const messages = [];
+    page.on('dialog', async (d) => { messages.push(d.message()); await d.accept(); });
+    await page.click('#office-assistant-process-btn');
+    expect(messages).toEqual(['पहले Master Data अपलोड करें।']);
+  });
+});

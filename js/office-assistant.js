@@ -6,17 +6,19 @@
     let masterHeaders = [];
     let rawData = [];
     let rawHeaders = [];
-    let selectedColumns = [];
+    let sampleHeaders = [];
+    let sampleName = '';
     let keyColumn = '';
     let splitByColumn = '';
     const MASTER_DB_KEY = 'office-assistant-master-data-v1';
+    const SAMPLE_DB_KEY = 'office-assistant-sample-format-v1';
 
     // Expose global functions
-    window.toggleColumnSelection = function() {};
     window.setKeyColumn = function() {};
     window.setSplitByColumn = function() {};
     window.processAndExport = async function() {};
     window.clearMasterData = function() {};
+    window.clearSampleFormat = function() {};
 
     // Initialize only if Office Assistant view exists
     window.addEventListener('DOMContentLoaded', function() {
@@ -34,8 +36,26 @@
     function setupFileUploads() {
         const master = document.getElementById('office-assistant-master-upload');
         const raw = document.getElementById('office-assistant-raw-upload');
+        const sample = document.getElementById('office-assistant-sample-upload');
         if (master) master.addEventListener('change', handleMasterUpload);
         if (raw) raw.addEventListener('change', handleRawUpload);
+        if (sample) sample.addEventListener('change', handleSampleUpload);
+    }
+
+    // "Consumer No" बनाम "CONSUMER_NO" बनाम "consumer no." — एक ही column का नाम दोनों फ़ाइलों में
+    // अलग-अलग तरह लिखा होता है, इसलिए मिलान करते समय बड़े/छोटे अक्षर और space/_/./- हटा देते हैं
+    function normHdr(h) {
+        return String(h ?? '').toLowerCase().replace(/[^a-z0-9ऀ-ॿ]/g, '');
+    }
+
+    function resolveHeader(headers, wanted) {
+        const want = normHdr(wanted);
+        if (!want) return '';
+        return headers.find(h => normHdr(h) === want) || '';
+    }
+
+    function errText(err) {
+        return err && err.message ? err.message : String(err);
     }
 
     async function handleMasterUpload(e) {
@@ -45,10 +65,11 @@
             const data = await parseFile(file);
             masterData = data.rows;
             masterHeaders = data.headers;
-            await cacheData(data);
+            await cachePut(MASTER_DB_KEY, { headers: data.headers, rows: data.rows });
             updateUI();
         } catch (err) {
             console.error('Master upload error:', err);
+            alert('Master फ़ाइल पढ़ी नहीं जा सकी: ' + errText(err));
         }
     }
 
@@ -62,37 +83,62 @@
             updateUI();
         } catch (err) {
             console.error('Raw upload error:', err);
+            alert('Raw फ़ाइल पढ़ी नहीं जा सकी: ' + errText(err));
+        }
+    }
+
+    // नमूना (sample) फ़ाइल — इसकी सिर्फ़ पहली पंक्ति (column के नाम) चाहिए, उसका डेटा नहीं।
+    // निकलने वाली Excel में बिल्कुल यही columns, इसी क्रम में आएंगे।
+    async function handleSampleUpload(e) {
+        const file = e.target.files?.[0];
+        if (!file) return;
+        try {
+            const data = await parseFile(file);
+            if (!data.headers.length) throw new Error('पहली पंक्ति में कोई column नाम नहीं मिला');
+            sampleHeaders = data.headers;
+            sampleName = file.name;
+            await cachePut(SAMPLE_DB_KEY, { headers: sampleHeaders, name: sampleName });
+            updateUI();
+        } catch (err) {
+            console.error('Sample upload error:', err);
+            alert('नमूना फ़ाइल पढ़ी नहीं जा सकी: ' + errText(err));
         }
     }
 
     async function parseFile(file) {
-        const text = await file.text();
-        const isCSV = file.name.endsWith('.csv');
-
-        if (isCSV) {
+        if (/\.csv$/i.test(file.name)) {
+            const text = await file.text();
             const lines = text.trim().split(/\r?\n/);
-            const headers = lines[0].split(',').map(h => h.trim());
+            const headers = splitCsvLine(lines[0] || '').map(h => h.trim());
             const rows = lines.slice(1).map(line => {
-                const values = line.split(',');
+                const values = splitCsvLine(line);
                 const obj = {};
-                headers.forEach((h, i) => obj[h] = (values[i] || '').trim());
+                headers.forEach((h, i) => obj[h] = String(values[i] ?? '').trim());
                 return obj;
             });
-            return { headers, rows };
-        } else {
-            await ensureXlsx_();
-            const ab = await file.arrayBuffer();
-            const wb = XLSX.read(ab, { type: 'array' });
-            const ws = wb.Sheets[wb.SheetNames[0]];
-            const data = XLSX.utils.sheet_to_json(ws, { header: 1 });
-            const headers = (data[0] || []).map(h => String(h ?? '').trim());
-            const rows = data.slice(1).map(values => {
-                const obj = {};
-                headers.forEach((h, i) => obj[h] = (values[i] ?? ''));
-                return obj;
-            });
-            return { headers, rows };
+            return { headers, rows: rows.filter(hasAnyValue) };
         }
+
+        await ensureXlsx_();
+        const ab = await file.arrayBuffer();
+        const wb = XLSX.read(ab, { type: 'array' });
+        const ws = wb.Sheets[wb.SheetNames[0]];
+        const data = XLSX.utils.sheet_to_json(ws, { header: 1, raw: false, defval: '' });
+        // कुछ ledger export ऊपर खाली/शीर्षक पंक्तियाँ रखते हैं — header वही पहली पंक्ति मानो
+        // जिसमें कम से कम दो खाने भरे हों
+        const hdrIdx = data.findIndex(r => Array.isArray(r) && r.filter(c => String(c ?? '').trim()).length >= 2);
+        if (hdrIdx < 0) return { headers: [], rows: [] };
+        const headers = data[hdrIdx].map(h => String(h ?? '').trim());
+        const rows = data.slice(hdrIdx + 1).map(values => {
+            const obj = {};
+            headers.forEach((h, i) => obj[h] = String(values[i] ?? '').trim());
+            return obj;
+        });
+        return { headers, rows: rows.filter(hasAnyValue) };
+    }
+
+    function hasAnyValue(row) {
+        return Object.keys(row).some(k => String(row[k] ?? '').trim() !== '');
     }
 
     function idbReq(req) {
@@ -100,31 +146,6 @@
             req.onsuccess = () => resolve(req.result);
             req.onerror = () => reject(req.error);
         });
-    }
-
-    async function cacheData(data) {
-        try {
-            const db = await openDB();
-            const tx = db.transaction('data', 'readwrite');
-            await idbReq(tx.objectStore('data').put({ headers: data.headers, rows: data.rows, time: new Date().toISOString() }, MASTER_DB_KEY));
-        } catch (err) {
-            console.warn('Cache failed:', err);
-        }
-    }
-
-    async function loadCachedData() {
-        try {
-            const db = await openDB();
-            const tx = db.transaction('data', 'readonly');
-            const cached = await idbReq(tx.objectStore('data').get(MASTER_DB_KEY));
-            if (cached?.headers && cached?.rows) {
-                masterHeaders = cached.headers;
-                masterData = cached.rows;
-                updateUI();
-            }
-        } catch (err) {
-            console.warn('Load cache failed:', err);
-        }
     }
 
     function openDB() {
@@ -141,16 +162,54 @@
         });
     }
 
-    function fillSelect(id, firstLabel, firstValue, current) {
+    async function cachePut(key, value) {
+        try {
+            const db = await openDB();
+            const tx = db.transaction('data', 'readwrite');
+            await idbReq(tx.objectStore('data').put({ ...value, time: new Date().toISOString() }, key));
+        } catch (err) {
+            console.warn('Cache failed:', err);
+        }
+    }
+
+    async function cacheDelete(key) {
+        try {
+            const db = await openDB();
+            const tx = db.transaction('data', 'readwrite');
+            await idbReq(tx.objectStore('data').delete(key));
+        } catch (err) {
+            console.warn('Clear failed:', err);
+        }
+    }
+
+    async function loadCachedData() {
+        try {
+            const db = await openDB();
+            const master = await idbReq(db.transaction('data', 'readonly').objectStore('data').get(MASTER_DB_KEY));
+            if (master?.headers && master?.rows) {
+                masterHeaders = master.headers;
+                masterData = master.rows;
+            }
+            const sample = await idbReq(db.transaction('data', 'readonly').objectStore('data').get(SAMPLE_DB_KEY));
+            if (sample?.headers?.length) {
+                sampleHeaders = sample.headers;
+                sampleName = sample.name || 'सहेजा हुआ नमूना';
+            }
+            updateUI();
+        } catch (err) {
+            console.warn('Load cache failed:', err);
+        }
+    }
+
+    function fillSelect(id, firstLabel, current) {
         const sel = document.getElementById(id);
         if (!sel) return;
         sel.textContent = '';
         const first = document.createElement('option');
-        first.value = firstValue;
+        first.value = '';
         first.textContent = firstLabel;
         sel.appendChild(first);
-        const all = [...new Set([...masterHeaders, ...rawHeaders])];
-        all.forEach(h => {
+        [...new Set([...masterHeaders, ...rawHeaders])].forEach(h => {
             const opt = document.createElement('option');
             opt.value = h;
             opt.textContent = h;
@@ -159,29 +218,27 @@
         });
     }
 
-    function updateUI() {
-        const masterStatus = document.getElementById('office-assistant-master-status');
-        if (masterStatus) {
-            masterStatus.style.display = masterHeaders.length ? 'block' : 'none';
-            masterStatus.textContent = '✓ Master data loaded — ' + masterData.length + ' rows';
-        }
-        const rawStatus = document.getElementById('office-assistant-raw-status');
-        if (rawStatus) {
-            rawStatus.style.display = rawHeaders.length ? 'block' : 'none';
-            rawStatus.textContent = '✓ Raw data loaded — ' + rawData.length + ' rows';
-        }
-        // दोनों फ़ाइलों में जो column common हो, वही key बन सकता है — पहला common column अपने-आप चुन लो
-        if (!keyColumn || !masterHeaders.includes(keyColumn) || !rawHeaders.includes(keyColumn)) {
-            keyColumn = masterHeaders.find(h => rawHeaders.includes(h)) || '';
-        }
-        fillSelect('office-assistant-key-column', '-- Select --', '', keyColumn);
-        fillSelect('office-assistant-split-column', 'None', '', splitByColumn);
+    function setStatus(id, on, text) {
+        const el = document.getElementById(id);
+        if (!el) return;
+        el.style.display = on ? 'block' : 'none';
+        el.textContent = text;
     }
 
-    window.toggleColumnSelection = function(header) {
-        const idx = selectedColumns.indexOf(header);
-        idx > -1 ? selectedColumns.splice(idx, 1) : selectedColumns.push(header);
-    };
+    function updateUI() {
+        setStatus('office-assistant-master-status', masterHeaders.length,
+            '✓ Master data तैयार — ' + masterData.length + ' पंक्तियाँ');
+        setStatus('office-assistant-raw-status', rawHeaders.length,
+            '✓ Raw data तैयार — ' + rawData.length + ' पंक्तियाँ');
+        setStatus('office-assistant-sample-status', sampleHeaders.length,
+            '✓ नमूना तैयार — ' + sampleHeaders.length + ' columns (' + sampleName + ')');
+        // दोनों फ़ाइलों में जो column common हो वही key बन सकता है — पहला common column अपने-आप चुन लो
+        if (!keyColumn || !resolveHeader(masterHeaders, keyColumn) || !resolveHeader(rawHeaders, keyColumn)) {
+            keyColumn = masterHeaders.find(h => resolveHeader(rawHeaders, h)) || '';
+        }
+        fillSelect('office-assistant-key-column', '-- Select --', keyColumn);
+        fillSelect('office-assistant-split-column', 'None', splitByColumn);
+    }
 
     window.setKeyColumn = function(val) {
         keyColumn = val;
@@ -192,24 +249,33 @@
     };
 
     window.processAndExport = async function() {
-        if (!keyColumn || !masterHeaders.includes(keyColumn) || !rawHeaders.includes(keyColumn)) {
-            alert('Select a valid key column');
+        if (!masterData.length) { alert('पहले Master Data अपलोड करें।'); return; }
+        if (!rawData.length) { alert('पहले Raw Data अपलोड करें।'); return; }
+        if (!keyColumn) { alert('Key Column चुनें — वह column जो दोनों फ़ाइलों में है (जैसे Consumer No)।'); return; }
+
+        const masterKey = resolveHeader(masterHeaders, keyColumn);
+        const rawKey = resolveHeader(rawHeaders, keyColumn);
+        if (!masterKey || !rawKey) {
+            // कौन-से column दोनों में हैं, यह बता दो — वरना पता ही नहीं चलता कि गड़बड़ कहाँ है
+            const common = masterHeaders.filter(h => resolveHeader(rawHeaders, h));
+            alert('"' + keyColumn + '" ' + (masterKey ? 'Raw' : 'Master') + ' फ़ाइल में नहीं है।\n\n' +
+                (common.length
+                    ? 'दोनों फ़ाइलों में ये columns हैं, इनमें से कोई चुनें:\n• ' + common.join('\n• ')
+                    : 'दोनों फ़ाइलों में कोई भी column एक जैसा नहीं है — फ़ाइलें जाँच लें।'));
             return;
         }
 
-        const matched = [];
-        const notFound = [];
-
-        // 12K×12K बार find() करने के बजाय एक बार Map — तेज़ lookup
         const masterByKey = new Map();
         masterData.forEach(m => {
-            const k = String(m[keyColumn] ?? '').trim();
+            const k = String(m[masterKey] ?? '').trim();
             if (k && !masterByKey.has(k)) masterByKey.set(k, m);
         });
 
+        const matched = [];
+        const notFound = [];
         rawData.forEach(rawRow => {
-            const keyVal = String(rawRow[keyColumn] ?? '').trim();
-            const master = masterByKey.get(keyVal);
+            const k = String(rawRow[rawKey] ?? '').trim();
+            const master = k ? masterByKey.get(k) : null;
             if (master) {
                 matched.push({ ...master, ...rawRow });
             } else {
@@ -217,49 +283,90 @@
             }
         });
 
+        if (!matched.length) {
+            alert('एक भी उपभोक्ता मैच नहीं हुआ — "' + keyColumn + '" के नंबर दोनों फ़ाइलों में अलग तरह से लिखे हो सकते हैं।');
+            return;
+        }
+
         try {
             await ensureXlsx_();
             const wb = XLSX.utils.book_new();
-            const headers = selectedColumns.length ? selectedColumns : [...new Set([...masterHeaders, ...rawHeaders])];
+            // नमूना फ़ाइल दी हो तो उसी के columns, उसी क्रम में — वरना दोनों फ़ाइलों के सारे columns
+            // नमूना न हो तो सारे columns — पर एक ही column दोनों फ़ाइलों में अलग वर्तनी से लिखा हो
+            // तो वह दो बार न आए (जैसे "Consumer No" और "CONSUMER_NO")
+            const outHeaders = sampleHeaders.length ? sampleHeaders : dedupeHeaders([...masterHeaders, ...rawHeaders]);
 
-            const grouped = {};
+            const grouped = new Map();
             matched.forEach(row => {
-                const key = splitByColumn ? (row[splitByColumn] || 'blank') : 'all';
-                if (!grouped[key]) grouped[key] = [];
-                grouped[key].push(row);
+                const g = splitByColumn ? (String(pick(row, splitByColumn)).trim() || 'खाली') : 'सभी';
+                if (!grouped.has(g)) grouped.set(g, []);
+                grouped.get(g).push(row);
             });
 
-            Object.entries(grouped).forEach(([grp, rows]) => {
-                const sheetData = rows.map(r => headers.map(h => r[h] ?? ''));
-                const ws = XLSX.utils.aoa_to_sheet([headers, ...sheetData]);
-                XLSX.utils.book_append_sheet(wb, ws, grp.substring(0, 31));
+            const usedNames = new Set();
+            [...grouped.entries()].sort((a, b) => a[0].localeCompare(b[0], 'hi')).forEach(([grp, rows]) => {
+                const aoa = [outHeaders, ...rows.map(r => outHeaders.map(h => pick(r, h)))];
+                XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(aoa), sheetName(grp, usedNames));
             });
 
             if (notFound.length) {
-                const ws = XLSX.utils.aoa_to_sheet([rawHeaders, ...notFound.map(r => rawHeaders.map(h => r[h] ?? ''))]);
-                XLSX.utils.book_append_sheet(wb, ws, 'Not Found');
+                const aoa = [rawHeaders, ...notFound.map(r => rawHeaders.map(h => r[h] ?? ''))];
+                XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(aoa), sheetName('नहीं मिले', usedNames));
             }
 
-            XLSX.writeFile(wb, `Master_Merge_${new Date().toISOString().substring(0, 10)}.xlsx`);
+            XLSX.writeFile(wb, 'Master_Merge_' + new Date().toISOString().substring(0, 10) + '.xlsx');
+            setStatus('office-assistant-result', true,
+                '✓ ' + matched.length + ' मिले, ' + notFound.length + ' नहीं मिले, ' +
+                grouped.size + ' शीट बनीं' + (sampleHeaders.length ? ' (नमूने के अनुसार)' : ''));
         } catch (err) {
             console.error('Export error:', err);
-            alert('Excel बनाने में दिक्कत: ' + (err && err.message ? err.message : err));
+            alert('Excel बनाने में दिक्कत: ' + errText(err));
         }
     };
 
+    function dedupeHeaders(headers) {
+        const seen = new Set();
+        return headers.filter(h => {
+            const n = normHdr(h);
+            if (!n || seen.has(n)) return false;
+            seen.add(n);
+            return true;
+        });
+    }
+
+    // column का नाम नमूने में अलग तरह लिखा हो तो भी उसकी क़ीमत मिल जाए
+    function pick(row, wanted) {
+        if (Object.prototype.hasOwnProperty.call(row, wanted)) return row[wanted] ?? '';
+        const actual = resolveHeader(Object.keys(row), wanted);
+        return actual ? (row[actual] ?? '') : '';
+    }
+
+    // Excel शीट के नाम में : \ / ? * [ ] नहीं चल सकते, और 31 अक्षर से लंबे नहीं हो सकते
+    function sheetName(name, used) {
+        const base = String(name || 'शीट').replace(/[:\\/?*[\]]/g, ' ').trim().substring(0, 31) || 'शीट';
+        let out = base, n = 2;
+        while (used.has(out)) {
+            const suffix = ' (' + n++ + ')';
+            out = base.substring(0, 31 - suffix.length) + suffix;
+        }
+        used.add(out);
+        return out;
+    }
+
     window.clearMasterData = async function() {
-        if (!confirm('Clear master data?')) return;
+        if (!confirm('Master Data हटाना है?')) return;
         masterData = [];
         masterHeaders = [];
-        selectedColumns = [];
         keyColumn = '';
-        try {
-            const db = await openDB();
-            const tx = db.transaction('data', 'readwrite');
-            await idbReq(tx.objectStore('data').delete(MASTER_DB_KEY));
-        } catch (err) {
-            console.warn('Clear failed:', err);
-        }
+        await cacheDelete(MASTER_DB_KEY);
+        updateUI();
+    };
+
+    window.clearSampleFormat = async function() {
+        if (!confirm('नमूना format हटाना है? फिर सारे columns निकलेंगे।')) return;
+        sampleHeaders = [];
+        sampleName = '';
+        await cacheDelete(SAMPLE_DB_KEY);
         updateUI();
     };
 

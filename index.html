@@ -9,7 +9,7 @@
     <link rel="manifest" href="./manifest.json">
     <meta name="theme-color" content="#6cb1e1">
     <link rel="apple-touch-icon" href="./icon-192.png">
-    <script>window.__APP_VERSION__ = 20;</script>
+    <script>window.__APP_VERSION__ = 21;</script>
 </head>
 <body>
     <div id="toast-notif"></div>
@@ -544,7 +544,13 @@
                 <div style="font-size:13px; font-weight:bold; margin-bottom:12px; margin-top:16px;">📊 Raw Data Upload</div>
                 <input type="file" id="office-assistant-raw-upload" accept=".csv,.xlsx,.xls" style="width:100%; margin-bottom:8px; padding:4px;">
                 <div id="office-assistant-raw-status" style="display:none; font-size:11px; color:#059669; margin-bottom:8px;">✓ Raw data loaded</div>
-                
+
+                <div style="font-size:13px; font-weight:bold; margin-bottom:4px; margin-top:16px;">📄 नमूना (Sample) Format — optional</div>
+                <div style="font-size:11px; color:#64748b; margin-bottom:8px;">जैसी Excel चाहिए वैसी एक फ़ाइल दें — सिर्फ़ उसकी पहली पंक्ति (column के नाम) देखी जाएगी। नतीजा उन्हीं columns में, उसी क्रम में मिलेगा।</div>
+                <input type="file" id="office-assistant-sample-upload" accept=".csv,.xlsx,.xls" style="width:100%; margin-bottom:8px; padding:4px;">
+                <div id="office-assistant-sample-status" style="display:none; font-size:11px; color:#059669; margin-bottom:8px;">✓ नमूना तैयार</div>
+                <button type="button" onclick="window.clearSampleFormat()" style="padding:6px 10px; background:#fee2e2; color:#b91c1c; border:1px solid #fecaca; border-radius:4px; font-size:11px; font-weight:bold; cursor:pointer;">🗑️ नमूना हटाएं</button>
+
                 <div style="margin-top:16px;">
                     <label style="font-size:11px; font-weight:bold; display:block; margin-bottom:6px;">Key Column (for matching):</label>
                     <select id="office-assistant-key-column" onchange="window.setKeyColumn(this.value)" style="width:100%; padding:6px; margin-bottom:12px;">
@@ -560,6 +566,7 @@
                 </div>
                 
                 <button id="office-assistant-process-btn" style="width:100%; padding:10px; background:#0d9488; color:white; border:none; border-radius:4px; font-weight:bold; cursor:pointer;">▶️ PROCESS & EXPORT</button>
+                <div id="office-assistant-result" style="display:none; font-size:12px; font-weight:bold; color:#0f766e; margin-top:10px; text-align:center;"></div>
             </div>
         </main>
 
