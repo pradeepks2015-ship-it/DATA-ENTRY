@@ -2242,6 +2242,33 @@ test.describe('Office Assistant — master + ledger merge, gaon-waar split', () 
     await expect(page.locator('#office-assistant-sample-status')).toContainText('5 columns');
   });
 
+  // 40 columns me se sirf kuch chahiye — checkbox se chune, aur wahi chunaav agli baar bhi yaad rahe
+  test('columns checkbox se chune jaayen, aur reload ke baad bhi yaad rahen', async ({ page }) => {
+    await openApp(page);
+    await page.evaluate(() => switchView('office-assistant'));
+    await page.setInputFiles('#office-assistant-master-upload', csv('master.csv',
+      'Consumer No,Name,Village,Tariff,Address\n101,Ram,Adegaon,LV1,Ward 1\n'));
+    await page.setInputFiles('#office-assistant-raw-upload', csv('ledger.csv',
+      'CONSUMER_NO,DUE\n101,5000\n'));
+
+    await expect(page.locator('#office-assistant-columns-count')).toContainText('पूरे 6 columns');
+    await page.locator('#office-assistant-columns input[value="Name"]').check();
+    await page.locator('#office-assistant-columns input[value="DUE"]').check();
+    await expect(page.locator('#office-assistant-columns-count')).toContainText('2 / 6');
+
+    await Promise.all([page.waitForEvent('download'), page.click('#office-assistant-process-btn')]);
+    await expect(page.locator('#office-assistant-result')).toContainText('2 columns');
+
+    // reload par raw file gayi, phir bhi uske column ka chunaav bhoola na ho
+    await page.reload();
+    await page.evaluate(() => switchView('office-assistant'));
+    await expect(page.locator('#office-assistant-columns-count')).toContainText('1 / 5');
+    await page.setInputFiles('#office-assistant-raw-upload', csv('ledger.csv',
+      'CONSUMER_NO,DUE\n101,5000\n'));
+    await expect(page.locator('#office-assistant-columns-count')).toContainText('2 / 6');
+    await expect(page.locator('#office-assistant-columns input[value="DUE"]')).toBeChecked();
+  });
+
   test('Master Data bina Raw Data ke process karne par saaf hindi sandesh mile', async ({ page }) => {
     await openApp(page);
     await page.evaluate(() => switchView('office-assistant'));

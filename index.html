@@ -565,7 +565,16 @@
                     </select>
                 </div>
                 
-                <button id="office-assistant-process-btn" style="width:100%; padding:10px; background:#0d9488; color:white; border:none; border-radius:4px; font-weight:bold; cursor:pointer;">▶️ PROCESS & EXPORT</button>
+                <div style="font-size:13px; font-weight:bold; margin-bottom:4px;">📋 कौन-से Columns चाहिए?</div>
+                <div style="font-size:11px; color:#64748b; margin-bottom:6px;">जो चाहिए उन पर टिक करें। कुछ न चुनें तो सारे columns आएंगे। (नमूना फ़ाइल दी हो तो वही चलेगी।)</div>
+                <div style="margin-bottom:6px;">
+                    <button type="button" onclick="window.selectAllColumns()" style="padding:5px 10px; margin-right:6px; background:#e0f2fe; color:#075985; border:1px solid #bae6fd; border-radius:4px; font-size:11px; font-weight:bold; cursor:pointer;">सभी चुनें</button>
+                    <button type="button" onclick="window.clearSelectedColumns()" style="padding:5px 10px; background:#f1f5f9; color:#475569; border:1px solid #e2e8f0; border-radius:4px; font-size:11px; font-weight:bold; cursor:pointer;">सब हटाएं</button>
+                </div>
+                <div id="office-assistant-columns" style="display:none; max-height:200px; overflow-y:auto; border:1px solid #e2e8f0; border-radius:4px; padding:6px 8px; margin-bottom:6px;"></div>
+                <div id="office-assistant-columns-count" style="display:none; font-size:11px; color:#0f766e; font-weight:bold; margin-bottom:14px;"></div>
+
+                <button id="office-assistant-process-btn"style="width:100%; padding:10px; background:#0d9488; color:white; border:none; border-radius:4px; font-weight:bold; cursor:pointer;">▶️ PROCESS & EXPORT</button>
                 <div id="office-assistant-result" style="display:none; font-size:12px; font-weight:bold; color:#0f766e; margin-top:10px; text-align:center;"></div>
             </div>
         </main>

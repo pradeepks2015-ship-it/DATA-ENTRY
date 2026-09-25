@@ -7,11 +7,13 @@
     let rawData = [];
     let rawHeaders = [];
     let sampleHeaders = [];
+    let selectedColumns = [];
     let sampleName = '';
     let keyColumn = '';
     let splitByColumn = '';
     const MASTER_DB_KEY = 'office-assistant-master-data-v1';
     const SAMPLE_DB_KEY = 'office-assistant-sample-format-v1';
+    const COLS_DB_KEY = 'office-assistant-selected-columns-v1';
 
     // Expose global functions
     window.setKeyColumn = function() {};
@@ -19,6 +21,8 @@
     window.processAndExport = async function() {};
     window.clearMasterData = function() {};
     window.clearSampleFormat = function() {};
+    window.selectAllColumns = function() {};
+    window.clearSelectedColumns = function() {};
 
     // Initialize only if Office Assistant view exists
     window.addEventListener('DOMContentLoaded', function() {
@@ -195,6 +199,8 @@
                 sampleHeaders = sample.headers;
                 sampleName = sample.name || 'सहेजा हुआ नमूना';
             }
+            const cols = await idbReq(db.transaction('data', 'readonly').objectStore('data').get(COLS_DB_KEY));
+            if (cols?.columns?.length) selectedColumns = cols.columns;
             updateUI();
         } catch (err) {
             console.warn('Load cache failed:', err);
@@ -225,6 +231,66 @@
         el.textContent = text;
     }
 
+    function allHeaders() {
+        return dedupeHeaders([...masterHeaders, ...rawHeaders]);
+    }
+
+    // 40 columns में से सिर्फ़ 5 चाहिए — हर column के आगे एक checkbox
+    function renderColumnPicker() {
+        const box = document.getElementById('office-assistant-columns');
+        if (!box) return;
+        const all = allHeaders();
+        box.textContent = '';
+        box.style.display = all.length ? 'block' : 'none';
+        all.forEach(h => {
+            const label = document.createElement('label');
+            label.style.cssText = 'display:block; font-size:12px; padding:3px 2px; cursor:pointer;';
+            const cb = document.createElement('input');
+            cb.type = 'checkbox';
+            cb.value = h;
+            cb.checked = !!resolveHeader(selectedColumns, h);
+            cb.style.marginRight = '6px';
+            cb.addEventListener('change', () => toggleColumn(h, cb.checked));
+            label.appendChild(cb);
+            label.appendChild(document.createTextNode(h));
+            box.appendChild(label);
+        });
+        updateColumnCount();
+    }
+
+    function updateColumnCount() {
+        const all = allHeaders();
+        // चुनाव उन columns का भी याद रहता है जिनकी फ़ाइल अभी अपलोड नहीं हुई — गिनती में सिर्फ़ मौजूदा
+        const live = all.filter(h => resolveHeader(selectedColumns, h)).length;
+        setStatus('office-assistant-columns-count', all.length > 0,
+            live
+                ? live + ' / ' + all.length + ' columns चुने — सिर्फ़ यही Excel में आएंगे'
+                : 'कोई column नहीं चुना — पूरे ' + all.length + ' columns आएंगे');
+    }
+
+    function toggleColumn(header, on) {
+        const existing = resolveHeader(selectedColumns, header);
+        if (on && !existing) {
+            selectedColumns.push(header);
+        } else if (!on && existing) {
+            selectedColumns = selectedColumns.filter(c => c !== existing);
+        }
+        updateColumnCount();
+        cachePut(COLS_DB_KEY, { columns: selectedColumns });
+    }
+
+    window.selectAllColumns = function() {
+        selectedColumns = allHeaders();
+        cachePut(COLS_DB_KEY, { columns: selectedColumns });
+        renderColumnPicker();
+    };
+
+    window.clearSelectedColumns = function() {
+        selectedColumns = [];
+        cachePut(COLS_DB_KEY, { columns: [] });
+        renderColumnPicker();
+    };
+
     function updateUI() {
         setStatus('office-assistant-master-status', masterHeaders.length,
             '✓ Master data तैयार — ' + masterData.length + ' पंक्तियाँ');
@@ -238,6 +304,7 @@
         }
         fillSelect('office-assistant-key-column', '-- Select --', keyColumn);
         fillSelect('office-assistant-split-column', 'None', splitByColumn);
+        renderColumnPicker();
     }
 
     window.setKeyColumn = function(val) {
@@ -292,9 +359,10 @@
             await ensureXlsx_();
             const wb = XLSX.utils.book_new();
             // नमूना फ़ाइल दी हो तो उसी के columns, उसी क्रम में — वरना दोनों फ़ाइलों के सारे columns
-            // नमूना न हो तो सारे columns — पर एक ही column दोनों फ़ाइलों में अलग वर्तनी से लिखा हो
-            // तो वह दो बार न आए (जैसे "Consumer No" और "CONSUMER_NO")
-            const outHeaders = sampleHeaders.length ? sampleHeaders : dedupeHeaders([...masterHeaders, ...rawHeaders]);
+            // पहले नमूना (अगर दिया हो), फिर checkbox से चुने columns, वरना सारे columns।
+            // सारे वाले रास्ते में एक ही column दो वर्तनी से दो बार न आए ("Consumer No"/"CONSUMER_NO")
+            const outHeaders = sampleHeaders.length ? sampleHeaders
+                : (selectedColumns.length ? allHeaders().filter(h => resolveHeader(selectedColumns, h)) : allHeaders());
 
             const grouped = new Map();
             matched.forEach(row => {
@@ -317,7 +385,8 @@
             XLSX.writeFile(wb, 'Master_Merge_' + new Date().toISOString().substring(0, 10) + '.xlsx');
             setStatus('office-assistant-result', true,
                 '✓ ' + matched.length + ' मिले, ' + notFound.length + ' नहीं मिले, ' +
-                grouped.size + ' शीट बनीं' + (sampleHeaders.length ? ' (नमूने के अनुसार)' : ''));
+                grouped.size + ' शीट बनीं, ' + outHeaders.length + ' columns' +
+                (sampleHeaders.length ? ' (नमूने के अनुसार)' : ''));
         } catch (err) {
             console.error('Export error:', err);
             alert('Excel बनाने में दिक्कत: ' + errText(err));
