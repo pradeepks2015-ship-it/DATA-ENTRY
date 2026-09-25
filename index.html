@@ -9,13 +9,24 @@
     <link rel="manifest" href="./manifest.json">
     <meta name="theme-color" content="#6cb1e1">
     <link rel="apple-touch-icon" href="./icon-192.png">
-    <script>window.__APP_VERSION__ = 17;</script>
+    <script>window.__APP_VERSION__ = 18;</script>
 </head>
 <body>
     <div id="toast-notif"></div>
     <div id="app-update-banner" style="display:none; position:fixed; left:0; right:0; bottom:0; z-index:99999; background:linear-gradient(135deg,#ff8c42 0%,#c41f3d 100%); color:#ffffff; padding:16px 18px; align-items:center; justify-content:space-between; gap:14px; box-shadow:0 -6px 18px rgba(196,31,61,0.5); font-size:14px; font-weight:800;">
         <span>🔄 नया अपडेट उपलब्ध है</span>
         <button id="app-update-btn" type="button" onclick="applyAppUpdate_()" style="border:none; border-radius:12px; background:#ffffff; color:#c41f3d; font-weight:900; padding:12px 22px; font-size:14px; text-transform:uppercase; cursor:pointer; flex-shrink:0;">अभी अपडेट करें</button>
+    </div>
+
+    <!-- पंचनामा टेंप्लेट (धारा 135/126/138/अन्य ready paragraphs) — Remark field ke "📋 टेंप्लेट" button se खुलता है -->
+    <div id="panchnama-tpl-overlay" onclick="closePanchnamaTplOutside_(event)" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.55); z-index:9998; align-items:flex-end; justify-content:center;">
+        <div style="background:#ffffff; border-radius:20px 20px 0 0; padding:16px; width:100%; max-width:480px; height:85vh; display:flex; flex-direction:column; box-shadow:0 -12px 30px rgba(0,0,0,0.25);">
+            <div style="font-size:14px; font-weight:900; text-align:center; text-transform:uppercase; color:#7c2d12; margin-bottom:10px; flex-shrink:0;">📋 पंचनामा टेंप्लेट चुनें</div>
+            <input type="text" id="panchnama-tpl-search" placeholder="खोजें... (जैसे bypass, hooking, seal, 135-DL-01)" oninput="panchnamaTplSearchChanged_()" style="width:100%; height:44px; border-radius:10px; border:1.5px solid #7c2d12; padding:0 12px; font-size:0.85rem; font-weight:700; color:#1e293b; background:#fffbeb; outline:none; margin-bottom:10px; box-sizing:border-box; flex-shrink:0;">
+            <div id="panchnama-tpl-section-chips" style="display:flex; gap:6px; overflow-x:auto; margin-bottom:10px; padding-bottom:2px; flex-shrink:0;"></div>
+            <div id="panchnama-tpl-list" style="flex:1; overflow-y:auto; min-height:0;"></div>
+            <button type="button" onclick="closePanchnamaTemplates_()" style="width:100%; height:44px; border:none; border-radius:12px; background:#e2e8f0; color:#1e293b; font-size:12px; font-weight:900; text-transform:uppercase; margin-top:12px; flex-shrink:0;">बंद करें</button>
+        </div>
     </div>
 
     <div id="employee-login-modal" style="position:fixed; inset:0; background:linear-gradient(135deg, rgba(15,23,42,0.97), rgba(30,58,95,0.97)); backdrop-filter:blur(12px); z-index:6000; display:none; align-items:center; justify-content:center; padding:24px;">
@@ -525,8 +536,11 @@
                     <div id="bc-photo-slots"></div>
 
                     <!-- Remark -->
-                    <div class="title-box-container" style="padding-top: 15px;"><div class="title-box" style="background-color: #fef3c7;"><span class="title-text-bold" style="color: #92400e;">Remark</span></div></div>
-                    <textarea id="bc-remark" class="teal-boundary-input" placeholder="Remark likhein..." style="min-height:78px; resize:vertical; padding:12px;"></textarea>
+                    <div class="title-box-container" style="padding-top: 15px; display:flex; align-items:center; justify-content:space-between; gap:8px;">
+                        <div class="title-box" style="background-color: #fef3c7;"><span class="title-text-bold" style="color: #92400e;">Remark</span></div>
+                        <button type="button" onclick="openPanchnamaTemplates_('bc-remark')" style="flex-shrink:0; border:none; border-radius:10px; background:#7c2d12; color:#ffffff; font-size:11px; font-weight:900; padding:9px 12px; white-space:nowrap;">📋 टेंप्लेट</button>
+                    </div>
+                    <textarea id="bc-remark" class="teal-boundary-input" placeholder="Remark likhein... (ya ऊपर 📋 टेंप्लेट se चुनें)" style="min-height:78px; resize:vertical; padding:12px;"></textarea>
 
                 </div>
                 <button id="bc-submit-btn" class="submit-sync-btn" style="display:block;" onclick="submitBijliChoriEntry()">Submit</button>
@@ -702,6 +716,7 @@
     <script defer src="js/geo-photo-utils.js"></script>
     <script defer src="js/broken-pole.js"></script>
     <script defer src="js/bijli-chori.js"></script>
+    <script defer src="js/panchnama-templates.js"></script>
     <script defer src="js/dtr-health.js"></script>
     <script defer src="js/permanent-disconnect.js"></script>
     <script defer src="js/entry-list-shared.js"></script>
