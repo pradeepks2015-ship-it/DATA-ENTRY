@@ -721,6 +721,41 @@ test.describe('Broken Pole / बिजली चोरी / कर्मचा�
     expect(errors).toEqual([]);
   });
 
+  test('बिजली चोरी: Remark ke "📋 टेंप्लेट" button se पंचनामा टेंप्लेट search/select karke Remark field me bharta hai', async ({ page }) => {
+    const errors = [];
+    page.on('pageerror', (e) => errors.push(e.message));
+    await openApp(page);
+    await goToDcDashboard(page);
+    await page.evaluate(() => switchView('bijli-chori'));
+    await page.waitForFunction(() => document.getElementById('bijli-chori-view').classList.contains('active'));
+
+    await page.click('button[onclick="openPanchnamaTemplates_(\'bc-remark\')"]');
+    await expect(page.locator('#panchnama-tpl-overlay')).toBeVisible();
+    await expect(page.locator('#panchnama-tpl-list')).toContainText('135-DL-01');
+
+    // Search se list filter hoti hai
+    await page.fill('#panchnama-tpl-search', 'bypass');
+    await expect(page.locator('#panchnama-tpl-list')).not.toContainText('OTH-GN-12');
+    await expect(page.locator('#panchnama-tpl-list')).toContainText('135-DL-01');
+
+    // Ek template "इस्तेमाल करें" se select karne par Remark field bhar jaata hai
+    await page.locator('#panchnama-tpl-list button', { hasText: 'इस्तेमाल करें' }).first().click();
+    await expect(page.locator('#panchnama-tpl-overlay')).toBeHidden();
+    const remarkValue = await page.inputValue('#bc-remark');
+    expect(remarkValue.length).toBeGreaterThan(50);
+
+    // Dobara khol kar dusra template select karne par pehle wale ke saath jud jaata hai (overwrite nahi hota)
+    await page.click('button[onclick="openPanchnamaTemplates_(\'bc-remark\')"]');
+    await page.click('button[onclick="panchnamaTplSetSection_(\'धारा 126 — अनाधिकृत उपयोग\')"]');
+    await expect(page.locator('#panchnama-tpl-list')).not.toContainText('135-DL-01');
+    await page.locator('#panchnama-tpl-list button', { hasText: 'इस्तेमाल करें' }).first().click();
+    const combinedValue = await page.inputValue('#bc-remark');
+    expect(combinedValue.length).toBeGreaterThan(remarkValue.length);
+    expect(combinedValue.startsWith(remarkValue)).toBe(true);
+
+    expect(errors).toEqual([]);
+  });
+
   test('कर्मचारी कार्य चरित्रावली: JE login ke baad naya SCN darj karne par अभिलेख tab aur sirf sambandhit कर्मचारी ke apne tab me dikhta hai', async ({ page }) => {
     const errors = [];
     page.on('pageerror', (e) => errors.push(e.message));
