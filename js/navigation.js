@@ -136,7 +136,7 @@
                 const label = document.getElementById("selected-dc-label");
                 if (label) label.innerText = "Choose DC Name...";
                 switchView("dc-selection");
-            } else if (act === "mobile-update-view" || act === "broken-pole-view" || act === "bijli-chori-view" || act === "dtr-health-view" || act === "permanent-disconnect-view") {
+            } else if (act === "mobile-update-view" || act === "broken-pole-view" || act === "bijli-chori-view" || act === "dtr-health-view" || act === "permanent-disconnect-view" || act === "office-assistant-view") {
                 if (act === "mobile-update-view") {
                     resetForm(true);
                 }
