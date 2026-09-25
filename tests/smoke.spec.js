@@ -1418,6 +1418,20 @@ test.describe('Admin Dashboard (Phase-1)', () => {
     await page.click('body', { position: { x: 5, y: 5 } });
     await expect(page.locator('#header-menu-dropdown')).toBeHidden();
   });
+
+  test('⋮ मेनू का "App Refresh करें" button app ko force-reload karta hai', async ({ page }) => {
+    const errors = [];
+    page.on('pageerror', (e) => errors.push(e.message));
+    await openApp(page, { beforeGoto: mockAdminBackend });
+    await page.click('#header-menu-btn');
+    await expect(page.locator('#header-menu-dropdown')).toBeVisible();
+    await Promise.all([
+      page.waitForNavigation({ timeout: 10000 }),
+      page.click('button[onclick="manualRefreshAppNow_()"]'),
+    ]);
+    await page.waitForFunction(() => document.getElementById('home-view')?.classList.contains('active'), null, { timeout: 15000 });
+    expect(errors).toEqual([]);
+  });
 });
 
 test.describe('PWA manifest shortcuts (home-screen icon long-press)', () => {
@@ -2035,6 +2049,30 @@ test.describe('Mobile Correction Tracker (galat mobile number flag + monitor)', 
 
     await page.waitForFunction(() => document.getElementById('sync-queue-badge')?.style.display === 'inline-flex');
     await expect(page.locator('#sync-queue-badge')).toContainText('1 pending');
+    expect(errors).toEqual([]);
+  });
+
+  test('sync-queue-badge par tap: online ho to turant retry try karta hai, offline ho to sirf toast dikhata hai (queue touch nahi hoti)', async ({ page }) => {
+    const errors = [];
+    page.on('pageerror', (e) => errors.push(e.message));
+    await openApp(page);
+    await page.evaluate(async () => {
+      await idbAdd_('sync_queue', { kind: 'post_form', body: 'module=broken_pole', createdAt: Date.now() });
+      await updateSyncQueueBadge_();
+    });
+    await page.waitForFunction(() => document.getElementById('sync-queue-badge')?.style.display === 'inline-flex');
+
+    // Offline: sirf informational toast, koi network call ki koshish nahi, queue jyon ki tyon
+    await page.context().setOffline(true);
+    await page.click('#sync-queue-badge');
+    await page.waitForFunction(() => document.getElementById('toast-notif')?.textContent?.includes('ऑफलाइन'));
+    let queueLen = await page.evaluate(async () => (await idbGetAll_('sync_queue')).length);
+    expect(queueLen).toBe(1);
+    await page.context().setOffline(false);
+
+    // Online: retry turant try hoti hai (koshish ka toast turant dikhta hai)
+    await page.click('#sync-queue-badge');
+    await page.waitForFunction(() => document.getElementById('toast-notif')?.textContent?.includes('Sync की कोशिश'));
     expect(errors).toEqual([]);
   });
 

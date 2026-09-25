@@ -376,6 +376,18 @@
             }
         }
 
+        // Sync-queue badge par tap karke JE khud turant retry kar sake (2 min ke
+        // auto-retry ka wait kiye bina) — khaaskar "अटकी हुई" (stuck) entries ke
+        // baad backend fix hone par turant confirm karne ke kaam aata hai.
+        function retrySyncQueueNow_() {
+            if (navigator.onLine === false) {
+                showToast("ऑफलाइन हैं — नेटवर्क आने पर अपने-आप sync होगा", false);
+                return;
+            }
+            showToast("Sync की कोशिश की जा रही है...", true);
+            processSyncQueue_();
+        }
+
         // Internet wapas aate hi sync; app khulne par bhi check; har 2 min safety check
         window.addEventListener("online", () => setTimeout(processSyncQueue_, 1500));
         setTimeout(processSyncQueue_, 5000);
