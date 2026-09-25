@@ -88,6 +88,7 @@
                 if (id === "karya-charitra") headerTitle = "कर्मचारी कार्य चरित्रावली";
                 if (id === "dtr-health") headerTitle = "DTR (ट्रांसफार्मर) हेल्थ लॉग";
                 if (id === "permanent-disconnect") headerTitle = "स्थाई विच्छेदन योग्य उपभोक्ता";
+                if (id === "office-assistant") headerTitle = "🔧 Office Assistant";
                 if (id === "admin-dashboard") headerTitle = "ADMIN DASHBOARD";
                 document.getElementById("main-header-title").innerText = headerTitle;
                 const header = document.getElementById("app-header");
