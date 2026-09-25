@@ -67,7 +67,7 @@ test.describe('बूट और होम स्क्रीन', () => {
 });
 
 test.describe('DC dashboard — hidden/removed features', () => {
-  test('dc-dashboard पर ठीक 8 buttons दिखते हैं, कोई SHMS/Stock/PDC/STM/PeakLoad नहीं', async ({ page }) => {
+  test('dc-dashboard पर ठीक 9 buttons दिखते हैं, कोई SHMS/Stock/PDC/STM/PeakLoad नहीं', async ({ page }) => {
     const errors = [];
     page.on('pageerror', (e) => errors.push(e.message));
     await openApp(page);
@@ -83,10 +83,11 @@ test.describe('DC dashboard — hidden/removed features', () => {
       '6. कर्मचारी कार्य चरित्रावली',
       '7. DTR (ट्रांसफार्मर) हेल्थ लॉग',
       '8. स्थाई विच्छेदन योग्य उपभोक्ता',
+      '9. OFFICE ASSISTANT',
     ]);
-    // Sabhi 8 buttons ab custom SVG icon use karte hain (emoji nahi) — VASOOLI
+    // Sabhi 9 buttons ab custom SVG icon use karte hain (emoji nahi) — VASOOLI
     // TRACKER ke andar ₹ ek SVG <text> hai isliye woh textContent me bhi aata hai.
-    for (let i = 0; i < 8; i++) {
+    for (let i = 0; i < 9; i++) {
       await expect(page.locator('#dc-dashboard-view .dashboard-btn').nth(i).locator('svg')).toBeVisible();
     }
     expect(errors).toEqual([]);
