@@ -21,6 +21,7 @@
     window.processAndExport = async function() {};
     window.clearMasterData = function() {};
     window.clearSampleFormat = function() {};
+    window.clearRawData = function() {};
     window.selectAllColumns = function() {};
     window.clearSelectedColumns = function() {};
 
@@ -302,6 +303,8 @@
         if (!keyColumn || !resolveHeader(masterHeaders, keyColumn) || !resolveHeader(rawHeaders, keyColumn)) {
             keyColumn = masterHeaders.find(h => resolveHeader(rawHeaders, h)) || '';
         }
+        const colsBox = document.getElementById('office-assistant-columns-section');
+        if (colsBox) colsBox.style.display = sampleHeaders.length ? 'none' : 'block';
         fillSelect('office-assistant-key-column', '-- Select --', keyColumn);
         fillSelect('office-assistant-split-column', 'None', splitByColumn);
         renderColumnPicker();
@@ -422,12 +425,26 @@
         return out;
     }
 
+    function resetInput(id) {
+        const el = document.getElementById(id);
+        if (el) el.value = '';
+    }
+
     window.clearMasterData = async function() {
         if (!confirm('Master Data हटाना है?')) return;
         masterData = [];
         masterHeaders = [];
         keyColumn = '';
+        resetInput('office-assistant-master-upload');
         await cacheDelete(MASTER_DB_KEY);
+        updateUI();
+    };
+
+    window.clearRawData = function() {
+        rawData = [];
+        rawHeaders = [];
+        resetInput('office-assistant-raw-upload');
+        setStatus('office-assistant-result', false, '');
         updateUI();
     };
 
@@ -435,6 +452,7 @@
         if (!confirm('नमूना format हटाना है? फिर सारे columns निकलेंगे।')) return;
         sampleHeaders = [];
         sampleName = '';
+        resetInput('office-assistant-sample-upload');
         await cacheDelete(SAMPLE_DB_KEY);
         updateUI();
     };

@@ -2269,6 +2269,32 @@ test.describe('Office Assistant — master + ledger merge, gaon-waar split', () 
     await expect(page.locator('#office-assistant-columns input[value="DUE"]')).toBeChecked();
   });
 
+  // Sirf teen file do — master, raw, namoona — aur namoone ke format me Excel mil jaaye.
+  // Raw data hataakar wahi file dobara joda ja sake (input reset na ho to change event nahi chalta).
+  test('teen file par namoone ke format me Excel, aur Raw Data hataakar dobara joda ja sake', async ({ page }) => {
+    await openApp(page);
+    await page.evaluate(() => switchView('office-assistant'));
+    page.on('dialog', async (d) => { await d.accept(); });
+
+    await page.setInputFiles('#office-assistant-master-upload', csv('master.csv',
+      'Consumer No,Name,Village,Tariff\n101,Ram,Adegaon,LV1\n'));
+    await page.setInputFiles('#office-assistant-raw-upload', csv('ledger.csv',
+      'CONSUMER_NO,DUE\n101,5000\n'));
+    await page.setInputFiles('#office-assistant-sample-upload', csv('sample.csv',
+      'Village,Consumer No,Name,DUE,वसूली दिनांक\n'));
+
+    // namoona hai to column chunne wala hissa bekaar hai — dikhna nahi chahiye
+    await expect(page.locator('#office-assistant-columns-section')).toBeHidden();
+    await Promise.all([page.waitForEvent('download'), page.click('#office-assistant-process-btn')]);
+    await expect(page.locator('#office-assistant-result')).toContainText('5 columns (नमूने के अनुसार)');
+
+    await page.click('button:has-text("Raw Data हटाएं")');
+    await expect(page.locator('#office-assistant-raw-status')).toBeHidden();
+    await page.setInputFiles('#office-assistant-raw-upload', csv('ledger.csv',
+      'CONSUMER_NO,DUE\n101,5000\n'));
+    await expect(page.locator('#office-assistant-raw-status')).toContainText('1');
+  });
+
   test('Master Data bina Raw Data ke process karne par saaf hindi sandesh mile', async ({ page }) => {
     await openApp(page);
     await page.evaluate(() => switchView('office-assistant'));
