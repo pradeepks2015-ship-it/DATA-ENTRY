@@ -64,6 +64,15 @@
             }
         }
 
+        // ⋮ menu ka "App Refresh करें" button — auto-detect update ka wait kiye
+        // bina, user khud kabhi bhi latest version force-load kar sake (jaise
+        // koi feature update na dikhe tab troubleshooting ke liye).
+        function manualRefreshAppNow_() {
+            if (typeof closeHeaderMenu_ === "function") closeHeaderMenu_();
+            showToast("App refresh हो रहा है...", true);
+            applyAppUpdate_();
+        }
+
         // Fixed timer-loop (jaise har 5 min) nahi rakhte — usse app khuli/idle padi
         // rahe tab bhi baar-baar network call lagti rehti, data cost badhta.
         // Sirf natural checkpoints par check karte hain: app khulte waqt (ek baar),

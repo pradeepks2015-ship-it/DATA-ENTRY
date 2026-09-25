@@ -9,7 +9,7 @@
     <link rel="manifest" href="./manifest.json">
     <meta name="theme-color" content="#6cb1e1">
     <link rel="apple-touch-icon" href="./icon-192.png">
-    <script>window.__APP_VERSION__ = 18;</script>
+    <script>window.__APP_VERSION__ = 19;</script>
 </head>
 <body>
     <div id="toast-notif"></div>
@@ -52,7 +52,7 @@
             </div>
             <div class="header-info" style="display:flex; align-items:center; justify-content:center; gap:8px;">
                 <img id="header-mpez-logo" alt="MPEZ" style="width:30px; height:30px; border-radius:50%; background:#ffffff; padding:3px; flex-shrink:0; display:none;">
-                <span id="sync-queue-badge" style="display:none; align-items:center; background:#fff7ed; color:#9a3412; font-size:9px; font-weight:900; padding:2px 7px; border-radius:10px; margin-left:4px; white-space:nowrap;"></span>
+                <span id="sync-queue-badge" onclick="retrySyncQueueNow_()" role="button" tabindex="0" aria-label="अभी sync करने की कोशिश करें" style="display:none; align-items:center; background:#fff7ed; color:#9a3412; font-size:9px; font-weight:900; padding:2px 7px; border-radius:10px; margin-left:4px; white-space:nowrap; cursor:pointer;"></span>
                 <h1 id="main-header-title">SEONI CIRCLE</h1>
             </div>
             <div style="grid-column: 3; display:flex; align-items:center; justify-content:center;">
@@ -62,6 +62,7 @@
                         <div id="header-menu-emp-name" style="padding:10px 14px; font-size:11px; font-weight:900; color:#475569; background:#f8fafc; text-transform:uppercase;"></div>
                         <button type="button" onclick="closeHeaderMenu_(); openErrorLogModal_();" aria-label="एरर लॉग देखें" style="display:block; width:100%; text-align:left; background:none; border:none; padding:12px 14px; font-size:12px; font-weight:800; color:#1e293b; cursor:pointer; border-top:1px solid #e5e7eb;">🐞 Error Log</button>
                         <button type="button" onclick="closeHeaderMenu_(); openAdminDashboardGate_();" style="display:block; width:100%; text-align:left; background:none; border:none; padding:12px 14px; font-size:12px; font-weight:800; color:#1e293b; cursor:pointer; border-top:1px solid #e5e7eb;">📊 Admin Dashboard</button>
+                        <button type="button" onclick="manualRefreshAppNow_()" style="display:block; width:100%; text-align:left; background:none; border:none; padding:12px 14px; font-size:12px; font-weight:800; color:#1e293b; cursor:pointer; border-top:1px solid #e5e7eb;">🔄 App Refresh करें</button>
                         <!-- Logout button abhi hidden hai — employee-login gate khud hi disabled hai (backend Apps Script deploy hone tak), aur is gate ka koi skip/cancel raasta nahi hai, isliye galti se yahan click hone se koi bhi device permanently atak sakta hai. -->
                         <button type="button" onclick="closeHeaderMenu_(); logoutEmployee_();" style="display:none; width:100%; text-align:left; background:none; border:none; padding:12px 14px; font-size:12px; font-weight:800; color:#b91c1c; cursor:pointer; border-top:1px solid #e5e7eb;">🚪 Logout (कर्मचारी बदलें)</button>
                     </div>
@@ -75,6 +76,14 @@
                 <div class="color-dot" style="background-color: #6cb1e1;" onclick="changeTheme('#6cb1e1')" role="button" tabindex="0" aria-label="आसमानी थीम रंग"></div>
                 <div class="color-dot" style="background-color: #3b82f6;" onclick="changeTheme('#3b82f6')" role="button" tabindex="0" aria-label="नीला थीम रंग"></div>
                 <div class="color-dot" style="background-color: #ef4444;" onclick="changeTheme('#ef4444')" role="button" tabindex="0" aria-label="लाल थीम रंग"></div>
+            </div>
+            <div id="pwa-install-banner" style="display:none; margin:0 16px 14px 16px; background:linear-gradient(135deg,#0d9488 0%,#0f766e 100%); border-radius:14px; padding:12px 14px; align-items:center; gap:10px; box-shadow:0 6px 16px rgba(13,148,136,0.25);">
+                <div style="flex:1; min-width:0;">
+                    <div id="pwa-install-banner-title" style="font-size:12px; font-weight:900; color:#ffffff;">ऐप Install करें</div>
+                    <div id="pwa-install-banner-message" style="font-size:10.5px; font-weight:700; color:#ccfbf1; margin-top:2px; line-height:1.4;">होम स्क्रीन से सीधे खुलेगी, नेटवर्क कम लगेगा</div>
+                </div>
+                <button type="button" id="pwa-install-action-btn" onclick="handlePwaInstallAction()" style="flex-shrink:0; border:none; border-radius:10px; background:#ffffff; color:#0f766e; font-weight:900; padding:9px 14px; font-size:11px; text-transform:uppercase;">Install</button>
+                <button type="button" onclick="dismissPwaInstallBanner()" aria-label="बंद करें" style="flex-shrink:0; border:none; background:none; color:#ffffff; font-size:16px; font-weight:900; cursor:pointer; padding:4px;">✕</button>
             </div>
             <div class="flex flex-col px-4">
                 <div class="list-item bg-blue-grad" onclick="showDivision('DIVISION SEONI', 'bg-blue-grad')">
@@ -709,6 +718,7 @@
     <script defer src="js/idb-wrapper.js"></script>
     <script defer src="js/sync-engine.js"></script>
     <script defer src="js/app-boot.js"></script>
+    <script defer src="js/pwa-install.js"></script>
     <script defer src="js/employee-auth.js"></script>
     <script defer src="js/core-actions.js"></script>
     <script defer src="js/feeder-date-picker.js"></script>
