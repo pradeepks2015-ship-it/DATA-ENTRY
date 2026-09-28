@@ -252,17 +252,44 @@
             cb.checked = !!resolveHeader(selectedColumns, h);
             cb.style.marginRight = '6px';
             cb.addEventListener('change', () => toggleColumn(h, cb.checked));
+            // टिक का क्रम-अंक — Excel में columns इसी क्रम में बाएँ से दाएँ आते हैं
+            const badge = document.createElement('span');
+            badge.className = 'oa-col-num';
+            badge.dataset.col = h;
+            badge.style.cssText = 'display:none; min-width:18px; height:18px; line-height:18px; text-align:center;'
+                + ' background:#0d9488; color:#fff; border-radius:9px; font-size:10px; font-weight:bold;'
+                + ' margin-right:6px; padding:0 4px;';
             label.appendChild(cb);
+            label.appendChild(badge);
             label.appendChild(document.createTextNode(h));
             box.appendChild(label);
         });
+        refreshColumnBadges();
+    }
+
+    // चुने हुए columns, उसी क्रम में जिस क्रम में टिक लगे — पर सिर्फ़ वे जो अभी मौजूद हैं
+    // (किसी ऐसी फ़ाइल का चुनाव भी याद रहता है जो अभी अपलोड नहीं हुई, उसे गिनती से बाहर रखो)
+    function orderedSelection() {
+        const all = allHeaders();
+        return selectedColumns.map(c => resolveHeader(all, c)).filter(Boolean);
+    }
+
+    function refreshColumnBadges() {
+        const box = document.getElementById('office-assistant-columns');
+        if (box) {
+            const order = orderedSelection();
+            box.querySelectorAll('.oa-col-num').forEach(el => {
+                const idx = order.findIndex(c => normHdr(c) === normHdr(el.dataset.col));
+                el.textContent = idx < 0 ? '' : String(idx + 1);
+                el.style.display = idx < 0 ? 'none' : 'inline-block';
+            });
+        }
         updateColumnCount();
     }
 
     function updateColumnCount() {
         const all = allHeaders();
-        // चुनाव उन columns का भी याद रहता है जिनकी फ़ाइल अभी अपलोड नहीं हुई — गिनती में सिर्फ़ मौजूदा
-        const live = all.filter(h => resolveHeader(selectedColumns, h)).length;
+        const live = orderedSelection().length;
         setStatus('office-assistant-columns-count', all.length > 0,
             live
                 ? live + ' / ' + all.length + ' columns चुने — सिर्फ़ यही Excel में आएंगे'
@@ -276,7 +303,7 @@
         } else if (!on && existing) {
             selectedColumns = selectedColumns.filter(c => c !== existing);
         }
-        updateColumnCount();
+        refreshColumnBadges();
         cachePut(COLS_DB_KEY, { columns: selectedColumns });
     }
 
@@ -365,7 +392,7 @@
             // पहले नमूना (अगर दिया हो), फिर checkbox से चुने columns, वरना सारे columns।
             // सारे वाले रास्ते में एक ही column दो वर्तनी से दो बार न आए ("Consumer No"/"CONSUMER_NO")
             const outHeaders = sampleHeaders.length ? sampleHeaders
-                : (selectedColumns.length ? allHeaders().filter(h => resolveHeader(selectedColumns, h)) : allHeaders());
+                : (orderedSelection().length ? orderedSelection() : allHeaders());
 
             const grouped = new Map();
             matched.forEach(row => {

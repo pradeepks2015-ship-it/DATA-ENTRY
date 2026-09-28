@@ -2295,6 +2295,34 @@ test.describe('Office Assistant — master + ledger merge, gaon-waar split', () 
     await expect(page.locator('#office-assistant-raw-status')).toContainText('1');
   });
 
+  // Jis kram me tick lagega, Excel me columns usi kram me baayen se daayen aayenge —
+  // har tick ke saath uska kram-ank (1, 2, 3...) checkbox ke paas dikhta hai.
+  test('tick ka kram-ank dikhe, aur Excel ke columns usi kram me aayen', async ({ page }) => {
+    await openApp(page);
+    await page.evaluate(() => switchView('office-assistant'));
+    page.on('dialog', async (d) => { await d.accept(); });
+    await page.setInputFiles('#office-assistant-master-upload', csv('master.csv',
+      'NO,Consumer No,Consumer Name,Village\n1,101,Ram,Adegaon\n'));
+    await page.setInputFiles('#office-assistant-raw-upload', csv('ledger.csv',
+      'CONSUMER_NO,DUE\n101,5000\n'));
+
+    const badge = (col) => page.locator(`#office-assistant-columns label:has(input[value="${col}"]) .oa-col-num`);
+    // ulte kram me chuno — file ka apna kram nahi, tick ka kram chalna chahiye
+    await page.locator('#office-assistant-columns input[value="Consumer Name"]').check();
+    await page.locator('#office-assistant-columns input[value="Consumer No"]').check();
+    await page.locator('#office-assistant-columns input[value="DUE"]').check();
+    await expect(badge('Consumer Name')).toHaveText('1');
+    await expect(badge('Consumer No')).toHaveText('2');
+    await expect(badge('DUE')).toHaveText('3');
+
+    // beech wala hataane par baaki ke ank dobara lag jaayen
+    await page.locator('#office-assistant-columns input[value="Consumer No"]').uncheck();
+    await expect(badge('Consumer Name')).toHaveText('1');
+    await expect(badge('DUE')).toHaveText('2');
+    await expect(badge('Consumer No')).toBeHidden();
+    await expect(page.locator('#office-assistant-columns-count')).toContainText('2 / 5');
+  });
+
   test('Master Data bina Raw Data ke process karne par saaf hindi sandesh mile', async ({ page }) => {
     await openApp(page);
     await page.evaluate(() => switchView('office-assistant'));
