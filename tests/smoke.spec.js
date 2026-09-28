@@ -67,7 +67,7 @@ test.describe('बूट और होम स्क्रीन', () => {
 });
 
 test.describe('DC dashboard — hidden/removed features', () => {
-  test('dc-dashboard पर ठीक 9 buttons दिखते हैं, कोई SHMS/Stock/PDC/STM/PeakLoad नहीं', async ({ page }) => {
+  test('dc-dashboard पर ठीक 8 buttons दिखते हैं, कोई SHMS/Stock/PDC/STM/PeakLoad नहीं', async ({ page }) => {
     const errors = [];
     page.on('pageerror', (e) => errors.push(e.message));
     await openApp(page);
@@ -83,11 +83,10 @@ test.describe('DC dashboard — hidden/removed features', () => {
       '6. कर्मचारी कार्य चरित्रावली',
       '7. DTR (ट्रांसफार्मर) हेल्थ लॉग',
       '8. स्थाई विच्छेदन योग्य उपभोक्ता',
-      '9. OFFICE ASSISTANT',
     ]);
-    // Sabhi 9 buttons ab custom SVG icon use karte hain (emoji nahi) — VASOOLI
+    // Sabhi 8 buttons ab custom SVG icon use karte hain (emoji nahi) — VASOOLI
     // TRACKER ke andar ₹ ek SVG <text> hai isliye woh textContent me bhi aata hai.
-    for (let i = 0; i < 9; i++) {
+    for (let i = 0; i < 8; i++) {
       await expect(page.locator('#dc-dashboard-view .dashboard-btn').nth(i).locator('svg')).toBeVisible();
     }
     expect(errors).toEqual([]);
@@ -2187,148 +2186,5 @@ test.describe('Mobile Correction Tracker (galat mobile number flag + monitor)', 
 
     expect(addEntryCalled).toBe(true);
     expect(rec?.entry_id).toBe('E_RESYNCED_1');
-  });
-});
-
-test.describe('Office Assistant — master + ledger merge, gaon-waar split', () => {
-  const csv = (name, text) => ({ name, mimeType: 'text/csv', buffer: Buffer.from(text, 'utf8') });
-
-  // Master aur ledger me ek hi column alag-alag likha hota hai ("Consumer No" vs "CONSUMER_NO").
-  // Pehle iss wajah se "Select a valid key column" aata tha aur kuch bhi export nahi hota tha.
-  test('column ka naam alag vartani me ho tab bhi match ho, aur gaon-waar sheet bane', async ({ page }) => {
-    const errors = [];
-    page.on('pageerror', (e) => errors.push(e.message));
-    await openApp(page);
-    await page.evaluate(() => switchView('office-assistant'));
-
-    await page.setInputFiles('#office-assistant-master-upload', csv('master.csv',
-      'Consumer No,Name,Village\n101,Ram,Adegaon\n102,Shyam,Joba\n103,Mohan,Adegaon\n'));
-    await page.setInputFiles('#office-assistant-raw-upload', csv('ledger.csv',
-      'CONSUMER_NO,DUE\n101,5000\n103,7000\n999,1000\n'));
-
-    await expect(page.locator('#office-assistant-master-status')).toContainText('3');
-    await expect(page.locator('#office-assistant-raw-status')).toContainText('3');
-    await expect(page.locator('#office-assistant-key-column')).toHaveValue('Consumer No');
-
-    await page.selectOption('#office-assistant-split-column', 'Village');
-    const download = await Promise.all([
-      page.waitForEvent('download'),
-      page.click('#office-assistant-process-btn'),
-    ]);
-    expect(download[0].suggestedFilename()).toMatch(/^Master_Merge_\d{4}-\d{2}-\d{2}\.xlsx$/);
-    // 101 aur 103 mile (dono Adegaon), 999 master me hai hi nahi
-    await expect(page.locator('#office-assistant-result')).toContainText('2 मिले, 1 नहीं मिले');
-    expect(errors).toEqual([]);
-  });
-
-  test('namoona (sample) file di ho to nikalne wali Excel usi ke columns aur usi kram me ho', async ({ page }) => {
-    await openApp(page);
-    await page.evaluate(() => switchView('office-assistant'));
-    await page.setInputFiles('#office-assistant-master-upload', csv('master.csv',
-      'Consumer No,Name,Village\n101,Ram,Adegaon\n'));
-    await page.setInputFiles('#office-assistant-raw-upload', csv('ledger.csv',
-      'Consumer No,DUE\n101,5000\n'));
-    await page.setInputFiles('#office-assistant-sample-upload', csv('sample.csv',
-      'Village,Consumer No,Name,DUE,वसूली दिनांक\n'));
-
-    await expect(page.locator('#office-assistant-sample-status')).toContainText('5 columns');
-    await Promise.all([page.waitForEvent('download'), page.click('#office-assistant-process-btn')]);
-    await expect(page.locator('#office-assistant-result')).toContainText('नमूने के अनुसार');
-
-    // reload ke baad master aur namoona dono IndexedDB se wapas aa jaayen
-    await page.reload();
-    await page.evaluate(() => switchView('office-assistant'));
-    await expect(page.locator('#office-assistant-master-status')).toContainText('1');
-    await expect(page.locator('#office-assistant-sample-status')).toContainText('5 columns');
-  });
-
-  // 40 columns me se sirf kuch chahiye — checkbox se chune, aur wahi chunaav agli baar bhi yaad rahe
-  test('columns checkbox se chune jaayen, aur reload ke baad bhi yaad rahen', async ({ page }) => {
-    await openApp(page);
-    await page.evaluate(() => switchView('office-assistant'));
-    await page.setInputFiles('#office-assistant-master-upload', csv('master.csv',
-      'Consumer No,Name,Village,Tariff,Address\n101,Ram,Adegaon,LV1,Ward 1\n'));
-    await page.setInputFiles('#office-assistant-raw-upload', csv('ledger.csv',
-      'CONSUMER_NO,DUE\n101,5000\n'));
-
-    await expect(page.locator('#office-assistant-columns-count')).toContainText('पूरे 6 columns');
-    await page.locator('#office-assistant-columns input[value="Name"]').check();
-    await page.locator('#office-assistant-columns input[value="DUE"]').check();
-    await expect(page.locator('#office-assistant-columns-count')).toContainText('2 / 6');
-
-    await Promise.all([page.waitForEvent('download'), page.click('#office-assistant-process-btn')]);
-    await expect(page.locator('#office-assistant-result')).toContainText('2 columns');
-
-    // reload par raw file gayi, phir bhi uske column ka chunaav bhoola na ho
-    await page.reload();
-    await page.evaluate(() => switchView('office-assistant'));
-    await expect(page.locator('#office-assistant-columns-count')).toContainText('1 / 5');
-    await page.setInputFiles('#office-assistant-raw-upload', csv('ledger.csv',
-      'CONSUMER_NO,DUE\n101,5000\n'));
-    await expect(page.locator('#office-assistant-columns-count')).toContainText('2 / 6');
-    await expect(page.locator('#office-assistant-columns input[value="DUE"]')).toBeChecked();
-  });
-
-  // Sirf teen file do — master, raw, namoona — aur namoone ke format me Excel mil jaaye.
-  // Raw data hataakar wahi file dobara joda ja sake (input reset na ho to change event nahi chalta).
-  test('teen file par namoone ke format me Excel, aur Raw Data hataakar dobara joda ja sake', async ({ page }) => {
-    await openApp(page);
-    await page.evaluate(() => switchView('office-assistant'));
-    page.on('dialog', async (d) => { await d.accept(); });
-
-    await page.setInputFiles('#office-assistant-master-upload', csv('master.csv',
-      'Consumer No,Name,Village,Tariff\n101,Ram,Adegaon,LV1\n'));
-    await page.setInputFiles('#office-assistant-raw-upload', csv('ledger.csv',
-      'CONSUMER_NO,DUE\n101,5000\n'));
-    await page.setInputFiles('#office-assistant-sample-upload', csv('sample.csv',
-      'Village,Consumer No,Name,DUE,वसूली दिनांक\n'));
-
-    // namoona hai to column chunne wala hissa bekaar hai — dikhna nahi chahiye
-    await expect(page.locator('#office-assistant-columns-section')).toBeHidden();
-    await Promise.all([page.waitForEvent('download'), page.click('#office-assistant-process-btn')]);
-    await expect(page.locator('#office-assistant-result')).toContainText('5 columns (नमूने के अनुसार)');
-
-    await page.click('button:has-text("Raw Data हटाएं")');
-    await expect(page.locator('#office-assistant-raw-status')).toBeHidden();
-    await page.setInputFiles('#office-assistant-raw-upload', csv('ledger.csv',
-      'CONSUMER_NO,DUE\n101,5000\n'));
-    await expect(page.locator('#office-assistant-raw-status')).toContainText('1');
-  });
-
-  // Jis kram me tick lagega, Excel me columns usi kram me baayen se daayen aayenge —
-  // har tick ke saath uska kram-ank (1, 2, 3...) checkbox ke paas dikhta hai.
-  test('tick ka kram-ank dikhe, aur Excel ke columns usi kram me aayen', async ({ page }) => {
-    await openApp(page);
-    await page.evaluate(() => switchView('office-assistant'));
-    page.on('dialog', async (d) => { await d.accept(); });
-    await page.setInputFiles('#office-assistant-master-upload', csv('master.csv',
-      'NO,Consumer No,Consumer Name,Village\n1,101,Ram,Adegaon\n'));
-    await page.setInputFiles('#office-assistant-raw-upload', csv('ledger.csv',
-      'CONSUMER_NO,DUE\n101,5000\n'));
-
-    const badge = (col) => page.locator(`#office-assistant-columns label:has(input[value="${col}"]) .oa-col-num`);
-    // ulte kram me chuno — file ka apna kram nahi, tick ka kram chalna chahiye
-    await page.locator('#office-assistant-columns input[value="Consumer Name"]').check();
-    await page.locator('#office-assistant-columns input[value="Consumer No"]').check();
-    await page.locator('#office-assistant-columns input[value="DUE"]').check();
-    await expect(badge('Consumer Name')).toHaveText('1');
-    await expect(badge('Consumer No')).toHaveText('2');
-    await expect(badge('DUE')).toHaveText('3');
-
-    // beech wala hataane par baaki ke ank dobara lag jaayen
-    await page.locator('#office-assistant-columns input[value="Consumer No"]').uncheck();
-    await expect(badge('Consumer Name')).toHaveText('1');
-    await expect(badge('DUE')).toHaveText('2');
-    await expect(badge('Consumer No')).toBeHidden();
-    await expect(page.locator('#office-assistant-columns-count')).toContainText('2 / 5');
-  });
-
-  test('Master Data bina Raw Data ke process karne par saaf hindi sandesh mile', async ({ page }) => {
-    await openApp(page);
-    await page.evaluate(() => switchView('office-assistant'));
-    const messages = [];
-    page.on('dialog', async (d) => { messages.push(d.message()); await d.accept(); });
-    await page.click('#office-assistant-process-btn');
-    expect(messages).toEqual(['पहले Master Data अपलोड करें।']);
   });
 });
