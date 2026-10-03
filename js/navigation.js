@@ -176,3 +176,24 @@
             const welcomeText = document.getElementById("welcomeText");
             if (welcomeText) welcomeText.style.color = c;
         }
+
+        // Tile dabate hi usi jagah se roshni ki lehar — bijli ki chingari jaisi.
+        // Ek hi delegated listener, isliye nayi tile jodne par kuch nahi badalna padta.
+        document.addEventListener("pointerdown", (e) => {
+            const btn = e.target.closest?.(".dashboard-btn");
+            if (!btn) return;
+            if (window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) return;
+            const r = btn.getBoundingClientRect();
+            const size = Math.max(r.width, r.height) * 1.6;
+            const spark = document.createElement("span");
+            spark.className = "db-spark";
+            spark.style.width = spark.style.height = size + "px";
+            spark.style.left = (e.clientX - r.left) + "px";
+            spark.style.top = (e.clientY - r.top) + "px";
+            spark.addEventListener("animationend", () => spark.remove());
+            // Tile dabate hi screen badal jaati hai aur purana view display:none ho jaata hai —
+            // chhupe hue element ki animation ruk jaati hai, isliye animationend kabhi chalta
+            // hi nahi tha aur har tap par ek chingari DOM me padi rah jaati thi
+            setTimeout(() => spark.remove(), 700);
+            btn.appendChild(spark);
+        }, { passive: true });
