@@ -147,6 +147,11 @@
 
         function changeTheme(c) {
             document.documentElement.style.setProperty("--theme-color", c);
+            // Jo rang chuna gaya uska gola ujagar ho — warna teeno ek jaise dikhte the
+            // aur pata hi nahi chalta tha ki abhi kaun sa theme chaalu hai
+            document.querySelectorAll(".color-dot").forEach((dot) => {
+                dot.classList.toggle("active", dot.getAttribute("onclick") === `changeTheme('${c}')`);
+            });
             (function () {
                 const homeLogo = document.querySelector(".mpez-home-logo img");
                 const headerLogo = document.getElementById("header-mpez-logo");
