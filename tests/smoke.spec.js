@@ -2188,3 +2188,62 @@ test.describe('Mobile Correction Tracker (galat mobile number flag + monitor)', 
     expect(rec?.entry_id).toBe('E_RESYNCED_1');
   });
 });
+
+test.describe('Watermark — admin se lagti hai, sirf isi phone me rehti hai', () => {
+  // 1x1 ka chhota PNG — asli tasveer ki zaroorat nahi, bas image/* hona chahiye
+  const tinyPng = {
+    name: 'wm.png',
+    mimeType: 'image/png',
+    buffer: Buffer.from(
+      'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==',
+      'base64'
+    ),
+  };
+  const openAdmin = (page) =>
+    page.evaluate(() => { adminDashboardUnlocked_ = true; openAdminDashboardGate_(); });
+
+  test('tasveer chunne par home + dashboard ke peeche lagti hai, gaadhapan badalta hai, reload ke baad bachi rehti hai', async ({ page }) => {
+    const errors = [];
+    page.on('pageerror', (e) => errors.push(e.message));
+    page.on('dialog', async (d) => { await d.accept(); });
+    await openApp(page);
+    await openAdmin(page);
+
+    await expect(page.locator('#wm-file')).toHaveCount(1);
+    await expect(page.locator('#wm-preview')).toBeHidden();
+
+    await page.setInputFiles('#wm-file', tinyPng);
+    await expect(page.locator('#wm-preview img')).toHaveCount(1);
+    await expect(page.locator('#wm-style')).toHaveCount(1);
+
+    const afterOpacity = () => page.evaluate(() =>
+      getComputedStyle(document.getElementById('home-view'), '::after').opacity);
+    expect(await afterOpacity()).toBe('0.2');
+
+    await page.locator('#wm-preview').locator('..').locator('input[type=range]').fill('45');
+    expect(await afterOpacity()).toBe('0.45');
+    await expect(page.locator('#wm-opacity-value')).toHaveText('45%');
+
+    // localStorage me hai, isliye app dobara khulne par bhi bachi rehti hai
+    await page.reload();
+    await expect(page.locator('#wm-style')).toHaveCount(1);
+    expect(await afterOpacity()).toBe('0.45');
+
+    await openAdmin(page);
+    await page.click('button:has-text("वॉटरमार्क हटाएं")');
+    await expect(page.locator('#wm-style')).toHaveCount(0);
+    await page.reload();
+    await expect(page.locator('#wm-style')).toHaveCount(0);
+    expect(errors).toEqual([]);
+  });
+
+  test('tasveer ke alawa kuch chunne par saaf sandesh mile aur watermark na lage', async ({ page }) => {
+    await openApp(page);
+    await openAdmin(page);
+    await page.setInputFiles('#wm-file', {
+      name: 'ledger.csv', mimeType: 'text/csv', buffer: Buffer.from('a,b\n1,2\n', 'utf8'),
+    });
+    await expect(page.locator('#toast-notif')).toContainText('सिर्फ़ तस्वीर चुनें');
+    await expect(page.locator('#wm-style')).toHaveCount(0);
+  });
+});
