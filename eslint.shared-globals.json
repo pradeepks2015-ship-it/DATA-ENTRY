@@ -33,6 +33,8 @@
   "SCN_REPLY_WINDOW_DAYS",
   "STUCK_ENTRY_THRESHOLD",
   "SUBSTATION_33KV_INCOMING_CONFIG",
+  "WM_CLEARED_KEY",
+  "WM_DEFAULT_IMG",
   "WM_DEFAULT_OPACITY",
   "WM_IMG_KEY",
   "WM_JPEG_QUALITY",
@@ -435,9 +437,11 @@
   "watermarkAdminSectionHtml_",
   "wmClear_",
   "wmCssUrl_",
+  "wmCurrentImage_",
   "wmGetOpacity_",
   "wmLsGet_",
   "wmPickFile_",
+  "wmRestoreDefault_",
   "wmSetOpacity_",
   "xhrGetText"
 ]
