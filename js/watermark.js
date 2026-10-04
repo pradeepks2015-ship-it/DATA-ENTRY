@@ -10,6 +10,10 @@
         const WM_MAX_WIDTH = 900;           // isse chaudi tasveer chhoti kar di jaati hai
         const WM_JPEG_QUALITY = 0.7;
         const WM_STYLE_ID = "wm-style";
+        // App ke saath aane wali tasveer — sabke phone par yahi dikhti hai. Jisne apne
+        // phone par admin se apni tasveer chuni ho, uspar uski wali chalti hai.
+        const WM_DEFAULT_IMG = "images/watermark-dtr.jpg";
+        const WM_CLEARED_KEY = "wm_cleared_v1";
 
         function wmLsGet_(key) {
             try { return localStorage.getItem(key) || ""; } catch (_) { return ""; }
@@ -26,8 +30,16 @@
             return '"' + String(dataUrl).replace(/[\\"]/g, "\\$&") + '"';
         }
 
+        // Jo tasveer abhi chalni chahiye: pehle is phone ki apni chuni hui, warna app
+        // wali default. "Hataayein" dabaya ho to default bhi nahi — khaali.
+        function wmCurrentImage_() {
+            const own = wmLsGet_(WM_IMG_KEY);
+            if (own) return own;
+            return wmLsGet_(WM_CLEARED_KEY) === "1" ? "" : WM_DEFAULT_IMG;
+        }
+
         function applyWatermark_() {
-            const img = wmLsGet_(WM_IMG_KEY);
+            const img = wmCurrentImage_();
             let style = document.getElementById(WM_STYLE_ID);
             if (!img) {
                 if (style) style.remove();
@@ -70,6 +82,7 @@
                     showToast("तस्वीर सेव नहीं हुई — फ़ोन की जगह भर गई है, कोई छोटी तस्वीर चुनें", false);
                     return;
                 }
+                try { localStorage.removeItem(WM_CLEARED_KEY); } catch (_) {}
                 applyWatermark_();
                 renderWatermarkAdminPreview_();
                 showToast("वॉटरमार्क लग गया", true);
@@ -81,10 +94,26 @@
 
         function wmClear_() {
             if (!confirm("वॉटरमार्क हटाना है?")) return;
-            try { localStorage.removeItem(WM_IMG_KEY); } catch (_) {}
+            try {
+                localStorage.removeItem(WM_IMG_KEY);
+                // App wali default bhi band — warna hataane par wahi wapas aa jaati
+                // aur "hataaya" kehna jhooth ho jaata
+                localStorage.setItem(WM_CLEARED_KEY, "1");
+            } catch (_) {}
             applyWatermark_();
             renderWatermarkAdminPreview_();
             showToast("वॉटरमार्क हट गया", true);
+        }
+
+        // Hataane ke baad app wali default tasveer wapas laane ka rasta
+        function wmRestoreDefault_() {
+            try {
+                localStorage.removeItem(WM_IMG_KEY);
+                localStorage.removeItem(WM_CLEARED_KEY);
+            } catch (_) {}
+            applyWatermark_();
+            renderWatermarkAdminPreview_();
+            showToast("ऐप वाली तस्वीर वापस आ गई", true);
         }
 
         function wmSetOpacity_(value) {
@@ -98,7 +127,7 @@
         function renderWatermarkAdminPreview_() {
             const box = document.getElementById("wm-preview");
             if (!box) return;
-            const img = wmLsGet_(WM_IMG_KEY);
+            const img = wmCurrentImage_();
             box.textContent = "";
             if (!img) {
                 box.style.display = "none";
@@ -125,7 +154,10 @@
                         <input type="range" min="3" max="60" value="${trustedHtml_(op)}" oninput="wmSetOpacity_(this.value)" style="flex:1;">
                         <span id="wm-opacity-value" style="font-size:10px; font-weight:900; color:#0f766e; min-width:34px; text-align:right;">${trustedHtml_(op)}%</span>
                     </div>
-                    <button type="button" onclick="wmClear_()" style="width:100%; height:36px; border:none; border-radius:10px; background:#fee2e2; color:#b91c1c; font-size:10px; font-weight:900; text-transform:uppercase;">🗑️ वॉटरमार्क हटाएं</button>
+                    <div style="display:flex; gap:8px;">
+                        <button type="button" onclick="wmRestoreDefault_()" style="flex:1; height:36px; border:none; border-radius:10px; background:#e0f2fe; color:#075985; font-size:10px; font-weight:900; text-transform:uppercase;">↩️ ऐप वाली तस्वीर</button>
+                        <button type="button" onclick="wmClear_()" style="flex:1; height:36px; border:none; border-radius:10px; background:#fee2e2; color:#b91c1c; font-size:10px; font-weight:900; text-transform:uppercase;">🗑️ हटाएं</button>
+                    </div>
                 </div>
             `;
         }

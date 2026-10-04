@@ -2189,7 +2189,7 @@ test.describe('Mobile Correction Tracker (galat mobile number flag + monitor)', 
   });
 });
 
-test.describe('Watermark — admin se lagti hai, sirf isi phone me rehti hai', () => {
+test.describe('Watermark — app wali default sabko, apni wali sirf apne phone par', () => {
   // 1x1 ka chhota PNG — asli tasveer ki zaroorat nahi, bas image/* hona chahiye
   const tinyPng = {
     name: 'wm.png',
@@ -2201,49 +2201,82 @@ test.describe('Watermark — admin se lagti hai, sirf isi phone me rehti hai', (
   };
   const openAdmin = (page) =>
     page.evaluate(() => { adminDashboardUnlocked_ = true; openAdminDashboardGate_(); });
+  const homeBg = (page) => page.evaluate(() =>
+    getComputedStyle(document.getElementById('home-view'), '::after').backgroundImage);
+  // Tasveer chunne par use dabaane (resize) me kshan bhar lagta hai, isliye turant
+  // jaanchne ke bajaye uske lagne ka intezaar karte hain
+  const expectHomeBg = (page, part) =>
+    expect.poll(() => homeBg(page), { timeout: 5000 }).toContain(part);
 
-  test('tasveer chunne par home + dashboard ke peeche lagti hai, gaadhapan badalta hai, reload ke baad bachi rehti hai', async ({ page }) => {
+  // App ke saath aane wali tasveer har phone par apne-aap lagti hai — yahi "sabke
+  // phone me pahunche" wala rasta hai (koi server/download nahi, app me hi aati hai)
+  test('bilkul naye phone par app wali tasveer apne-aap lagti hai', async ({ page }) => {
     const errors = [];
     page.on('pageerror', (e) => errors.push(e.message));
+    await openApp(page);
+    await expect(page.locator('#wm-style')).toHaveCount(1);
+    expect(await homeBg(page)).toContain('watermark-dtr.jpg');
+    expect(errors).toEqual([]);
+  });
+
+  test('apni tasveer chuni ja sakti hai, gaadhapan badalta hai, reload ke baad bachi rehti hai', async ({ page }) => {
     page.on('dialog', async (d) => { await d.accept(); });
     await openApp(page);
     await openAdmin(page);
-
-    await expect(page.locator('#wm-file')).toHaveCount(1);
-    await expect(page.locator('#wm-preview')).toBeHidden();
+    await expect(page.locator('#wm-preview img')).toHaveCount(1); // default ki jhalak
 
     await page.setInputFiles('#wm-file', tinyPng);
-    await expect(page.locator('#wm-preview img')).toHaveCount(1);
-    await expect(page.locator('#wm-style')).toHaveCount(1);
+    await expectHomeBg(page, 'url("data:'); // ab apni wali
 
     const afterOpacity = () => page.evaluate(() =>
       getComputedStyle(document.getElementById('home-view'), '::after').opacity);
     expect(await afterOpacity()).toBe('0.2');
-
     await page.locator('#wm-preview').locator('..').locator('input[type=range]').fill('45');
     expect(await afterOpacity()).toBe('0.45');
     await expect(page.locator('#wm-opacity-value')).toHaveText('45%');
 
     // localStorage me hai, isliye app dobara khulne par bhi bachi rehti hai
     await page.reload();
-    await expect(page.locator('#wm-style')).toHaveCount(1);
+    await expectHomeBg(page, 'url("data:');
     expect(await afterOpacity()).toBe('0.45');
-
-    await openAdmin(page);
-    await page.click('button:has-text("वॉटरमार्क हटाएं")');
-    await expect(page.locator('#wm-style')).toHaveCount(0);
-    await page.reload();
-    await expect(page.locator('#wm-style')).toHaveCount(0);
-    expect(errors).toEqual([]);
   });
 
-  test('tasveer ke alawa kuch chunne par saaf sandesh mile aur watermark na lage', async ({ page }) => {
+  test('"ऐप वाली तस्वीर" se default wapas aati hai', async ({ page }) => {
+    page.on('dialog', async (d) => { await d.accept(); });
+    await openApp(page);
+    await openAdmin(page);
+    await page.setInputFiles('#wm-file', tinyPng);
+    await expectHomeBg(page, 'url("data:');
+
+    await openAdmin(page);
+    await page.click('button:has-text("ऐप वाली तस्वीर")');
+    await expectHomeBg(page, 'watermark-dtr.jpg');
+  });
+
+  // "Hataayein" ka matlab sach me hataana hai — app wali default bhi wapas na aaye,
+  // warna hataane ka koi matlab hi nahi bachta
+  test('hataane par app wali default bhi band ho jaati hai aur reload ke baad bhi bandh rehti hai', async ({ page }) => {
+    page.on('dialog', async (d) => { await d.accept(); });
+    await openApp(page);
+    await openAdmin(page);
+    await page.click('button:has-text("हटाएं")');
+    await expect(page.locator('#wm-style')).toHaveCount(0);
+
+    await page.reload();
+    await expect(page.locator('#wm-style')).toHaveCount(0);
+
+    await openAdmin(page);
+    await page.click('button:has-text("ऐप वाली तस्वीर")');
+    await expectHomeBg(page, 'watermark-dtr.jpg');
+  });
+
+  test('tasveer ke alawa kuch chunne par saaf sandesh mile aur tasveer na badle', async ({ page }) => {
     await openApp(page);
     await openAdmin(page);
     await page.setInputFiles('#wm-file', {
       name: 'ledger.csv', mimeType: 'text/csv', buffer: Buffer.from('a,b\n1,2\n', 'utf8'),
     });
     await expect(page.locator('#toast-notif')).toContainText('सिर्फ़ तस्वीर चुनें');
-    await expect(page.locator('#wm-style')).toHaveCount(0);
+    expect(await homeBg(page)).toContain('watermark-dtr.jpg'); // default jaisi thi waisi
   });
 });
