@@ -431,6 +431,3 @@
         .ulink-name { display: block; font-size: 0.86rem; font-weight: 800; text-transform: uppercase; line-height: 1.25; }
         .ulink-sub { display: block; font-size: 0.68rem; font-weight: 700; opacity: 0.85; margin-top: 3px; line-height: 1.35; }
         .ulink-arrow { flex: 0 0 auto; font-size: 1rem; opacity: 0.75; }
-        /* Jin sarkari saiton par abhi taala (HTTPS) nahi hai, unpar pehle se nishaan —
-           taaki password bharne se pehle pata rahe */
-        .ulink-warn { display: inline-block; margin-left: 6px; padding: 1px 5px; border-radius: 6px; background: rgba(0,0,0,0.28); font-size: 0.72rem; font-weight: 800; }
