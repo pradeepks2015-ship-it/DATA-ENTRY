@@ -112,7 +112,11 @@ test.describe('DC dashboard — hidden/removed features', () => {
       'ESTIMATE / DRAFT REPORT विद्युत अनुमान एवं ड्राफ्ट रिपोर्ट ↗',
       'MPCZ बिल कैलकुलेटर बिजली बिल की गणना — mpcz.in ↗',
       'MPEZ कर्मचारी ऐप लिंक विभाग के सभी ऐप एक जगह — mpez.co.in ↗',
+      'दक्षता (DAKSHATA) कर्मचारी दक्षता पोर्टल — dakshata.mpez.co.in ↗',
+      'लॉगिन डैशबोर्ड 117.239.195.29 ↗',
+      'MPEZ GEOPORTAL फीडर/DTR मैप, आउटेज, एसेट मैपिंग — mpezgis.co.in ↗',
     ]);
+
 
     // bahari site nayi window me khulti hai (site khud yahan load nahi hogi)
     const [popup] = await Promise.all([
