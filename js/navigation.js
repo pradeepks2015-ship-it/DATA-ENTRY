@@ -88,6 +88,7 @@
                 if (id === "karya-charitra") headerTitle = "कर्मचारी कार्य चरित्रावली";
                 if (id === "dtr-health") headerTitle = "DTR (ट्रांसफार्मर) हेल्थ लॉग";
                 if (id === "permanent-disconnect") headerTitle = "स्थाई विच्छेदन योग्य उपभोक्ता";
+                if (id === "useful-links") headerTitle = "उपयोगी लिंक";
                 if (id === "admin-dashboard") headerTitle = "ADMIN DASHBOARD";
                 document.getElementById("main-header-title").innerText = headerTitle;
                 const header = document.getElementById("app-header");
@@ -135,7 +136,7 @@
                 const label = document.getElementById("selected-dc-label");
                 if (label) label.innerText = "Choose DC Name...";
                 switchView("dc-selection");
-            } else if (act === "mobile-update-view" || act === "broken-pole-view" || act === "bijli-chori-view" || act === "dtr-health-view" || act === "permanent-disconnect-view") {
+            } else if (act === "mobile-update-view" || act === "broken-pole-view" || act === "bijli-chori-view" || act === "dtr-health-view" || act === "permanent-disconnect-view" || act === "useful-links-view") {
                 if (act === "mobile-update-view") {
                     resetForm(true);
                 }
