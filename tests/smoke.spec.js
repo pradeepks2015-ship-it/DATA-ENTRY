@@ -111,6 +111,7 @@ test.describe('DC dashboard — hidden/removed features', () => {
     expect(links).toEqual([
       'ESTIMATE / DRAFT REPORT विद्युत अनुमान एवं ड्राफ्ट रिपोर्ट ↗',
       'MPCZ बिल कैलकुलेटर बिजली बिल की गणना — mpcz.in ↗',
+      'MPEZ कर्मचारी ऐप लिंक विभाग के सभी ऐप एक जगह — mpez.co.in ↗',
     ]);
 
     // bahari site nayi window me khulti hai (site khud yahan load nahi hogi)
