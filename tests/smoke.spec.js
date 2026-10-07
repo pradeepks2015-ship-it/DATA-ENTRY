@@ -83,13 +83,46 @@ test.describe('DC dashboard — hidden/removed features', () => {
       '6. कर्मचारी कार्य चरित्रावली',
       '7. DTR (ट्रांसफार्मर) हेल्थ लॉग',
       '8. स्थाई विच्छेदन योग्य उपभोक्ता',
-      '9. ESTIMATE / DRAFT REPORT',
+      '9. उपयोगी लिंक',
     ]);
     // Sabhi 9 buttons ab custom SVG icon use karte hain (emoji nahi) — VASOOLI
     // TRACKER ke andar ₹ ek SVG <text> hai isliye woh textContent me bhi aata hai.
     for (let i = 0; i < 9; i++) {
       await expect(page.locator('#dc-dashboard-view .dashboard-btn').nth(i).locator('svg')).toBeVisible();
     }
+    expect(errors).toEqual([]);
+  });
+
+
+  // Sabhi bahari site ab ek hi jagah — isse dashboard lamba nahi hota aur naya link
+  // jodne par wahan ek aur button nahi badhta
+  test('उपयोगी लिंक का पन्ना — सारे बाहरी लिंक अंदर, नई विंडो में खुलते हैं, वापस डैशबोर्ड पर', async ({ page, context }) => {
+    const errors = [];
+    page.on('pageerror', (e) => errors.push(e.message));
+    await openApp(page);
+    await goToDcDashboard(page);
+
+    await page.locator('#dc-dashboard-view .dashboard-btn').nth(8).click();
+    await expect(page.locator('#useful-links-view')).toHaveClass(/active/);
+    await expect(page.locator('#main-header-title')).toHaveText('उपयोगी लिंक');
+
+    const links = await page.$$eval('.ulink-item', (bs) =>
+      bs.map((x) => x.innerText.trim().replace(/\s+/g, ' ')));
+    expect(links).toEqual([
+      'ESTIMATE / DRAFT REPORT विद्युत अनुमान एवं ड्राफ्ट रिपोर्ट ↗',
+      'MPCZ बिल कैलकुलेटर बिजली बिल की गणना — mpcz.in ↗',
+    ]);
+
+    // bahari site nayi window me khulti hai (site khud yahan load nahi hogi)
+    const [popup] = await Promise.all([
+      context.waitForEvent('page'),
+      page.locator('.ulink-item').first().click(),
+    ]);
+    expect(popup).toBeTruthy();
+
+    // wapas dashboard par, home par nahi
+    await page.evaluate(() => goBack());
+    await expect(page.locator('#dc-dashboard-view')).toHaveClass(/active/);
     expect(errors).toEqual([]);
   });
 

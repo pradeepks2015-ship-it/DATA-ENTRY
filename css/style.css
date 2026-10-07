@@ -422,3 +422,12 @@
             }
             .welcome-text { opacity: 1; }
         }
+
+        /* उपयोगी लिंक — सभी बाहरी साइटें एक ही जगह, ताकि डैशबोर्ड लंबा न हो
+           और नया लिंक जोड़ने पर वहाँ एक और बटन न बढ़े */
+        .ulink-list { display: flex; flex-direction: column; gap: 12px; padding: 0 2px; }
+        .ulink-item { display: flex; align-items: center; gap: 12px; width: 100%; padding: 14px 16px; border: none; border-radius: 16px; color: #ffffff !important; text-align: left; box-shadow: 0 6px 15px rgba(0,0,0,0.1); cursor: pointer; }
+        .ulink-text { flex: 1 1 auto; min-width: 0; }
+        .ulink-name { display: block; font-size: 0.86rem; font-weight: 800; text-transform: uppercase; line-height: 1.25; }
+        .ulink-sub { display: block; font-size: 0.68rem; font-weight: 700; opacity: 0.85; margin-top: 3px; line-height: 1.35; }
+        .ulink-arrow { flex: 0 0 auto; font-size: 1rem; opacity: 0.75; }
