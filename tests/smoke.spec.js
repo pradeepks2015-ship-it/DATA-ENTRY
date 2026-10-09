@@ -1781,6 +1781,48 @@ test.describe('Mobile Correction Tracker (galat mobile number flag + monitor)', 
     expect(entries[0].correct_mobile).toBe('9123456789');
   });
 
+  // Suraksha regression: mcJsEscape_ ka nateeja hamesha onclick="fn('...')" ke andar
+  // jaata hai — yaani bahar double-quote wala HTML attribute, andar single-quote wali JS
+  // string. Pehle yah sirf \ aur ' sambhalta tha, isliye value me ek " aate hi attribute
+  // wahin khatam ho jaata tha aur aage ka hissa aadesh ban jaata tha. Doosra raasta
+  // &#39; tha, jo HTML-decode hokar ' ban jaata aur JS string tod deta.
+  test('onclick me jaane wali value attribute todd nahi sakti (XSS regression)', async ({ page }) => {
+    await openApp(page);
+
+    const out = await page.evaluate(() => {
+      const attack1 = 'a" onmouseover="alert(1)';   // attribute todne ki koshish
+      const attack2 = "b&#39; + alert(1) + &#39;";  // entity decode hokar quote banne ki koshish
+      const build = (v) => `<td onclick="mcShowIvrsActions_('${mcJsEscape_(v)}')">x</td>`;
+      const parse = (html) => {
+        const d = new DOMParser().parseFromString(`<table><tr>${html}</tr></table>`, "text/html");
+        const td = d.querySelector("td");
+        return {
+          attrs: td ? td.getAttributeNames() : [],
+          onclick: td ? td.getAttribute("onclick") : "",
+        };
+      };
+      return {
+        one: parse(build(attack1)),
+        two: parse(build(attack2)),
+        raw1: mcJsEscape_(attack1),
+        raw2: mcJsEscape_(attack2),
+      };
+    });
+
+    // koi naya attribute (onmouseover jaisa) paida nahi hona chahiye
+    expect(out.one.attrs).toEqual(["onclick"]);
+    expect(out.two.attrs).toEqual(["onclick"]);
+
+    // " aur & escape hokar jaayein — raw roop me attribute tak pahunchein hi nahi
+    expect(out.raw1).not.toContain('"');
+    expect(out.raw1).toContain("&quot;");
+    expect(out.raw2).toContain("&amp;#39;");
+
+    // HTML-decode hone ke baad JS string ek hi tukda rahe — quote andar bhi band na ho
+    expect(out.one.onclick).toBe(`mcShowIvrsActions_('a" onmouseover="alert(1)')`);
+    expect(out.two.onclick).toBe(`mcShowIvrsActions_('b&#39; + alert(1) + &#39;')`);
+  });
+
   test('Galti se flag hui IVRS entry ko confirm karke list se hataya ja sakta hai (cloud se bhi)', async ({ page }) => {
     let deleteCalled = false;
     await openApp(page, {

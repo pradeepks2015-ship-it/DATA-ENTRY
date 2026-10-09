@@ -19,11 +19,28 @@
         }
 
         // ===== IVRS copy + मोबाइल नंबर पर tap करके Call/SMS/WhatsApp (result card + pending list दोनों में) =====
-        // inline onclick='...' attribute ke andar safely embed karne ke liye —
-        // IVRS/mobile master CSV se aate hain, isliye ' ya \ jaisa stray character
-        // ho sakta hai jo attribute todd sakta hai.
+        // onclick="fn('...')" ke andar value surakshit rakhne ke liye. Yahan do bhasha
+        // ek saath hain — bahar double-quote wala HTML attribute, andar single-quote wali
+        // JS string — isliye dono ki escaping chahiye, aur KRAM zaroori hai: browser pehle
+        // attribute ko HTML-decode karta hai, uske baad JS padhta hai. To pehle JS-escape,
+        // phir HTML-escape — decode hone par theek wahi JS-escaped roop bachta hai.
+        //
+        // Purana roop sirf \ aur ' sambhalta tha. Do raaste khule reh gaye the:
+        //   1. value me " aate hi attribute wahin khatam ho jaata tha, aur aage ka hissa
+        //      data nahi, aadesh ban jaata tha (jaise onmouseover="...")
+        //   2. &#39; HTML-decode hokar ' ban jaata tha — yaani ' wali escaping ke baad bhi
+        //      JS string tod di jaa sakti thi
+        // Ab & sabse pehle escape hota hai, isliye koi bhi entity decode hokar quote nahi
+        // ban sakti. Sabhi 20 call-sites isi ek function se guzarte hain.
         function mcJsEscape_(s) {
-            return String(s || "").replace(/\\/g, "\\\\").replace(/'/g, "\\'");
+            return String(s === null || s === undefined ? "" : s)
+                .replace(/\\/g, "\\\\")
+                .replace(/'/g, "\\'")
+                .replace(/\r?\n/g, "\\n")
+                .replace(/&/g, "&amp;")
+                .replace(/"/g, "&quot;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;");
         }
 
         async function mcCopyText_(text, label) {

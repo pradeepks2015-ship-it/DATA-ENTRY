@@ -381,7 +381,7 @@
                 <div style="margin-bottom:12px;">
                     <div style="font-size:12px; font-weight:900; color:#ffffff; margin-bottom:6px;">📷 Photos (${photoEntries.length})</div>
                     <div style="display:grid; grid-template-columns:repeat(4, 1fr); gap:6px; background:rgba(255,255,255,0.92); border-radius:14px; padding:8px;">
-                        ${photoEntries.map((p) => `<img src="${escapeHtml(p.thumb)}" alt="एंट्री फोटो" referrerpolicy="no-referrer" onclick="viewEntryDetail_('${escapeHtml(p.storeName)}','${escapeHtml(mcJsEscape_(getEntryUid_(p.entry)))}')" style="width:100%; aspect-ratio:1; object-fit:cover; border-radius:8px; cursor:pointer;">`).join("")}
+                        ${photoEntries.map((p) => `<img src="${escapeHtml(p.thumb)}" alt="एंट्री फोटो" referrerpolicy="no-referrer" onclick="viewEntryDetail_('${mcJsEscape_(p.storeName)}','${mcJsEscape_(getEntryUid_(p.entry))}')" style="width:100%; aspect-ratio:1; object-fit:cover; border-radius:8px; cursor:pointer;">`).join("")}
                     </div>
                 </div>
             ` : "";
