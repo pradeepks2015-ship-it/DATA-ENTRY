@@ -13,7 +13,7 @@
     <link rel="manifest" href="./manifest.json">
     <meta name="theme-color" content="#6cb1e1">
     <link rel="apple-touch-icon" href="./icon-192.png">
-    <script>window.__APP_VERSION__ = 42;</script>
+    <script>window.__APP_VERSION__ = 43;</script>
 </head>
 <body>
     <div id="toast-notif"></div>
@@ -56,7 +56,13 @@
             </div>
             <div class="header-info" style="display:flex; align-items:center; justify-content:center; gap:8px;">
                 <img id="header-mpez-logo" alt="Seoni Circle App लोगो" style="width:30px; height:30px; border-radius:50%; background:#ffffff; padding:3px; flex-shrink:0; display:none;">
-                <span id="sync-queue-badge" onclick="retrySyncQueueNow_()" role="button" tabindex="0" aria-label="अभी sync करने की कोशिश करें" style="display:none; align-items:center; background:#fff7ed; color:#9a3412; font-size:9px; font-weight:900; padding:2px 7px; border-radius:10px; margin-left:4px; white-space:nowrap; cursor:pointer;"></span>
+                <!-- Header ek hi pankti hai (logo + yeh + title). Pehle yahan pura
+                     "⚠️ 1 pending (1 अटकी हुई)" likha jaata tha, jisse title do pankti
+                     me tootkar header bigad jaata tha. Ab yahan sirf ginti — pura
+                     byora ⋮ menu me (#menu-sync-row). Poori tarah chhupaya nahi, kyunki
+                     atki entry kisi ko dikhe hi nahi to woh data kabhi server tak nahi
+                     pahunchega. -->
+                <span id="sync-queue-badge" onclick="retrySyncQueueNow_()" role="button" tabindex="0" aria-label="अभी sync करने की कोशिश करें" style="display:none; align-items:center; background:#fff7ed; color:#9a3412; font-size:9px; font-weight:900; padding:2px 6px; border-radius:10px; margin-left:4px; white-space:nowrap; cursor:pointer; flex-shrink:0;"></span>
                 <h1 id="main-header-title">SEONI CIRCLE</h1>
             </div>
             <div style="grid-column: 3; display:flex; align-items:center; justify-content:center;">
@@ -64,6 +70,9 @@
                     <button type="button" id="header-menu-btn" onclick="toggleHeaderMenu_()" aria-label="मेनू" style="background:none; border:none; color:#ffffff; opacity:0.85; font-size:20px; font-weight:900; cursor:pointer; width:36px; height:36px; display:flex; align-items:center; justify-content:center;">⋮</button>
                     <div id="header-menu-dropdown" style="display:none; position:absolute; top:40px; right:0; background:#ffffff; border-radius:12px; box-shadow:0 8px 24px rgba(0,0,0,0.25); min-width:190px; overflow:hidden; z-index:1000;">
                         <div id="header-menu-emp-name" style="padding:10px 14px; font-size:11px; font-weight:900; color:#475569; background:#f8fafc; text-transform:uppercase;"></div>
+                        <!-- Sync ka pura byora yahan — header me sirf ginti rehti hai.
+                             Queue khali ho to yeh pankti dikhti hi nahi. -->
+                        <button type="button" id="menu-sync-row" onclick="closeHeaderMenu_(); retrySyncQueueNow_();" aria-label="अभी sync करने की कोशिश करें" style="display:none; width:100%; text-align:left; background:none; border:none; padding:12px 14px; font-size:12px; font-weight:800; color:#9a3412; cursor:pointer; border-bottom:1px solid #f1f5f9;"></button>
                         <button type="button" onclick="closeHeaderMenu_(); openErrorLogModal_();" aria-label="एरर लॉग देखें" style="display:block; width:100%; text-align:left; background:none; border:none; padding:12px 14px; font-size:12px; font-weight:800; color:#1e293b; cursor:pointer; border-top:1px solid #e5e7eb;">🐞 Error Log</button>
                         <button type="button" onclick="closeHeaderMenu_(); openAdminDashboardGate_();" style="display:block; width:100%; text-align:left; background:none; border:none; padding:12px 14px; font-size:12px; font-weight:800; color:#1e293b; cursor:pointer; border-top:1px solid #e5e7eb;">📊 Admin Dashboard</button>
                         <button type="button" onclick="manualRefreshAppNow_()" style="display:block; width:100%; text-align:left; background:none; border:none; padding:12px 14px; font-size:12px; font-weight:800; color:#1e293b; cursor:pointer; border-top:1px solid #e5e7eb;">🔄 App Refresh करें</button>

@@ -257,6 +257,7 @@
         async function updateSyncQueueBadge_() {
             try {
                 const badge = document.getElementById("sync-queue-badge");
+                const menuRow = document.getElementById("menu-sync-row");
                 if (!badge) return;
                 const items = await idbGetAll_("sync_queue");
                 if (items.length) {
@@ -265,17 +266,27 @@
                     // apne aap kabhi sync nahi hongi, JE ko dekhna padega
                     // (Diagnostics me ctx "sync-..." dhoondh sakte hain).
                     const stuckCount = items.filter((it) => (it.failCount || 0) >= STUCK_ENTRY_THRESHOLD).length;
+                    // Header me sirf nishan + ginti — pura vaakya title ko do pankti
+                    // me todd deta tha. Byora menu wali pankti me jaata hai.
                     if (stuckCount) {
                         badge.style.background = "#dc2626";
                         badge.style.color = "#ffffff";
-                        badge.innerText = `⚠️ ${items.length} pending (${stuckCount} अटकी हुई)`;
+                        badge.innerText = `⚠️ ${items.length}`;
                     } else {
                         badge.style.background = "#fff7ed";
                         badge.style.color = "#9a3412";
-                        badge.innerText = `🔄 ${items.length} pending`;
+                        badge.innerText = `🔄 ${items.length}`;
+                    }
+                    if (menuRow) {
+                        menuRow.style.display = "block";
+                        menuRow.style.color = stuckCount ? "#b91c1c" : "#9a3412";
+                        menuRow.innerText = stuckCount
+                            ? `⚠️ ${items.length} एंट्री बाकी (${stuckCount} अटकी हुई) — अभी भेजें`
+                            : `🔄 ${items.length} एंट्री भेजना बाकी — अभी भेजें`;
                     }
                 } else {
                     badge.style.display = "none";
+                    if (menuRow) menuRow.style.display = "none";
                 }
             } catch (err) { console.error(err); }
         }

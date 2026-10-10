@@ -2091,8 +2091,13 @@ test.describe('Mobile Correction Tracker (galat mobile number flag + monitor)', 
     const queueLen = await page.evaluate(async () => (await idbGetAll_('sync_queue')).length);
     expect(queueLen).toBe(1);
 
+    // Header me sirf ginti rehti hai (pura vaakya title ko do pankti me todd
+    // deta tha), aur pura byora ⋮ menu ki pankti me jaata hai
     await page.waitForFunction(() => document.getElementById('sync-queue-badge')?.style.display === 'inline-flex');
-    await expect(page.locator('#sync-queue-badge')).toContainText('1 pending');
+    await expect(page.locator('#sync-queue-badge')).toHaveText('🔄 1');
+    const menuRow = page.locator('#menu-sync-row');
+    await expect(menuRow).toHaveCSS('display', 'block');
+    await expect(menuRow).toContainText('1 एंट्री भेजना बाकी');
     expect(errors).toEqual([]);
   });
 
