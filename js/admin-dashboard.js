@@ -249,8 +249,9 @@
                             <span style="font-size:10px; font-weight:900; color:#991b1b; text-transform:uppercase;">${escapeHtml(e.ctx || "?")}</span>
                             <span style="font-size:9.5px; font-weight:700; color:#94a3b8; flex-shrink:0;">${escapeHtml((e.timestamp || e.t || "").slice(0, 16).replace("T", " "))}</span>
                         </div>
-                        <div style="font-size:11.5px; font-weight:700; color:#1e293b; line-height:1.4; margin-bottom:4px;">${escapeHtml(e.msg || "")}</div>
-                        <div style="font-size:9.5px; font-weight:700; color:#64748b;">DC: ${escapeHtml(e.dc || "-")} | View: ${escapeHtml(e.view || "-")} | Device: ${escapeHtml((e.device_id || "").slice(0, 10))}</div>
+                        <div style="font-size:11.5px; font-weight:700; color:#1e293b; line-height:1.4; margin-bottom:4px;">${escapeHtml(e.msg || "")}${e.extra ? ` <span style="color:#94a3b8;">[${escapeHtml(e.extra)}]</span>` : ""}</div>
+                        <!-- Karmchari ka naam sabse pehle — "Device: Dm2k3j4x" se kabhi pata nahi chalta tha ki kiska phone hai -->
+                        <div style="font-size:9.5px; font-weight:700; color:#64748b;">${e.emp ? `<span style="color:#0f766e; font-weight:900;">${escapeHtml(e.emp)}</span> | ` : ""}DC: ${escapeHtml(e.dc || "-")} | View: ${escapeHtml(e.view || "-")} | Device: ${escapeHtml((e.device_id || "").slice(0, 10))}</div>
                     </div>
                 `).join(""))}
             `;

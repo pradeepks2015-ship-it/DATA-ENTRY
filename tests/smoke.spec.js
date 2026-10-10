@@ -2101,6 +2101,40 @@ test.describe('Mobile Correction Tracker (galat mobile number flag + monitor)', 
     expect(errors).toEqual([]);
   });
 
+  // Pehle sirf shared_entry wali nakami darj hoti thi. Baaki teen kind (post_form,
+  // kc_update, entry_update) sirf `ok = response.ok` dekhte the — yaani Apps Script
+  // ka HTTP 200 + {"status":"error"} "safalta" maana jaata tha aur entry queue se
+  // mit jaati thi (chupchaap gayab), aur wajah kabhi error log me nahi aati thi.
+  test('post_form/entry_update bhi status jaanchein — entry na gayab ho, aur wajah एरर लॉग me dikhe', async ({ page }) => {
+    await openApp(page, {
+      beforeGoto: async (p) => {
+        await mockConsumerCsv(p);
+        // HTTP 200, par andar status "error" — purana code ise safal maan leta tha
+        await p.route('**/macros/**', (route) => route.fulfill({
+          status: 200, contentType: 'application/json',
+          body: JSON.stringify({ status: 'error', message: 'Unknown module: stock' }),
+        }));
+      },
+    });
+
+    await page.evaluate(async () => {
+      localStorage.setItem('seoni-circle-employee-v1', JSON.stringify({ emp_id: 'E1', emp_name: 'रमेश कुमार' }));
+      clearErrorLogs_();
+      await idbAdd_('sync_queue', { kind: 'post_form', body: 'module=broken_pole', createdAt: Date.now() });
+      await processSyncQueue_();
+    });
+
+    // Entry queue me bachi rehni chahiye — mitni nahi chahiye
+    const queueLen = await page.evaluate(async () => (await idbGetAll_('sync_queue')).length);
+    expect(queueLen).toBe(1);
+
+    // Aur wajah error log me darj honi chahiye, karmchari ke naam ke saath
+    const log = await page.evaluate(() => getErrorLogs_().find((l) => l.ctx === 'queue-post_form'));
+    expect(log).toBeTruthy();
+    expect(log.extra).toContain('Unknown module');
+    expect(log.emp).toBe('रमेश कुमार');
+  });
+
   test('sync-queue-badge par tap: online ho to turant retry try karta hai, offline ho to sirf toast dikhata hai (queue touch nahi hoti)', async ({ page }) => {
     const errors = [];
     page.on('pageerror', (e) => errors.push(e.message));

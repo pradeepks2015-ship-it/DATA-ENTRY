@@ -302,6 +302,36 @@
             } catch (err) { console.error(err); }
         }
 
+        // Queue ke teen kind (post_form, kc_update, entry_update) pehle sirf
+        // `ok = response.ok` dekhte the. Do dikkatein thi:
+        //   1. Apps Script logical gadbad par bhi HTTP 200 hi lautata hai, bas
+        //      body me {"status":"error"} hota hai. Usse app "safal" maan kar
+        //      entry queue se mita deta tha — entry na server par pahunchti, na
+        //      phone me bachti, aur kahin darj bhi nahi hoti. Chupchaap gayab.
+        //   2. Nakami ki wajah kabhi logErr_ me nahi jaati thi, isliye "एरर लॉग"
+        //      khali dikhta tha jabki badge laal rehta tha.
+        // Ab dono yahin ek jagah sambhale jaate hain — syncEntryToCloud_ jaisi hi
+        // jaanch, taaki chaaron kind ek jaisa vyavhaar karein.
+        async function queuePostOk_(ctx, url, body) {
+            const response = await fetchWithTimeout_(url, {
+                method: "POST",
+                headers: { "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8" },
+                body: body
+            });
+            const text = await response.text();
+            let parsed = null;
+            try { parsed = JSON.parse(text || "{}"); } catch (_) {}
+            if (!response.ok) {
+                logErr_(ctx, null, `Server ne HTTP ${response.status} diya`);
+                return false;
+            }
+            if (!parsed || parsed.status !== "success") {
+                logErr_(ctx, null, (parsed && parsed.message) || "Server se success nahi mila");
+                return false;
+            }
+            return true;
+        }
+
         let syncQueueProcessing_ = false;
         async function processSyncQueue_() {
             if (syncQueueProcessing_) return;
@@ -330,12 +360,7 @@
                                 networkDown = true;
                             }
                         } else if (item.kind === "post_form") {
-                            const response = await fetchWithTimeout_(APPS_SCRIPT_EXEC_URL, {
-                                method: "POST",
-                                headers: { "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8" },
-                                body: item.body
-                            });
-                            ok = response.ok;
+                            ok = await queuePostOk_("queue-post_form", APPS_SCRIPT_EXEC_URL, item.body);
                         } else if (item.kind === "kc_update") {
                             const payload = new URLSearchParams();
                             payload.append("module", "karya_charitra");
@@ -343,12 +368,7 @@
                             payload.append("entry_id", item.entryId);
                             payload.append("updates_json", JSON.stringify(item.updates));
                             payload.append("auth_token", APPS_SCRIPT_AUTH_TOKEN);
-                            const response = await fetchWithTimeout_(sharedModuleSyncScriptUrl, {
-                                method: "POST",
-                                headers: { "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8" },
-                                body: payload.toString()
-                            });
-                            ok = response.ok;
+                            ok = await queuePostOk_("queue-kc_update", sharedModuleSyncScriptUrl, payload.toString());
                             if (ok) sharedModuleLastFetch["karya_charitra"] = 0;
                         } else if (item.kind === "entry_update") {
                             // Generic version of kc_update — kisi bhi module ke liye
@@ -359,18 +379,17 @@
                             payload.append("entry_id", item.entryId);
                             payload.append("updates_json", JSON.stringify(item.updates));
                             payload.append("auth_token", APPS_SCRIPT_AUTH_TOKEN);
-                            const response = await fetchWithTimeout_(sharedModuleSyncScriptUrl, {
-                                method: "POST",
-                                headers: { "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8" },
-                                body: payload.toString()
-                            });
-                            ok = response.ok;
+                            ok = await queuePostOk_(`queue-entry_update-${item.module}`, sharedModuleSyncScriptUrl, payload.toString());
                             if (ok) sharedModuleLastFetch[item.module] = 0;
                         }
                     } catch (err) {
                         console.error(err);
                         const isNetworkErr = navigator.onLine === false || err instanceof TypeError || err?.name === "AbortError";
                         if (isNetworkErr) networkDown = true;
+                        // Net ki dikkat har 2 min phir try hogi, use log me bharne ka
+                        // fayda nahi. Baaki (asli) gadbad zaroor darj ho — warna badge
+                        // laal rehta tha aur "एरर लॉग" khali, jaisa abhi tak hota aaya.
+                        else logErr_(`queue-${item.kind || "?"}`, err);
                     }
 
                     if (ok) {
