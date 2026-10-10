@@ -2145,18 +2145,50 @@ test.describe('Mobile Correction Tracker (galat mobile number flag + monitor)', 
     });
     await page.waitForFunction(() => document.getElementById('sync-queue-badge')?.style.display === 'inline-flex');
 
+    // Badge ab seedhe retry nahi karta — "भेजना बाकी" wala panna kholta hai,
+    // jahan se dikhta hai ki kya atka hai aur kyun
+    await page.click('#sync-queue-badge');
+    await expect(page.locator('#sq-overlay')).toBeVisible();
+    await expect(page.locator('#sq-list')).toContainText('फॉर्म · broken_pole');
+
     // Offline: sirf informational toast, koi network call ki koshish nahi, queue jyon ki tyon
     await page.context().setOffline(true);
-    await page.click('#sync-queue-badge');
+    await page.click('#sq-retry-btn');
     await page.waitForFunction(() => document.getElementById('toast-notif')?.textContent?.includes('ऑफलाइन'));
     let queueLen = await page.evaluate(async () => (await idbGetAll_('sync_queue')).length);
     expect(queueLen).toBe(1);
     await page.context().setOffline(false);
 
     // Online: retry turant try hoti hai (koshish ka toast turant dikhta hai)
-    await page.click('#sync-queue-badge');
+    await page.click('#sq-retry-btn');
     await page.waitForFunction(() => document.getElementById('toast-notif')?.textContent?.includes('Sync की कोशिश'));
     expect(errors).toEqual([]);
+  });
+
+  // Jo entry kabhi safal na ho sake woh pehle hamesha ke liye laal badge banaye
+  // rakhti thi — use dekhne ya hataane ka koi raasta hi nahi tha.
+  test('अटकी एंट्री पन्ने से हटाई जा सकती है, और badge साफ़ हो जाता है', async ({ page }) => {
+    await openApp(page);
+    page.on('dialog', (d) => d.accept());
+    await page.evaluate(async () => {
+      await idbAdd_('sync_queue', {
+        kind: 'entry_update', module: 'dtr_health', entryId: 'X1', updates: { a: 1 },
+        createdAt: Date.now(), failCount: 7, lastError: 'Unknown module: dtr_health',
+      });
+      await updateSyncQueueBadge_();
+    });
+
+    await page.click('#sync-queue-badge');
+    // Entry kya hai aur kyun atki — dono dikhne chahiye
+    await expect(page.locator('#sq-list')).toContainText('बदलाव · dtr_health');
+    await expect(page.locator('#sq-list')).toContainText('7 बार नाकाम');
+    await expect(page.locator('#sq-list')).toContainText('Unknown module: dtr_health');
+
+    await page.click('#sq-list button');
+    await expect(page.locator('#sq-list')).toContainText('कुछ बाकी नहीं');
+    const queueLen = await page.evaluate(async () => (await idbGetAll_('sync_queue')).length);
+    expect(queueLen).toBe(0);
+    await expect(page.locator('#sync-queue-badge')).toBeHidden();
   });
 
   test('⋮ मेनू का HQ-wise scorecard flagged/corrected/pending counts sahi dikhata hai aur date filter kaam karta hai', async ({ page }) => {

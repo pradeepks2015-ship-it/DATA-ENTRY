@@ -298,6 +298,11 @@
         async function bumpSyncQueueFailCount_(item) {
             try {
                 item.failCount = (item.failCount || 0) + 1;
+                // Aakhri nakami ki wajah entry ke saath hi rakhte hain, taaki
+                // "अटकी एंट्री" wale panne par uske niche seedhe dikh sake — JE
+                // ko error log me alag se dhoondhna na pade.
+                item.lastError = String(window.__lastQueueErrorMessage || "").slice(0, 200);
+                item.lastTriedAt = Date.now();
                 await idbPut_("sync_queue", item);
             } catch (err) { console.error(err); }
         }
@@ -322,13 +327,16 @@
             let parsed = null;
             try { parsed = JSON.parse(text || "{}"); } catch (_) {}
             if (!response.ok) {
-                logErr_(ctx, null, `Server ne HTTP ${response.status} diya`);
+                window.__lastQueueErrorMessage = `Server ne HTTP ${response.status} diya`;
+                logErr_(ctx, null, window.__lastQueueErrorMessage);
                 return false;
             }
             if (!parsed || parsed.status !== "success") {
-                logErr_(ctx, null, (parsed && parsed.message) || "Server se success nahi mila");
+                window.__lastQueueErrorMessage = (parsed && parsed.message) || "Server se success nahi mila";
+                logErr_(ctx, null, window.__lastQueueErrorMessage);
                 return false;
             }
+            window.__lastQueueErrorMessage = "";
             return true;
         }
 
@@ -389,7 +397,15 @@
                         // Net ki dikkat har 2 min phir try hogi, use log me bharne ka
                         // fayda nahi. Baaki (asli) gadbad zaroor darj ho — warna badge
                         // laal rehta tha aur "एरर लॉग" khali, jaisa abhi tak hota aaya.
-                        else logErr_(`queue-${item.kind || "?"}`, err);
+                        else {
+                            window.__lastQueueErrorMessage = String(err?.message || err || "").slice(0, 200);
+                            logErr_(`queue-${item.kind || "?"}`, err);
+                        }
+                    }
+                    // shared_entry apna sandesh __lastSyncErrorMessage me rakhta hai —
+                    // use bhi uthayein taaki "अटकी एंट्री" wale panne par wajah dikhe
+                    if (!ok && item.kind === "shared_entry" && !window.__lastQueueErrorMessage) {
+                        window.__lastQueueErrorMessage = String(window.__lastSyncErrorMessage || "").slice(0, 200);
                     }
 
                     if (ok) {
@@ -409,6 +425,84 @@
         // Sync-queue badge par tap karke JE khud turant retry kar sake (2 min ke
         // auto-retry ka wait kiye bina) — khaaskar "अटकी हुई" (stuck) entries ke
         // baad backend fix hone par turant confirm karne ke kaam aata hai.
+        // "अटकी एंट्री" ka panna. Pehle queue ek band dabba thi — jo entry kabhi
+        // safal na ho sake, woh hamesha ke liye laal badge banaye rakhti thi aur
+        // use dekhne/hataane ka koi raasta nahi tha. Ab yahan dikhta hai ki woh
+        // hai kya, kitni baar nakaam hui, aur server ne kya kaha — aur zaroorat
+        // pade to hataya ja sakta hai.
+        function syncQueueItemLabel_(it) {
+            if (it.kind === "shared_entry") return `नई एंट्री · ${it.module || "?"}`;
+            if (it.kind === "entry_update") return `बदलाव · ${it.module || "?"}`;
+            if (it.kind === "kc_update") return "बदलाव · कर्मचारी कार्य चरित्रावली";
+            if (it.kind === "post_form") {
+                const m = /(?:^|&)module=([^&]*)/.exec(it.body || "");
+                return `फॉर्म · ${m ? decodeURIComponent(m[1]) : "?"}`;
+            }
+            return it.kind || "?";
+        }
+
+        async function renderSyncQueueRows_() {
+            const box = document.getElementById("sq-list");
+            if (!box) return;
+            const items = (await idbGetAll_("sync_queue")).sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0));
+            if (!items.length) {
+                box.innerHTML = trustedHtml_(`<div style="text-align:center; padding:18px; font-size:12px; font-weight:800; color:#15803d;">कुछ बाकी नहीं — सब भेजा जा चुका ✅</div>`);
+                return;
+            }
+            box.innerHTML = trustedHtml_(items.map((it) => {
+                const stuck = (it.failCount || 0) >= STUCK_ENTRY_THRESHOLD;
+                const when = it.createdAt ? new Date(it.createdAt).toLocaleString("hi-IN") : "-";
+                return `
+                <div style="background:#f8fafc; border:1px solid ${stuck ? "#fecaca" : "#e2e8f0"}; border-radius:12px; padding:10px 12px; margin-bottom:8px;">
+                    <div style="font-size:11.5px; font-weight:900; color:#1e293b;">${escapeHtml(syncQueueItemLabel_(it))}</div>
+                    <div style="font-size:9.5px; font-weight:700; color:#64748b; margin-top:2px;">बनी: ${escapeHtml(when)} · ${escapeHtml(String(it.failCount || 0))} बार नाकाम</div>
+                    ${it.lastError ? `<div style="font-size:10.5px; font-weight:700; color:#b91c1c; margin-top:5px; word-break:break-word;">${escapeHtml(it.lastError)}</div>` : ""}
+                    <button type="button" onclick="deleteSyncQueueItem_(${escapeHtml(String(it.id))})" style="margin-top:8px; height:32px; border:none; border-radius:8px; background:#fee2e2; color:#b91c1c; font-size:10px; font-weight:900; text-transform:uppercase; padding:0 12px;">🗑 हटाएं</button>
+                </div>`;
+            }).join(""));
+        }
+
+        async function deleteSyncQueueItem_(id) {
+            if (!confirm("यह एंट्री हमेशा के लिए हट जाएगी और सर्वर पर कभी नहीं पहुंचेगी। हटाना है?")) return;
+            try {
+                await idbDelete_("sync_queue", id);
+                showToast("एंट्री हटा दी गई", true);
+            } catch (err) {
+                logErr_("queue-delete", err);
+                showToast("हटाई नहीं जा सकी", false);
+            }
+            await renderSyncQueueRows_();
+            updateSyncQueueBadge_();
+        }
+
+        function openSyncQueueModal_() {
+            const existing = document.getElementById("sq-overlay");
+            if (existing) existing.remove();
+            const overlay = document.createElement("div");
+            overlay.id = "sq-overlay";
+            overlay.style.cssText = "position:fixed; inset:0; background:rgba(0,0,0,0.55); z-index:9999; display:flex; align-items:flex-end; justify-content:center;";
+            overlay.addEventListener("click", (e) => { if (e.target === overlay) overlay.remove(); });
+            const sheet = document.createElement("div");
+            sheet.style.cssText = "background:#ffffff; border-radius:20px 20px 0 0; padding:18px; width:100%; max-width:480px; max-height:80vh; overflow-y:auto; box-shadow:0 -12px 30px rgba(0,0,0,0.25);";
+            sheet.innerHTML = trustedHtml_(`
+                <div style="font-size:14px; font-weight:900; color:#1e293b; text-transform:uppercase; margin-bottom:4px;">📤 भेजना बाकी</div>
+                <div style="font-size:11px; font-weight:700; color:#64748b; margin-bottom:12px; line-height:1.5;">ये एंट्री अभी इसी फ़ोन में हैं। नीचे लाल अक्षरों में वजह दिखती है कि सर्वर ने क्यों नहीं लिया।</div>
+                <div id="sq-list"></div>
+                <div style="display:flex; gap:10px; margin-top:12px;">
+                    <button id="sq-retry-btn" style="flex:1; height:44px; border:none; border-radius:12px; background:#dcfce7; color:#15803d; font-size:12px; font-weight:900; text-transform:uppercase;">🔄 अभी भेजें</button>
+                    <button id="sq-close-btn" style="flex:1; height:44px; border:none; border-radius:12px; background:#e2e8f0; color:#1e293b; font-size:12px; font-weight:900; text-transform:uppercase;">बंद करें</button>
+                </div>
+            `);
+            overlay.appendChild(sheet);
+            document.body.appendChild(overlay);
+            renderSyncQueueRows_();
+            document.getElementById("sq-close-btn").onclick = () => overlay.remove();
+            document.getElementById("sq-retry-btn").onclick = async () => {
+                retrySyncQueueNow_();
+                setTimeout(renderSyncQueueRows_, 2500);
+            };
+        }
+
         function retrySyncQueueNow_() {
             if (navigator.onLine === false) {
                 showToast("ऑफलाइन हैं — नेटवर्क आने पर अपने-आप sync होगा", false);
