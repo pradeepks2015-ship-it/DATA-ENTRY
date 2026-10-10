@@ -2165,6 +2165,50 @@ test.describe('Mobile Correction Tracker (galat mobile number flag + monitor)', 
     expect(errors).toEqual([]);
   });
 
+  // 10 Oct: ek item ka timeout "poora network down hai" maan liya jaata tha, jisse
+  // loop wahin ruk jaata — us item ki ginti bhi nahi badhti aur wajah log me bhi
+  // nahi jaati. Ek slow/kharab entry poori qatar ko bandhak bana leti thi.
+  test('एक एंट्री अटके तो बाकी क़तार न रुके, और वजह दर्ज हो', async ({ page }) => {
+    await openApp(page, {
+      beforeGoto: async (p) => {
+        await mockConsumerCsv(p);
+        await p.route('**/macros/**', (route) => {
+          // Sirf dtr_health wali request network-jaisi fail ho (jaise timeout);
+          // baaki sab safal — taaki dekha ja sake ki atki hui entry agli ko rokti
+          // hai ya nahi. (Call-number se nahi pehchante: app apni bhi request
+          // bhejta hai, aur pehle isi wajah se test galat jagah fail ho raha tha.)
+          if ((route.request().postData() || '').includes('module=dtr_health')) {
+            return route.abort('failed');
+          }
+          return route.fulfill({
+            status: 200, contentType: 'application/json',
+            body: JSON.stringify({ status: 'success', entry_id: 'E9' }),
+          });
+        });
+      },
+    });
+
+    await page.evaluate(async () => {
+      clearErrorLogs_();
+      await idbAdd_('sync_queue', { kind: 'post_form', body: 'module=dtr_health', createdAt: 1 });
+      await idbAdd_('sync_queue', { kind: 'post_form', body: 'module=broken_pole', createdAt: 2 });
+      await processSyncQueue_();
+    });
+
+    // Doosri entry chadh jani chahiye — pehli ke atakne se ruki nahi
+    await expect.poll(async () => page.evaluate(async () => {
+      const rows = await idbGetAll_('sync_queue');
+      return rows.map((r) => r.body);
+    })).toEqual(['module=dtr_health']);
+
+    // Aur pehli wali ki ginti badhe + wajah uske saath darj ho
+    const stuck = await page.evaluate(async () => (await idbGetAll_('sync_queue'))[0]);
+    expect(stuck.failCount).toBe(1);
+    expect(stuck.lastError).toContain('नेटवर्क');
+    const log = await page.evaluate(() => getErrorLogs_().find((l) => l.ctx === 'queue-post_form'));
+    expect(log).toBeTruthy();
+  });
+
   // Jo entry kabhi safal na ho sake woh pehle hamesha ke liye laal badge banaye
   // rakhti thi — use dekhne ya hataane ka koi raasta hi nahi tha.
   test('अटकी एंट्री पन्ने से हटाई जा सकती है, और badge साफ़ हो जाता है', async ({ page }) => {
