@@ -20,7 +20,7 @@
 // kuch dabaye, sirf agli baar app kholte hi apne-aap theek ho jaayenge
 // (browser SW script ka byte-diff khud detect karke naya SW activate karta
 // hai, jo purana-naam-wala cache activate hote hi delete kar deta hai).
-const CACHE = "seoni-circle-v3.7";
+const CACHE = "seoni-circle-v3.8";
 const CORE = ["./", "./index.html", "./manifest.json"];
 
 self.addEventListener("install", (e) => {
