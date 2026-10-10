@@ -45,10 +45,20 @@
         function logErr_(ctx, err, extra) {
             try {
                 const message = err ? (err.message || String(err)) : "";
+                // Kiske phone se error aayi — pehle sirf device_id (ek betuka
+                // number) cloud par jaata tha, jisse admin ko kabhi pata nahi
+                // chalta tha ki kaun. Ab karmchari ka naam bhi saath jaata hai,
+                // aur device par bhi dikhta hai taaki screenshot se hi kaam ban jaye.
+                let emp = "";
+                try {
+                    const saved = JSON.parse(localStorage.getItem("seoni-circle-employee-v1") || "null");
+                    if (saved && saved.emp_name) emp = String(saved.emp_name);
+                } catch (_) {}
                 const entry = {
                     t: new Date().toISOString(),
                     view: document.querySelector(".view.active")?.id || "?",
                     dc: (typeof activeDC !== "undefined" && activeDC) || "",
+                    emp: emp.slice(0, 60),
                     ctx: ctx || "",
                     msg: String(message).slice(0, 300),
                     extra: extra ? String(extra).slice(0, 200) : "",
@@ -183,7 +193,7 @@
                         <span style="font-size:10px; font-weight:700; color:#64748b;">${escapeHtml(String(e.t || "").replace("T", " ").slice(0, 19))}</span>
                     </div>
                     <div style="font-size:11px; font-weight:700; color:#1e293b; word-break:break-word;">${escapeHtml(e.msg || "")}${e.extra ? ` <span style="color:#94a3b8;">[${escapeHtml(e.extra)}]</span>` : ""}</div>
-                    <div style="font-size:9px; font-weight:700; color:#94a3b8; margin-top:3px;">view: ${escapeHtml(e.view || "?")}${e.dc ? ` • DC: ${escapeHtml(e.dc)}` : ""}</div>
+                    <div style="font-size:9px; font-weight:700; color:#94a3b8; margin-top:3px;">view: ${escapeHtml(e.view || "?")}${e.dc ? ` • DC: ${escapeHtml(e.dc)}` : ""}${e.emp ? ` • ${escapeHtml(e.emp)}` : ""}</div>
                 </div>
             `).join("");
         }
