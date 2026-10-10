@@ -346,17 +346,25 @@
             if (navigator.onLine === false) return;
             syncQueueProcessing_ = true;
             let done = 0;
-            let networkDown = false;
+            // Pehle ek bhi item ka timeout ya fetch-error "poora network down hai"
+            // maan liya jaata tha: loop wahin ruk jaata, us item ki ginti bhi nahi
+            // badhti aur wajah log me bhi nahi jaati. Nateeja — ek slow/kharab entry
+            // poori qatar ko hamesha ke liye bandhak bana leti thi, aur kahin kuch
+            // dikhta bhi nahi tha. 10 Oct ko AUTH_TOKEN gayab hone par theek yahi
+            // hua: har request shuru hote hi girti rahi aur ek ghanta andhere me gaya.
+            //
+            // Ab: ek item ka timeout sirf USI item ki nakami hai — ginti badhti hai,
+            // wajah log me jaati hai, aur qatar agle item par chali jaati hai.
+            // Lagataar kai item network ki wajah se giren tabhi maana jaata hai ki
+            // sachmuch net ki dikkat hai, aur yeh daud rok di jaati hai.
+            const MAX_LAGATAAR_NET_FAIL = 3;
+            let lagataarNetFail = 0;
             try {
                 const items = (await idbGetAll_("sync_queue")).sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0));
                 for (const item of items) {
-                    // Network hi down ho gaya ho to baaki items try karne ka fayda
-                    // nahi — sab isi wajah se fail honge, agli baar poori queue
-                    // dobara try hogi. Lekin ek item ka apna (backend/logical)
-                    // fail baaki queue ko kabhi block nahi karta — bas usi item
-                    // ko skip karke aage badhte hain.
-                    if (networkDown) break;
+                    if (lagataarNetFail >= MAX_LAGATAAR_NET_FAIL || navigator.onLine === false) break;
                     let ok = false;
+                    let netJaisi = false;   // is item ki nakami network-jaisi thi?
                     try {
                         if (item.kind === "shared_entry") {
                             const entryId = await syncEntryToCloud_(item.module, item.entry, true);
@@ -365,7 +373,7 @@
                                 sharedModuleLastFetch[item.module] = 0;
                                 ok = true;
                             } else if (window.__lastSyncErrorReason === "network") {
-                                networkDown = true;
+                                netJaisi = true;
                             }
                         } else if (item.kind === "post_form") {
                             ok = await queuePostOk_("queue-post_form", APPS_SCRIPT_EXEC_URL, item.body);
@@ -392,15 +400,11 @@
                         }
                     } catch (err) {
                         console.error(err);
-                        const isNetworkErr = navigator.onLine === false || err instanceof TypeError || err?.name === "AbortError";
-                        if (isNetworkErr) networkDown = true;
-                        // Net ki dikkat har 2 min phir try hogi, use log me bharne ka
-                        // fayda nahi. Baaki (asli) gadbad zaroor darj ho — warna badge
-                        // laal rehta tha aur "एरर लॉग" khali, jaisa abhi tak hota aaya.
-                        else {
-                            window.__lastQueueErrorMessage = String(err?.message || err || "").slice(0, 200);
-                            logErr_(`queue-${item.kind || "?"}`, err);
-                        }
+                        netJaisi = err instanceof TypeError || err?.name === "AbortError";
+                        window.__lastQueueErrorMessage = netJaisi
+                            ? `नेटवर्क/समय-सीमा: ${String(err?.message || err || "").slice(0, 150)}`
+                            : String(err?.message || err || "").slice(0, 200);
+                        logErr_(`queue-${item.kind || "?"}`, err);
                     }
                     // shared_entry apna sandesh __lastSyncErrorMessage me rakhta hai —
                     // use bhi uthayein taaki "अटकी एंट्री" wale panne par wajah dikhe
@@ -411,8 +415,13 @@
                     if (ok) {
                         await idbDelete_("sync_queue", item.id);
                         done++;
-                    } else if (!networkDown) {
+                        lagataarNetFail = 0;
+                    } else {
+                        // Har nakami ab darj hoti hai — chahe wajah network-jaisi hi
+                        // kyun na ho. Pehle yahi chhoot jaati thi aur entry chupchaap
+                        // atki rehti thi.
                         await bumpSyncQueueFailCount_(item);
+                        lagataarNetFail = netJaisi ? lagataarNetFail + 1 : 0;
                     }
                 }
             } finally {
