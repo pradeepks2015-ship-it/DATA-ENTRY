@@ -1,86 +1,76 @@
-var PHOTO_MODULES = ["broken_pole", "pdc_nontraceable", "stm_complaint", "bijli_chori", "karya_charitra", "mobile_correction", "device_diagnostics", "dtr_health", "permanent_disconnect"];
-var AUTH_TOKEN = "NlFwg1IQv6uGZz132Fti24qeG3c2ZJF2";
-function isValidToken_(e) {
-  var token = (e && e.parameter && e.parameter.auth_token) || "";
-  return token === AUTH_TOKEN;
-}
-
-function unauthorizedResponse_() {
-  return ContentService
-    .createTextOutput(JSON.stringify({ status: "error", message: "Unauthorized" }))
-    .setMimeType(ContentService.MimeType.JSON);
-}/**
- * ADEGAON DC SHARED DATA — MASTER COMBINED BACKEND
+/**
+ * ADEGAON DC SHARED DATA — BACKEND
  * ==================================================
- * Ek hi Apps Script, ek hi Google Sheet — sabhi modules:
- *   Stock Material, SHMS, STM Complaint, Peak Load,
- *   Broken Pole, PDC, Bijli Chori, Karya Charitra,
- *   Feeder Reading
+ * Ek hi Apps Script, ek hi Google Sheet.
  *
- * DEPLOY STEPS (one-time):
- * 1. "Adegaon DC Shared Data" sheet kholein
- * 2. Extensions → Apps Script
- * 3. Pura purana code delete karein (Ctrl+A → Delete)
- * 4. Yeh pura code paste karein → Ctrl+S save karein
- * 5. Function dropdown se "setupAllSheets" select karein → Run karein
- *    (Permission maange to Allow karein)
- * 6. Deploy → Manage deployments → pencil icon
- *    → Version: "New version" → Deploy
- * URL same rahega: AKfycbwH7cske7...
+ * ABHI JO CHALU HAI:
+ *   - Photo modules (PHOTO_MODULES): broken_pole, pdc_nontraceable,
+ *     stm_complaint, bijli_chori, karya_charitra, mobile_correction,
+ *     device_diagnostics, dtr_health, permanent_disconnect
+ *   - Feeder Reading
+ *   - Employee login (getEmployeeNames / verifyEmployeePin)
+ *
+ * BAND KIYE JA CHUKE: stock, shms, peakload, stm
+ *   App me inke button kab ke hat chuke hain. Inka code hata diya gaya hai,
+ *   par doGet/doPost me ek saaf "Disabled" jawab bacha hai — taaki kisi purane
+ *   phone par atki hui entry ko wajah pata chale, "Unknown action" nahi.
+ *   Inki purani sheets (MasterStock, SHMS_*, Peak_*, STM_Entries) Sheet me
+ *   jyon ki tyon padi hain — data kahin nahi gaya, bas code unhe chhuta nahi.
+ *
+ * ==================================================
+ * KOI BHI BADLAV KARNE KE BAAD (kram zaroori hai):
+ *   1. Ctrl+S (save)
+ *   2. Deploy → Manage deployments → pencil icon
+ *      → Version: "New version" → Deploy
+ *      ^ Yeh chhoota to app purana code hi chalata rahega. Sirf save karna
+ *        kaafi NAHI hota — 10 Oct 2026 ko isi par ghanta bharna pada tha.
+ *   3. Yahi code repo me bhi daal dein: apps-script/Code.gs
+ *      ^ Warna repo ki prati jhooth bolne lagegi.
+ *
+ * EK FILE SE ZYADA KABHI NA RAKHEIN:
+ *   Apps Script saari files ko jodkar chalata hai, aur baad wali pehle wali
+ *   ko daba deti hai. 10 Oct 2026 ko "कोड की कॉपी.gs" naam ki ek purani naqal
+ *   mili, jisme PHOTO_MODULES ka purana roop tha — usi wajah se DTR health
+ *   aur permanent disconnect ki entry MAHINON tak server tak nahi pahunchi.
+ *
+ * URL: AKfycbwH7cske7...  (deploy ke baad bhi wahi rehta hai)
  */
 
 // ============================================================
-// MODULES CONFIG
+// CONFIG
 // ============================================================
-var PHOTO_MODULES = ["broken_pole", "pdc_nontraceable", "stm_complaint", "bijli_chori", "karya_charitra", "mobile_correction", "device_diagnostics", "dtr_health", "permanent_disconnect"];
+var AUTH_TOKEN = "NlFwg1IQv6uGZz132Fti24qeG3c2ZJF2";
+
+// Sirf EK baar likha hai — jaan-bujhkar. Pehle yeh do jagah tha aur dono alag
+// ho gaye the; baad wala jeet jaata tha aur koi dekh hi nahi paata tha ki
+// asli soochi kaun si chal rahi hai.
+var PHOTO_MODULES = [
+  "broken_pole", "pdc_nontraceable", "stm_complaint", "bijli_chori",
+  "karya_charitra", "mobile_correction", "device_diagnostics",
+  "dtr_health", "permanent_disconnect"
+];
+
 var DRIVE_ROOT_FOLDER_NAME = "Adegaon DC Shared Photos";
+var EMPLOYEES_SHEET        = "employees";
+var FEEDER_READING_SHEET   = "feeder_readings";
 
-var STOCK_MASTER_SHEET   = "MasterStock";
-var STOCK_TX_SHEET       = "Transactions";
-var SHMS_MASTER_SHEET    = "SHMS_FeederMaster";
-var SHMS_ENTRIES_SHEET   = "SHMS_Entries";
-var PEAK_MASTER_SHEET    = "Peak_FeederMaster";
-var PEAK_READINGS_SHEET  = "Peak_Readings";
-var STM_ENTRIES_SHEET    = "STM_Entries";
-var FEEDER_READING_SHEET = "feeder_readings";
-
-var SHMS_ENTRY_COLUMNS = [
-  "substation","feeder","event_type","date","time_from","time_to",
-  "total_duration","reason","meter_no","operator_name","operator_mobile","submitted_at"
-];
-var PEAK_READING_COLUMNS = [
-  "33/11 KV SUBSTATION","11 KV FEEDER","METER NO",
-  "DATE (DD-MM-YYYY)","TIME (HH:MM)","PEAK LOAD (A)",
-  "NAME OF OPERATOR","SUBMISSION DATE","SUBMISSION TIME"
-];
 var FEEDER_READING_COLUMNS = [
   "33/11 KV SUBSTATION","33 AND 11 KV FEEDER","METER NO",
   "PREVIUS READING","CURRENT READING","MF","CONSUMPTION",
   "DC NAME","DATE(DD/MM/YYY)","TIME(HH/MM)"
 ];
-var STM_ENTRY_COLUMNS = [
-  "timestamp","date","time","substation","operator_name","mobile_no",
-  "information_shared_at","calling_info","complaint_details","photo_url","photo_name"
-];
+
+// employees sheet ke khane. pin_hash me asli PIN nahi, uska SHA-256 jaata hai
+// (app bhi PIN bhejne se pehle wahi banata hai) — isliye sheet dekhne wale ko
+// kisi ka PIN nahi pata chalta. PIN set karne ke liye neeche setEmployeePin().
+var EMPLOYEE_COLUMNS = ["emp_id","emp_name","designation","pin_hash","active"];
 
 // ============================================================
 // ONE-TIME SETUP
 // ============================================================
 function setupAllSheets() {
-  // Stock
-  ensureSheet_(STOCK_MASTER_SHEET,  ["MATERIAL NAME","UNIT","OPENING STOCK","BALANCE STOCK"]);
-  ensureSheet_(STOCK_TX_SHEET,      ["timestamp","type","received_from","receive_person_name","issue_to_dc_name","issue_to_person_name","remark","items_json","return_type","expected_return_date","returned","return_date","return_time"]);
-  // SHMS
-  ensureSheet_(SHMS_MASTER_SHEET,   ["33/11 KV SUBSTATION","11 KV FEEDER","METER NO"]);
-  ensureSheet_(SHMS_ENTRIES_SHEET,  SHMS_ENTRY_COLUMNS);
-  // Peak Load
-  ensureSheet_(PEAK_MASTER_SHEET,   ["33/11 KV SUBSTATION","11 KV FEEDER","METER NO"]);
-  ensureSheet_(PEAK_READINGS_SHEET, PEAK_READING_COLUMNS);
-  // STM
-  ensureSheet_(STM_ENTRIES_SHEET,   STM_ENTRY_COLUMNS);
-  // Feeder Reading
   ensureSheet_(FEEDER_READING_SHEET, FEEDER_READING_COLUMNS);
-  // Photo modules (broken_pole, pdc_nontraceable, bijli_chori, karya_charitra)
+  ensureSheet_(EMPLOYEES_SHEET, EMPLOYEE_COLUMNS);
   PHOTO_MODULES.forEach(function(m) { getPhotoModuleSheet_(m); });
   Logger.log("✅ Sabhi sheets setup ho gayi hain!");
 }
@@ -94,30 +84,64 @@ function ensureSheet_(name, headers) {
 }
 
 // ============================================================
+// AUTH
+// ============================================================
+function isValidToken_(e) {
+  var token = (e && e.parameter && e.parameter.auth_token) || "";
+  return token === AUTH_TOKEN;
+}
+
+function unauthorizedResponse_() {
+  return jsonResponse_({ status: "error", message: "Unauthorized" });
+}
+
+// Wahi hash jo app banata hai (js/core-actions.js ka sha256Hex_) — chhote
+// akshar wala hex, UTF-8. Dono taraf ek jaisa hona zaroori hai, warna sahi
+// PIN bhi galat lagega.
+function sha256Hex_(text) {
+  var bytes = Utilities.computeDigest(
+    Utilities.DigestAlgorithm.SHA_256, String(text), Utilities.Charset.UTF_8);
+  return bytes.map(function(b) {
+    return ((b & 0xFF) + 0x100).toString(16).slice(1);
+  }).join("");
+}
+
+// ============================================================
 // doGet — Read data
 // ============================================================
 function doGet(e) {
- if (!isValidToken_(e)) return unauthorizedResponse_();
+  if (!isValidToken_(e)) return unauthorizedResponse_();
   try {
     var action = (e.parameter.action || "").toString();
     var module = (e.parameter.module || "").toString();
-// Band kiye gaye purane raaste
-    if (action === "getMasterStock" || action === "getTransactions") return jsonResponse_({ status:"error", message:"Disabled" });
-    if (action === "getSummary" && (module === "shms" || module === "peakload" || module === "stm")) return jsonResponse_({ status:"error", message:"Disabled" });
+
+    // Band kiye gaye purane raaste — saaf wajah, taaki purane phone par atki
+    // entry "Unknown action" jaisa uljha jawab na paaye
+    if (action === "getMasterStock" || action === "getTransactions") {
+      return jsonResponse_({ status:"error", message:"Disabled" });
+    }
+    if (action === "getSummary" && (module === "shms" || module === "peakload" || module === "stm")) {
+      return jsonResponse_({ status:"error", message:"Disabled" });
+    }
     // Mitana sirf POST se — padhne wale darwaze par nahi
-    if (action === "deleteEntry") return jsonResponse_({ status:"error", message:"Use POST" });
-    // Photo modules
-    if (action === "getEntries") return jsonResponse_({ status:"success", entries: getPhotoEntries_(module) });
-
-
-
-    // Feeder Reading
-    if (action === "getFeederReadings") return jsonResponse_(getSheetRowsPlain_(FEEDER_READING_SHEET, FEEDER_READING_COLUMNS.length));
-
-    // Delete entry (photo modules)
     if (action === "deleteEntry") {
-      var ok = deletePhotoEntry_(module, (e.parameter.entry_id||"").toString());
-      return jsonResponse_({ status: ok?"success":"error" });
+      return jsonResponse_({ status:"error", message:"Use POST" });
+    }
+
+    if (action === "getEmployeeNames") {
+      return jsonResponse_({ status:"success", employees: getEmployeeList_() });
+    }
+    if (action === "getCounts") {
+      return jsonResponse_(getAdminCounts_(
+        (e.parameter.from || "").toString(),
+        (e.parameter.to || "").toString()
+      ));
+    }
+    if (action === "getEntries") {
+      return jsonResponse_({ status:"success", entries: getPhotoEntries_(module) });
+    }
+    if (action === "getFeederReadings") {
+      return jsonResponse_(getSheetRowsPlain_(FEEDER_READING_SHEET, FEEDER_READING_COLUMNS.length));
     }
 
     return jsonResponse_({ status:"error", message:"Unknown action: "+action });
@@ -130,166 +154,68 @@ function doGet(e) {
 // doPost — Write data
 // ============================================================
 function doPost(e) {
-if (!isValidToken_(e)) return unauthorizedResponse_();
+  if (!isValidToken_(e)) return unauthorizedResponse_();
   try {
     var module = (e.parameter.module || "").toString();
     var action = (e.parameter.action || "addEntry").toString();
-// Band kiye gaye purane module — app inhe ab istemal nahi karta
-    if (module === "stock" || module === "shms" || module === "peakload" || module === "stm") return jsonResponse_({ status:"error", message:"Module disabled" });
-    // ===== STOCK =====
-    if (module === "stock") {
-      if (action === "bulkUpdateBalance") {
-        var updatesJson = (e.parameter.updates_json || "[]").toString();
-        var updates = JSON.parse(updatesJson);
-        var ubSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(STOCK_MASTER_SHEET);
-        if (!ubSheet) return jsonResponse_({ status:"error", message:"MasterStock sheet not found" });
-        var lastRow = ubSheet.getLastRow();
-        if (lastRow < 2) return jsonResponse_({ status:"error", message:"No data in sheet" });
-        // Read all names at once
-        var nameData = ubSheet.getRange(2, 1, lastRow - 1, 1).getValues();
-        var balData  = ubSheet.getRange(2, 4, lastRow - 1, 1).getValues();
-        // Apply all updates in memory
-        updates.forEach(function(u) {
-          var uName = String(u.name || "").trim().toLowerCase();
-          for (var i = 0; i < nameData.length; i++) {
-            if (String(nameData[i][0] || "").trim().toLowerCase() === uName) {
-              balData[i][0] = Number(u.bal) || 0;
-              break;
-            }
-          }
-        });
-        // Write all balances in ONE range call — fast
-        ubSheet.getRange(2, 4, lastRow - 1, 1).setValues(balData);
-        return jsonResponse_({ status:"success", message:"Bulk update done" });
-      }
 
-      if (action === "updateBalance") {
-        var ubName = (e.parameter.material_name || "").toString().trim();
-        var ubBal  = parseFloat(e.parameter.balance_stock || "0") || 0;
-        if (!ubName) return jsonResponse_({ status:"error", message:"Material name required" });
-        var ubSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(STOCK_MASTER_SHEET);
-        if (!ubSheet) return jsonResponse_({ status:"error", message:"MasterStock sheet not found" });
-        var ubData = ubSheet.getRange(2,1,Math.max(1,ubSheet.getLastRow()-1),4).getValues();
-        for (var ui=0; ui<ubData.length; ui++) {
-          if (String(ubData[ui][0]||"").trim().toLowerCase() === ubName.toLowerCase()) {
-            ubSheet.getRange(ui+2, 4).setValue(ubBal);
-            return jsonResponse_({ status:"success", message:"Balance updated" });
-          }
-        }
-        return jsonResponse_({ status:"error", message:"Material not found" });
-      }
-
-      if (action === "addMaterial") {
-        var mName  = (e.parameter.material_name||"").toString().trim();
-        var mUnit  = (e.parameter.unit||"Nos").toString().trim();
-        var mOpen  = parseFloat(e.parameter.opening_stock||"0")||0;
-        var mBal   = parseFloat(e.parameter.balance_stock||"0")||0;
-        if (!mName) return jsonResponse_({ status:"error", message:"Material name required" });
-        var ms = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(STOCK_MASTER_SHEET) || ensureSheet_(STOCK_MASTER_SHEET,["MATERIAL NAME","UNIT","OPENING STOCK","BALANCE STOCK"]);
-        ms.appendRow([mName, mUnit, mOpen, mBal]);
-        return jsonResponse_({ status:"success", message: mName+" added" });
-      }
-      // Receive / Issue
-      var receivedFrom   = (e.parameter.receved_from||e.parameter.received_from||"").toString();
-      var receivePersonName = (e.parameter.receive_person_name||"").toString();
-      var issueToDcName  = (e.parameter.issue_to_dc_name||"").toString();
-      var issueToPersonName = (e.parameter.issue_to_person_name||"").toString();
-      var remark         = (e.parameter.remark||"").toString();
-      var items          = JSON.parse(e.parameter.items_json||"[]");
-      if (!Array.isArray(items)||!items.length) return jsonResponse_({ status:"error", message:"No items" });
-      var isReceive = !!(receivedFrom||receivePersonName);
-      var type = isReceive?"RECEIVE":"ISSUE";
-      var returnType = (e.parameter.return_type || "").toString();
-      var expectedReturn = (e.parameter.expected_return_date || "").toString();
-      var tx = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(STOCK_TX_SHEET)||ensureSheet_(STOCK_TX_SHEET,["timestamp","type","received_from","receive_person_name","issue_to_dc_name","issue_to_person_name","remark","items_json","return_type","expected_return_date","returned","return_date","return_time"]);
-      tx.appendRow([new Date().toISOString(),type,receivedFrom,receivePersonName,issueToDcName,issueToPersonName,remark,JSON.stringify(items),returnType,expectedReturn,"","",""]);
-      updateBalanceStock_(items, isReceive);
-      return jsonResponse_({ status:"success", message: type+" recorded" });
+    // Band kiye gaye purane module
+    if (module === "stock" || module === "shms" || module === "peakload" || module === "stm") {
+      return jsonResponse_({ status:"error", message:"Module disabled" });
     }
 
-    // ===== SHMS =====
-    if (module === "shms") {
-      var shmsEntries = JSON.parse(e.parameter.entries_json||"[]");
-      if (!Array.isArray(shmsEntries)||!shmsEntries.length) return jsonResponse_({ status:"error", message:"No entries" });
-      var shmsSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHMS_ENTRIES_SHEET)||ensureSheet_(SHMS_ENTRIES_SHEET, SHMS_ENTRY_COLUMNS);
-      shmsEntries.forEach(function(entry) {
-        shmsSheet.appendRow(SHMS_ENTRY_COLUMNS.map(function(c){ return entry[c]!==undefined?entry[c]:""; }));
-      });
-      return jsonResponse_({ status:"success", message:"SHMS entries saved" });
-    }
-
-    // ===== PEAK LOAD =====
-    if (module === "peakload") {
-      var peakEntries = JSON.parse(e.parameter.entries_json||"[]");
-      if (!Array.isArray(peakEntries)||!peakEntries.length) return jsonResponse_({ status:"error", message:"No entries" });
-      var peakSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(PEAK_READINGS_SHEET)||ensureSheet_(PEAK_READINGS_SHEET, PEAK_READING_COLUMNS);
-      peakEntries.forEach(function(entry) {
-        peakSheet.appendRow(PEAK_READING_COLUMNS.map(function(c){ return entry[c]!==undefined?entry[c]:""; }));
-      });
-      return jsonResponse_({ status:"success", message:"Peak load saved" });
-    }
-
-    // ===== STM COMPLAINT =====
-    if (module === "stm") {
-      var stmSubstation    = (e.parameter.substation||"").toString();
-      var stmOperator      = (e.parameter.operator_name||"").toString();
-      var stmMobile        = (e.parameter.mobile_no||"").toString();
-      var stmSharedAt      = (e.parameter.information_shared_at||"").toString();
-      var stmDate          = (e.parameter.date||"").toString();
-      var stmTime          = (e.parameter.time||"").toString();
-      var stmCallingInfo   = (e.parameter.calling_info||"").toString();
-      var stmComplaint     = (e.parameter.complaint_details||"").toString();
-      var stmPhotoBase64   = (e.parameter.photo_base64||"").toString();
-      var stmPhotoName     = (e.parameter.photo_name||"").toString();
-      var stmPhotoMime     = (e.parameter.photo_mime_type||"image/jpeg").toString();
-      if (!stmSubstation||!stmComplaint) return jsonResponse_({ status:"error", message:"Substation aur complaint required" });
-      var stmPhotoUrl = stmPhotoBase64 ? saveBase64PhotoToDrive_("stm_complaint", stmPhotoBase64, stmPhotoName) : "";
-      var stmSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(STM_ENTRIES_SHEET)||ensureSheet_(STM_ENTRIES_SHEET, STM_ENTRY_COLUMNS);
-      stmSheet.appendRow([new Date().toISOString(),stmDate,stmTime,stmSubstation,stmOperator,stmMobile,stmSharedAt,stmCallingInfo,stmComplaint,stmPhotoUrl,stmPhotoName]);
-      return jsonResponse_({ status:"success", message:"STM complaint saved" });
+    // ===== EMPLOYEE LOGIN =====
+    if (action === "verifyEmployeePin") {
+      return jsonResponse_(verifyEmployeePin_(
+        (e.parameter.emp_id || "").toString(),
+        (e.parameter.pin_hash || "").toString()
+      ));
     }
 
     // ===== FEEDER READING =====
     if (module === "feeder") {
       var feederEntries = JSON.parse(e.parameter.entries_json||"[]");
-      if (!Array.isArray(feederEntries)||!feederEntries.length) return jsonResponse_({ status:"error", message:"No entries" });
-      var feederSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(FEEDER_READING_SHEET)||ensureSheet_(FEEDER_READING_SHEET, FEEDER_READING_COLUMNS);
+      if (!Array.isArray(feederEntries)||!feederEntries.length) {
+        return jsonResponse_({ status:"error", message:"No entries" });
+      }
+      var feederSheet = ensureSheet_(FEEDER_READING_SHEET, FEEDER_READING_COLUMNS);
       feederEntries.forEach(function(entry) {
-        feederSheet.appendRow(FEEDER_READING_COLUMNS.map(function(c){ return entry[c]!==undefined?entry[c]:""; }));
+        feederSheet.appendRow(FEEDER_READING_COLUMNS.map(function(c){
+          return entry[c]!==undefined?entry[c]:"";
+        }));
       });
       return jsonResponse_({ status:"success", message:"Feeder readings saved" });
     }
 
-    // ===== PHOTO MODULES (broken_pole, pdc_nontraceable, bijli_chori, karya_charitra) =====
+    // ===== PHOTO MODULES =====
     if (PHOTO_MODULES.indexOf(module) !== -1) {
 
-      // Delete
       if (action === "deleteEntry") {
         var delId = (e.parameter.entry_id||"").toString();
         return jsonResponse_({ status: deletePhotoEntry_(module,delId)?"success":"error" });
       }
 
-      // Update (reply/remark for karya_charitra)
       if (action === "updateEntry") {
         var updId      = (e.parameter.entry_id||"").toString();
         var updUpdates = JSON.parse(e.parameter.updates_json||"{}");
         return jsonResponse_({ status: updatePhotoEntry_(module,updId,updUpdates)?"success":"error" });
       }
 
-      // Upload photo separately (to avoid URL param size limit)
+      // Photo alag se — ek hi request me bheje to size ki seema paar ho jaati hai
       if (action === "uploadPhoto") {
         var upEntryId  = (e.parameter.entry_id||"").toString();
         var upPhotoData= (e.parameter.photo_data||"").toString();
         var upPhotoName= (e.parameter.photo_name||"photo").toString();
         var upPhotoIdx = parseInt(e.parameter.photo_index||"-1");
-        if (!upEntryId||!upPhotoData) return jsonResponse_({ status:"error", message:"entry_id and photo_data required" });
+        if (!upEntryId||!upPhotoData) {
+          return jsonResponse_({ status:"error", message:"entry_id and photo_data required" });
+        }
         var upUrl = saveBase64PhotoToDrive_(module, upPhotoData, upPhotoName);
         if (!upUrl) return jsonResponse_({ status:"error", message:"Drive upload failed" });
         var upOk = attachPhotoUrl_(module, upEntryId, upUrl, upPhotoIdx);
         return jsonResponse_({ status: upOk?"success":"error", photo_url: upUrl });
       }
 
-      // Add entry (metadata only, photos come via uploadPhoto)
       var newEntry = JSON.parse(e.parameter.entry_json||"{}");
       var newEntryId = addPhotoEntry_(module, newEntry);
       return jsonResponse_({ status:"success", message:"Saved", entry_id: newEntryId });
@@ -302,66 +228,211 @@ if (!isValidToken_(e)) return unauthorizedResponse_();
 }
 
 // ============================================================
-// STOCK helpers
+// EMPLOYEE helpers
 // ============================================================
-function getMasterStockRows_() {
-  var ss = SpreadsheetApp.getActiveSpreadsheet();
-  var sheet = ss.getSheetByName(STOCK_MASTER_SHEET);
-  if (!sheet||sheet.getLastRow()<2) return [];
-  var data = sheet.getRange(2,1,sheet.getLastRow()-1,4).getValues();
+function getEmployeeSheet_() {
+  return ensureSheet_(EMPLOYEES_SHEET, EMPLOYEE_COLUMNS);
+}
+
+// "active" khana khali ho to karmchari chalu maana jaata hai — JE ne nayi
+// pankti jodi aur woh khana bharna bhool gaya, to bhi kaam chalta rahe.
+// Band karne ke liye usme NO likhna padta hai.
+function isEmployeeActive_(value) {
+  var v = String(value === undefined || value === null ? "" : value).trim().toUpperCase();
+  return v !== "NO" && v !== "FALSE" && v !== "0";
+}
+
+function readEmployeeRows_() {
+  var sheet = getEmployeeSheet_();
+  var lastRow = sheet.getLastRow();
+  if (lastRow < 2) return [];
+  var data = sheet.getRange(2, 1, lastRow - 1, EMPLOYEE_COLUMNS.length).getValues();
   var rows = [];
-  for (var i=0;i<data.length;i++) {
-    var n = String(data[i][0]||"").trim();
-    if (!n) continue;
-    rows.push({ id:"M"+String(i+1).padStart(3,"0"), material_name:n, unit:String(data[i][1]||"Nos").trim(), opening_stock:Number(data[i][2]||0), balance_stock:Number(data[i][3]||0) });
+  for (var i = 0; i < data.length; i++) {
+    var empId = String(data[i][0] || "").trim();
+    if (!empId) continue;
+    rows.push({
+      row: i + 2,
+      emp_id: empId,
+      emp_name: String(data[i][1] || "").trim(),
+      designation: String(data[i][2] || "").trim(),
+      pin_hash: String(data[i][3] || "").trim().toLowerCase(),
+      active: isEmployeeActive_(data[i][4])
+    });
   }
   return rows;
 }
 
-function getStockTxRows_() {
-  var ss = SpreadsheetApp.getActiveSpreadsheet();
-  var sheet = ss.getSheetByName(STOCK_TX_SHEET);
-  if (!sheet||sheet.getLastRow()<2) return [];
-  var headers = ["timestamp","type","received_from","receive_person_name","issue_to_dc_name","issue_to_person_name","remark","items_json"];
-  var data = sheet.getRange(2,1,sheet.getLastRow()-1,8).getValues();
-  return data.map(function(row){ var o={}; headers.forEach(function(h,i){ o[h]=row[i]; }); return o; });
-}
-
-function updateBalanceStock_(items, isReceive) {
-  var ss = SpreadsheetApp.getActiveSpreadsheet();
-  var sheet = ss.getSheetByName(STOCK_MASTER_SHEET);
-  if (!sheet||sheet.getLastRow()<2) return;
-  var nameRange = sheet.getRange(2,1,sheet.getLastRow()-1,1).getValues();
-  var balRange  = sheet.getRange(2,4,sheet.getLastRow()-1,1);
-  var bals      = balRange.getValues();
-  items.forEach(function(item){
-    var iName = String(item.material_name||"").trim().toLowerCase();
-    var qty   = Number(item.qty||0);
-    if (!iName||!qty) return;
-    for (var i=0;i<nameRange.length;i++) {
-      if (String(nameRange[i][0]||"").trim().toLowerCase()===iName) {
-        bals[i][0] = isReceive ? (Number(bals[i][0]||0)+qty) : (Number(bals[i][0]||0)-qty);
-        break;
-      }
-    }
+// App ko sirf naam ki soochi jaati hai — pin_hash kabhi bahar nahi bhejte
+function getEmployeeList_() {
+  return readEmployeeRows_().filter(function(r) { return r.active; }).map(function(r) {
+    return { emp_id: r.emp_id, emp_name: r.emp_name, emp_designation: r.designation };
   });
-  balRange.setValues(bals);
+}
+
+function verifyEmployeePin_(empId, pinHash) {
+  empId = String(empId || "").trim();
+  pinHash = String(pinHash || "").trim().toLowerCase();
+  if (!empId || !pinHash) {
+    return { status:"error", message:"कर्मचारी और PIN दोनों चाहिए" };
+  }
+  var rows = readEmployeeRows_();
+  for (var i = 0; i < rows.length; i++) {
+    if (rows[i].emp_id !== empId) continue;
+    if (!rows[i].active) {
+      return { status:"error", message:"यह कर्मचारी अभी सक्रिय नहीं है" };
+    }
+    if (!rows[i].pin_hash) {
+      // PIN set hi nahi hua — JE ko saaf pata chale, "galat PIN" na dikhe
+      return { status:"error", message:"इस कर्मचारी का PIN अभी तय नहीं हुआ है — JE से कहें" };
+    }
+    if (rows[i].pin_hash !== pinHash) {
+      return { status:"error", message:"गलत PIN" };
+    }
+    return {
+      status: "success",
+      emp_id: rows[i].emp_id,
+      emp_name: rows[i].emp_name,
+      emp_designation: rows[i].designation
+    };
+  }
+  return { status:"error", message:"कर्मचारी नहीं मिला" };
+}
+
+// ---- JE ke liye: editor se chalane wale do function ----
+//
+// Naya karmchari jodna: neeche wali pankti me apne hisaab se naam bhar kar
+// dropdown se addEmployee chunein → ▷ चलाएं
+function addEmployee() {
+  var EMP_ID      = "E1";              // ← har karmchari ka alag, chhota sa pehchan (E1, E2, ...)
+  var NAAM        = "रमेश कुमार";       // ← app me yahi dikhega
+  var PAD         = "लाइनमैन";          // ← khali bhi chhod sakte hain
+  var PIN         = "123456";          // ← kam se kam 6 ank rakhein
+
+  var sheet = getEmployeeSheet_();
+  var rows = readEmployeeRows_();
+  for (var i = 0; i < rows.length; i++) {
+    if (rows[i].emp_id === EMP_ID) {
+      Logger.log("⚠️ " + EMP_ID + " pehle se hai. PIN badalna ho to setEmployeePin chalayein.");
+      return;
+    }
+  }
+  sheet.appendRow([EMP_ID, NAAM, PAD, sha256Hex_(PIN), "YES"]);
+  Logger.log("✅ " + NAAM + " (" + EMP_ID + ") jud gaya, PIN bhi set ho gaya.");
+}
+
+// Kisi ka PIN badalna: neeche ki do pankti bhar kar dropdown se
+// setEmployeePin chunein → ▷ चलाएं
+function setEmployeePin() {
+  var EMP_ID = "E1";                   // ← kiska
+  var PIN    = "123456";               // ← naya PIN
+
+  var sheet = getEmployeeSheet_();
+  var rows = readEmployeeRows_();
+  for (var i = 0; i < rows.length; i++) {
+    if (rows[i].emp_id !== EMP_ID) continue;
+    sheet.getRange(rows[i].row, 4).setValue(sha256Hex_(PIN));
+    Logger.log("✅ " + rows[i].emp_name + " (" + EMP_ID + ") ka PIN badal diya.");
+    return;
+  }
+  Logger.log("❌ " + EMP_ID + " nahi mila. Pehle addEmployee chalayein.");
 }
 
 // ============================================================
-// GENERIC sheet row readers
+// ADMIN DASHBOARD — sirf GINTI
 // ============================================================
-function getSheetRows_(sheetName, colCount) {
-  var ss = SpreadsheetApp.getActiveSpreadsheet();
-  var sheet = ss.getSheetByName(sheetName);
-  if (!sheet||sheet.getLastRow()<2) return [];
-  var headers = sheet.getRange(1,1,1,colCount).getValues()[0];
-  var data    = sheet.getRange(2,1,sheet.getLastRow()-1,colCount).getValues();
-  return data.map(function(row){ var o={}; headers.forEach(function(h,i){ o[h]=row[i]; }); return o; });
+// Pehle dashboard har module ki SAARI entry poori download karta tha aur ginti
+// phone me karta tha. Teen dikkat thi:
+//   1. woh bojh har mahine badhta hi jaata — entry kabhi kam nahi hoti
+//   2. taarikh ka filter download ke BAAD lagta tha, to taarikh badalne par
+//      poora data dobara aata tha
+//   3. forceRefresh=true ki wajah se cache bhi kaam nahi aata tha
+// Ab ginti yahan hoti hai aur sirf sankhya jaati hai — kuch sau byte.
+//
+// Ginti ka hisaab app ke purane hisaab se HUBAHU wahi rakha gaya hai (wahi
+// taarikh wale khane, wahi "aagyaat" fallback), taaki sirf data ka kharcha
+// ghate — JE ko dikhne wale number na badlein.
+
+function pad2_(n) { return ("0" + n).slice(-2); }
+
+// js/feeder-date-picker.js ke buildFeederDateKey_ ka hamshakal. Dono taraf ek
+// jaisa hona zaroori hai, warna ginti badal jaayegi.
+function dateKey_(raw) {
+  if (raw instanceof Date && !isNaN(raw.getTime())) {
+    return raw.getFullYear() + "-" + pad2_(raw.getMonth() + 1) + "-" + pad2_(raw.getDate());
+  }
+  var s = String(raw === null || raw === undefined ? "" : raw).trim();
+  if (!s) return "";
+  if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+  var m = s.replace(/\//g, "-").match(/^(\d{2})-(\d{2})-(\d{4})$/);
+  if (m) return m[3] + "-" + m[2] + "-" + m[1];
+  var d = new Date(s);
+  if (!isNaN(d.getTime())) {
+    return d.getFullYear() + "-" + pad2_(d.getMonth() + 1) + "-" + pad2_(d.getDate());
+  }
+  return "";
 }
 
+function inDateRange_(key, fromKey, toKey) {
+  if (!key) return false;           // taarikh hi na ho to ginti me nahi — app me bhi aisa hi tha
+  if (fromKey && key < fromKey) return false;
+  if (toKey && key > toKey) return false;
+  return true;
+}
+
+function getAdminCounts_(fromKey, toKey) {
+  fromKey = String(fromKey || "").trim();
+  toKey   = String(toKey || "").trim();
+
+  function inRangeBy_(entries, field) {
+    return entries.filter(function(en) {
+      return inDateRange_(dateKey_(en[field]), fromKey, toKey);
+    });
+  }
+
+  var feederRows = getSheetRowsPlain_(FEEDER_READING_SHEET, FEEDER_READING_COLUMNS.length)
+    .filter(function(r) { return inDateRange_(dateKey_(r["DATE(DD/MM/YYY)"]), fromKey, toKey); });
+
+  var bp = inRangeBy_(getPhotoEntries_("broken_pole"), "date");
+  var bc = inRangeBy_(getPhotoEntries_("bijli_chori"), "date");
+  var kc = inRangeBy_(getPhotoEntries_("karya_charitra"), "scn_date_iso");
+
+  // Mobile update par taarikh ka filter pehle bhi nahi lagta tha ("kul ab tak")
+  var mobileTotal = getPhotoEntries_("mobile_correction").length;
+
+  // Karmchari-war ginti. DHYAN: feeder ki pankti me submitted_by_name naam ka
+  // khana FEEDER_READING_COLUMNS me hai hi nahi, isliye saari feeder entry
+  // "aagyaat" me girti hai — app me bhi aaj yahi hota hai. Theek karna ho to
+  // pehle us khane ko columns me jodna padega (alag kaam).
+  var empCounts = {};
+  [feederRows, bp, bc, kc].forEach(function(rows) {
+    rows.forEach(function(r) {
+      var name = String(r.submitted_by_name || "").trim() || "अज्ञात / पुरानी एंट्री";
+      empCounts[name] = (empCounts[name] || 0) + 1;
+    });
+  });
+
+  var employees = Object.keys(empCounts).map(function(n) {
+    return { name: n, count: empCounts[n] };
+  }).sort(function(a, b) { return b.count - a.count; });
+
+  return {
+    status: "success",
+    counts: {
+      feeder: feederRows.length,
+      broken_pole: bp.length,
+      bijli_chori: bc.length,
+      karya_charitra: kc.length,
+      mobile_correction: mobileTotal
+    },
+    employees: employees
+  };
+}
+
+// ============================================================
+// GENERIC sheet row reader
+// ============================================================
 function getSheetRowsPlain_(sheetName, colCount) {
-  // Returns plain array (not wrapped) for backward compat with feeder/stm getSummary
   var ss = SpreadsheetApp.getActiveSpreadsheet();
   var sheet = ss.getSheetByName(sheetName);
   if (!sheet||sheet.getLastRow()<2) return [];
@@ -468,6 +539,10 @@ function getDriveFolder_(module) {
   return sub.hasNext() ? sub.next() : root.createFolder(module);
 }
 
+// DHYAN: yahan har photo "link wale sabke liye" set hoti hai — yaani panchayat
+// pramaan patra aur parisar ki photo bhi, jiska link mil jaye woh dekh sakta
+// hai. Yeh C1-kh (har karmchari ki apni chabi) ke saath theek hoga; abhi
+// badlenge to purani sabhi photo app me dikhni band ho jaayengi.
 function saveBase64PhotoToDrive_(module, base64DataUrl, fileNameHint) {
   if (!base64DataUrl) return "";
   try {
@@ -491,6 +566,8 @@ function jsonResponse_(obj) {
   return ContentService.createTextOutput(JSON.stringify(obj)).setMimeType(ContentService.MimeType.JSON);
 }
 
+// Jaanch ke liye: dropdown se chunkar ▷ चलाएं — log me dikhega ki chalta hua
+// code kaun se module dekh raha hai. 10 Oct ko isi ne purani naqal pakdi thi.
 function checkModules() {
   Logger.log("Kul: " + PHOTO_MODULES.length);
   Logger.log(PHOTO_MODULES.join(" | "));

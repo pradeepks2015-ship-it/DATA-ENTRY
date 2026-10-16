@@ -1201,8 +1201,13 @@ test.describe('Admin Dashboard (Phase-1)', () => {
       if (action === 'getFeederReadings') {
         return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify([{ '33/11 KV SUBSTATION': 'SS1', '33 AND 11 KV FEEDER': 'F1', 'DATE(DD/MM/YYY)': ddmmyyyySlash }]) });
       }
-      if (action === 'getSummary') {
-        return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify([{ dc: 'DC1', ivrs: '111' }, { dc: 'DC1', ivrs: '222' }]) });
+      // Dashboard kholne par sirf yeh ek request jaati hai — ginti, poori entry nahi
+      if (action === 'getCounts') {
+        return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({
+          status: 'success',
+          counts: { feeder: 1, broken_pole: 1, bijli_chori: 1, karya_charitra: 1, mobile_correction: 2 },
+          employees: [{ name: 'Ram Kumar', count: 3 }, { name: 'अज्ञात / पुरानी एंट्री', count: 1 }],
+        }) });
       }
       return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ status: 'success' }) });
     });
@@ -1229,19 +1234,57 @@ test.describe('Admin Dashboard (Phase-1)', () => {
     await page.waitForFunction(() => !document.getElementById('admin-dashboard-body').innerText.includes('लोड हो रहा है'));
 
     const body = page.locator('#admin-dashboard-body');
+    // Paanch ginti wale card + karmchari-war ginti
+    await expect(body).toContainText('Feeder Reading');
     await expect(body).toContainText('Ram Kumar');
-    await expect(body).toContainText('Pole A');
-    await expect(body).toContainText('Consumer X');
-    await expect(body).toContainText('SS1');
+    await expect(body).toContainText('3');
+    // Entry ki soochi ab jaan-bujhkar nahi aati — mobile data bachane ke liye
+    await expect(body).not.toContainText('Pole A');
+    await expect(body).not.toContainText('Consumer X');
 
-    const cached = await page.evaluate(() => ({
-      feeder: admLastData_.feederRows.length,
-      bp: admLastData_.bpInRange.length,
-      bc: admLastData_.bcInRange.length,
-      kc: admLastData_.kcInRange.length,
-      mobile: admLastData_.mobileRows.length,
-    }));
-    expect(cached).toEqual({ feeder: 1, bp: 1, bc: 1, kc: 1, mobile: 2 });
+    const cached = await page.evaluate(() => admLastData_.counts);
+    expect(cached).toEqual({ feeder: 1, broken_pole: 1, bijli_chori: 1, karya_charitra: 1, mobile_correction: 2 });
+  });
+
+  test('dashboard kholne par poori entry download NAHI hoti — sirf getCounts', async ({ page }) => {
+    // Yahi is badlav ki asli guarantee hai. Pehle dashboard teen module ki saari
+    // entry + saari feeder pankti har baar utarta tha, aur woh bojh har mahine
+    // badhta jaata tha. Agar kal koi galti se dobara getEntries jod de, yeh test
+    // use pakad lega.
+    const seen = [];
+    await openApp(page, {
+      beforeGoto: async (p) => {
+        await p.route('**/macros/**', (route) => {
+          const url = new URL(route.request().url());
+          seen.push(`${url.searchParams.get('action')}:${url.searchParams.get('module') || '-'}`);
+          if (url.searchParams.get('action') === 'getCounts') {
+            return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({
+              status: 'success',
+              counts: { feeder: 0, broken_pole: 0, bijli_chori: 0, karya_charitra: 0, mobile_correction: 0 },
+              employees: [],
+            }) });
+          }
+          return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ status: 'success', entries: [] }) });
+        });
+      },
+    });
+    // App khud shuru hote waqt bhi kuch getEntries maangta hai (jaise home ka SCN
+    // reminder) — woh is ginti me nahi aane chahiye, warna test jhooth bolega.
+    // Isliye shuruaat shaant hone ke BAAD list khaali karke dashboard kholte hain.
+    await page.waitForLoadState('networkidle');
+    seen.length = 0;
+
+    await page.evaluate(() => openAdminDashboardGate_());
+    await page.fill('#admin-pin-input', 'SC@2026');
+    await page.click('#admin-pin-submit-btn');
+    await page.waitForFunction(() => document.getElementById('admin-dashboard-view').classList.contains('active'));
+    await page.waitForFunction(() => !document.getElementById('admin-dashboard-body').innerText.includes('लोड हो रहा है'));
+    await page.waitForLoadState('networkidle');
+
+    expect(seen).toContain('getCounts:-');
+    // Dashboard kholne par ek bhi getEntries / getFeederReadings nahi
+    expect(seen.filter((a) => a.startsWith('getEntries'))).toEqual([]);
+    expect(seen.filter((a) => a.startsWith('getFeederReadings'))).toEqual([]);
   });
 
   test('घटना मैप: sirf valid-GPS entries pin ban kar dikhti hain, legend counts sahi hote hain, popup se "देखें" kaam karta hai', async ({ page }) => {
@@ -1307,24 +1350,30 @@ test.describe('Admin Dashboard (Phase-1)', () => {
     expect(errors).toEqual([]);
   });
 
-  test('Excel export data missing hone par crash nahi karta, friendly toast deta hai', async ({ page }) => {
-    await openApp(page, { beforeGoto: mockAdminBackend });
-    const noDataToast = await page.evaluate(() => {
-      admLastData_ = null;
-      let msg = null;
-      const original = window.showToast;
-      window.showToast = (m) => { msg = m; };
-      admExportExcel_();
-      window.showToast = original;
-      return msg;
+  test('Excel export poori entry khud mangwata hai (dashboard nahi laata)', async ({ page }) => {
+    // Ginti wale dashboard ke baad bhi Excel ka poora byora bachana zaroori tha —
+    // isliye woh ab khud, button dabne par, saari entry mangwata hai.
+    const seen = [];
+    await openApp(page, {
+      beforeGoto: async (p) => {
+        await p.route('**/macros/**', (route) => {
+          const url = new URL(route.request().url());
+          seen.push(url.searchParams.get('action'));
+          if (url.searchParams.get('action') === 'getFeederReadings') {
+            return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify([]) });
+          }
+          return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ status: 'success', entries: [] }) });
+        });
+      },
     });
-    expect(noDataToast).toContain('पहले data load होने दें');
+    await page.evaluate(async () => {
+      window.__wrote = null;
+      await admExportExcel_();
+    });
+    expect(seen.filter((a) => a === 'getEntries').length).toBeGreaterThan(0);
   });
 
-  test('Excel export library (xlsx.full.min.js) load fail ho to crash nahi karta, friendly toast deta hai', async ({ page }) => {
-    // xlsx.full.min.js ab CDN se nahi, is app ke apne server se lazy-load hoti
-    // hai (sirf export click par) — yahaan uska local request hi fail karke
-    // dikhate hain ki load-failure gracefully handle hoti hai.
+  test('Excel export: network fail hone par crash nahi karta, friendly toast deta hai', async ({ page }) => {
     await openApp(page, {
       beforeGoto: async (p) => {
         await mockAdminBackend(p);
@@ -1332,7 +1381,6 @@ test.describe('Admin Dashboard (Phase-1)', () => {
       },
     });
     const toast = await page.evaluate(async () => {
-      admLastData_ = { feederRows: [], bpInRange: [], bcInRange: [], kcInRange: [], mobileRows: [], fromKey: '', toKey: '' };
       let msg = null;
       const original = window.showToast;
       window.showToast = (m) => { msg = m; };
@@ -1340,7 +1388,7 @@ test.describe('Admin Dashboard (Phase-1)', () => {
       window.showToast = original;
       return msg;
     });
-    expect(toast).toBeTruthy();
+    expect(toast).toContain('Excel नहीं बन पाया');
   });
 
   test('लॉक करें home पर वापस भेजता है और दोबारा PIN मांगता है', async ({ page }) => {
@@ -1553,21 +1601,19 @@ test.describe('Employee Login (accountability) — plumbing (gate abhi disabled 
   });
 
   test('Admin Dashboard "कर्मचारी अनुसार" breakdown submitted_by_name se count karta hai', async ({ page }) => {
+    // submitted_by_name par grouping ab backend (apps-script Code.gs ka
+    // getAdminCounts_) karta hai, phone me nahi — isse dashboard kholne par
+    // saari entry utarna band hua. Yahaan woh baat jaanchi jaati hai ki app
+    // backend se aayi karmchari-war ginti theek dikhata hai.
     await openApp(page, {
       beforeGoto: (p) => p.route('**/macros/**', (route) => {
         const url = new URL(route.request().url());
-        const action = url.searchParams.get('action');
-        const module = url.searchParams.get('module');
-        if (action === 'getEntries' && module === 'broken_pole') {
-          // Admin dashboard default date-range "is mahine ke 1 se aaj tak" hai, isliye
-          // entries ki date hamesha "aaj" honi chahiye — hardcoded mahina/saal nahi
-          // (warna agle mahine yeh test calendar rollover par fail hone lagta).
-          const today = new Date();
-          const ddmmyyyy = `${String(today.getDate()).padStart(2, '0')}-${String(today.getMonth() + 1).padStart(2, '0')}-${today.getFullYear()}`;
-          return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ status: 'success', entries: [
-            { date: ddmmyyyy, remark1: 'A', entry_id: 'bp1', submitted_by_name: 'Ram Kumar' },
-            { date: ddmmyyyy, remark1: 'B', entry_id: 'bp2', submitted_by_name: 'Ram Kumar' },
-          ] }) });
+        if (url.searchParams.get('action') === 'getCounts') {
+          return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({
+            status: 'success',
+            counts: { feeder: 0, broken_pole: 2, bijli_chori: 0, karya_charitra: 0, mobile_correction: 0 },
+            employees: [{ name: 'Ram Kumar', count: 2 }],
+          }) });
         }
         return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ status: 'success', entries: [] }) });
       }),

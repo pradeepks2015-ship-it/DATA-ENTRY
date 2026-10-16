@@ -159,21 +159,56 @@
             } catch (_) { return []; }
         }
 
-        async function admFetchMobileUpdateRows_() {
+        // Dashboard kholne par sirf GINTI aati hai (ek chhota getCounts), poori
+        // entry nahi — dekhein apps-script/Code.gs ka "ADMIN DASHBOARD" hissa.
+        // Pehle teen module ki saari entry + saari feeder pankti har baar poori
+        // utarti thi, aur taarikh ka filter utarne ke BAAD phone me lagta tha —
+        // yaani taarikh badalne par poora data dobara. Woh bojh har mahine
+        // badhta hi jaata, kabhi ghatta nahi.
+        async function admFetchCounts_(fromKey, toKey) {
             try {
-                const res = await fetchWithTimeout_(`${scriptURL}?action=getSummary&auth_token=${encodeURIComponent(APPS_SCRIPT_AUTH_TOKEN)}&t=${Date.now()}`);
+                const url = `${scriptURL}?action=getCounts&from=${encodeURIComponent(fromKey)}&to=${encodeURIComponent(toKey)}&auth_token=${encodeURIComponent(APPS_SCRIPT_AUTH_TOKEN)}&t=${Date.now()}`;
+                const res = await fetchWithTimeout_(url);
                 const data = await res.json();
-                return Array.isArray(data) ? data : null;
-            } catch (_) { return null; }
+                if (data && data.status === "success") return data;
+                logErr_("admin-getCounts", new Error(data?.message || "getCounts failed"));
+                return null;
+            } catch (err) {
+                logErr_("admin-getCounts", err);
+                return null;
+            }
         }
 
         let admLastData_ = null;
 
+        // Excel ke liye poori entry chahiye hi — par woh sirf is button par
+        // utarti hai, dashboard kholne par nahi.
+        async function admFetchFullRows_(fromKey, toKey) {
+            const [bp, bc, kc, feederRows, mobileRows] = await Promise.all([
+                fetchSharedEntries_("broken_pole", true),
+                fetchSharedEntries_("bijli_chori", true),
+                fetchSharedEntries_("karya_charitra", true),
+                admFetchFeederRows_(fromKey, toKey),
+                fetchSharedEntries_("mobile_correction", true)
+            ]);
+            return {
+                feederRows,
+                bpInRange: bp.filter((e) => admInRange_(admDateKey_(e.date), fromKey, toKey)),
+                bcInRange: bc.filter((e) => admInRange_(admDateKey_(e.date), fromKey, toKey)),
+                kcInRange: kc.filter((e) => admInRange_(admDateKey_(e.scn_date_iso), fromKey, toKey)),
+                mobileRows,
+                fromKey,
+                toKey
+            };
+        }
+
         async function admExportExcel_() {
-            if (!admLastData_) return showToast("पहले data load होने दें", false);
+            const fromKey = document.getElementById("admin-from-date")?.value || "";
+            const toKey = document.getElementById("admin-to-date")?.value || "";
             try {
+                showToast("Excel के लिए पूरी एंट्री लाई जा रही है...", true);
                 await ensureXlsx_();
-                const { feederRows, bpInRange, bcInRange, kcInRange, mobileRows, fromKey, toKey } = admLastData_;
+                const { feederRows, bpInRange, bcInRange, kcInRange, mobileRows } = await admFetchFullRows_(fromKey, toKey);
                 const wb = XLSX.utils.book_new();
 
                 const addSheet = (name, headers, rows) => {
@@ -188,13 +223,19 @@
                 addSheet("Broken Pole", ["Date", "Remark 1", "Remark 2", "Location", "Submitted By"], bpInRange.map((e) => [e.date || "", e.remark1 || "", e.remark2 || "", e.gps_location || "", e.submitted_by_name || ""]));
                 addSheet("Bijli Chori", ["Date", "Name/IVRS", "Remark", "Submitted By"], bcInRange.map((e) => [e.date || "", e.name || e.ivrs || "", e.remark || "", e.submitted_by_name || ""]));
                 addSheet("Karya Charitra", ["Date", "Employee", "SCN No", "Submitted By"], kcInRange.map((r) => [kcFormatDate_ ? kcFormatDate_(r.scn_date_iso) : (r.scn_date_iso || ""), r.emp_name || "", `SCN-${String(r.dispatch_no || "").padStart(4, "0")}`, r.submitted_by_name || ""]));
-                addSheet("Mobile Update", ["DC", "IVRS", "Mobile"], (mobileRows || []).map((r) => [r.dc || "", r.ivrs || "", r.mobile || ""]));
+                // Purane khane (r.dc / r.mobile) kabhi aate hi nahi the — woh band
+                // ho chuke getSummary ki shakal the. mobile_correction module jo
+                // asal me bhejta hai, wahi yahan likha hai.
+                addSheet("Mobile Update", ["DC", "HQ", "IVRS", "पुराना मोबाइल", "सही मोबाइल", "स्थिति"], (mobileRows || []).map((r) => [
+                    r.dc_name || "", r.hq || "", r.ivrs || "", r.old_mobile || "", r.correct_mobile || "", r.status || ""
+                ]));
 
                 const filename = `Admin_Dashboard_${(fromKey || "all").replace(/-/g, "")}_${(toKey || "all").replace(/-/g, "")}.xlsx`;
                 XLSX.writeFile(wb, filename);
                 showToast("Excel Downloaded!", true);
-            } catch (_) {
-                showToast("Excel generate karne mein error aaya", false);
+            } catch (err) {
+                logErr_("admin-excel", err);
+                showToast("Excel नहीं बन पाया — नेटवर्क देखकर दोबारा कोशिश करें", false);
             }
         }
 
@@ -268,121 +309,43 @@
             `;
         }
 
-        function admEntrySection_(title, rows) {
-            if (!rows.length) {
-                return `
-                    <div style="margin-bottom:12px;">
-                        <div style="font-size:12px; font-weight:900; color:#ffffff; margin-bottom:6px;">${escapeHtml(title)}</div>
-                        <div style="background:rgba(255,255,255,0.85); border-radius:12px; padding:12px; text-align:center; font-size:11px; font-weight:700; color:#64748b;">इस दिनांक सीमा में कोई एंट्री नहीं</div>
-                    </div>
-                `;
-            }
-            return `
-                <div style="margin-bottom:12px;">
-                    <div style="font-size:12px; font-weight:900; color:#ffffff; margin-bottom:6px;">${escapeHtml(title)} (${rows.length})</div>
-                    <div style="background:rgba(255,255,255,0.92); border-radius:14px; padding:8px; max-height:280px; overflow-y:auto;">
-                        ${rows.join("")}
-                    </div>
-                </div>
-            `;
-        }
-
-        function admEntryRow_(dateStr, titleText, subtitleText, viewOnClick) {
-            return `
-                <div style="display:flex; align-items:center; gap:10px; padding:8px; border-bottom:1px solid #e5e7eb;">
-                    <div style="flex:1; min-width:0;">
-                        <div style="font-size:11px; font-weight:900; color:#1e293b; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${escapeHtml(dateStr)} — ${escapeHtml(titleText)}</div>
-                        <div style="font-size:10px; font-weight:700; color:#64748b; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${escapeHtml(subtitleText)}</div>
-                    </div>
-                    ${viewOnClick ? `<button onclick="${escapeHtml(viewOnClick)}" style="border:none; background:#e0f2fe; color:#075985; border-radius:999px; padding:6px 10px; font-size:10px; font-weight:900; text-transform:uppercase; flex-shrink:0;">देखें</button>` : ""}
-                </div>
-            `;
-        }
-
-        function admEmployeeBreakdown_(datasets) {
-            const counts = {};
-            datasets.forEach((rows) => {
-                rows.forEach((r) => {
-                    const name = r.submitted_by_name || "अज्ञात / पुरानी एंट्री";
-                    counts[name] = (counts[name] || 0) + 1;
-                });
-            });
-            return Object.entries(counts).sort((a, b) => b[1] - a[1]);
-        }
-
         async function refreshAdminDashboardData_() {
             const body = document.getElementById("admin-dashboard-body");
             if (!body) return;
             body.innerHTML = `<div style="text-align:center; padding:20px; font-size:12px; font-weight:800; color:#ffffff;">लोड हो रहा है...</div>`;
 
-            const fromInput = document.getElementById("admin-from-date");
-            const toInput = document.getElementById("admin-to-date");
-            const fromKey = fromInput?.value || "";
-            const toKey = toInput?.value || "";
+            const fromKey = document.getElementById("admin-from-date")?.value || "";
+            const toKey = document.getElementById("admin-to-date")?.value || "";
 
-            const [brokenPole, bijliChori, karyaCharitra, feederRows, mobileRows] = await Promise.all([
-                fetchSharedEntries_("broken_pole", true),
-                fetchSharedEntries_("bijli_chori", true),
-                fetchSharedEntries_("karya_charitra", true),
-                admFetchFeederRows_(fromKey, toKey),
-                admFetchMobileUpdateRows_()
-            ]);
+            const data = await admFetchCounts_(fromKey, toKey);
+            if (!data) {
+                body.innerHTML = `<div style="background:rgba(255,255,255,0.9); border-radius:14px; padding:16px; text-align:center; font-size:11.5px; font-weight:800; color:#991b1b;">गिनती नहीं आ सकी — नेटवर्क देखकर 🔄 Refresh दबाएं</div>`;
+                admLastData_ = null;
+                return;
+            }
 
-            const bpInRange = brokenPole.filter((e) => admInRange_(admDateKey_(e.date), fromKey, toKey));
-            const bcInRange = bijliChori.filter((e) => admInRange_(admDateKey_(e.date), fromKey, toKey));
-            const kcInRange = karyaCharitra.filter((e) => admInRange_(admDateKey_(e.scn_date_iso), fromKey, toKey));
-            const mobileCount = mobileRows ? mobileRows.length : null;
-
-            admLastData_ = { feederRows, bpInRange, bcInRange, kcInRange, mobileRows: mobileRows || [], fromKey, toKey };
-            cacheEntriesForDetail_("broken_pole", bpInRange);
-            cacheEntriesForDetail_("bijli_chori", bcInRange);
+            const c = data.counts || {};
+            const employees = Array.isArray(data.employees) ? data.employees : [];
+            admLastData_ = { counts: c, employees, fromKey, toKey };
 
             const cards = [
-                admSummaryCard_("🔌", "Feeder Reading", feederRows.length),
-                admSummaryCard_("⚡", "Broken Pole", bpInRange.length),
-                admSummaryCard_("⚠️", "बिजली चोरी", bcInRange.length),
-                admSummaryCard_("📋", "कर्मचारी SCN", kcInRange.length),
-                admSummaryCard_("📱", "Mobile Update", mobileCount, "कुल अब तक (date filter लागू नहीं)")
+                admSummaryCard_("🔌", "Feeder Reading", c.feeder ?? null),
+                admSummaryCard_("⚡", "Broken Pole", c.broken_pole ?? null),
+                admSummaryCard_("⚠️", "बिजली चोरी", c.bijli_chori ?? null),
+                admSummaryCard_("📋", "कर्मचारी SCN", c.karya_charitra ?? null),
+                admSummaryCard_("📱", "Mobile Update", c.mobile_correction ?? null, "कुल अब तक (date filter लागू नहीं)")
             ].join("");
 
-            const bpRows = bpInRange.slice().reverse().slice(0, 30).map((e) =>
-                admEntryRow_(e.date || "", e.remark1 || "Entry", e.gps_location || e.remark2 || "", `viewEntryDetail_('broken_pole','${mcJsEscape_(getEntryUid_(e))}')`)
-            );
-            const bcRows = bcInRange.slice().reverse().slice(0, 30).map((e) =>
-                admEntryRow_(e.date || "", e.name || e.ivrs || "Entry", e.remark || "", `viewEntryDetail_('bijli_chori','${mcJsEscape_(getEntryUid_(e))}')`)
-            );
-            const kcRows = kcInRange.slice().reverse().slice(0, 30).map((r) =>
-                admEntryRow_(kcFormatDate_ ? kcFormatDate_(r.scn_date_iso) : (r.scn_date_iso || ""), r.emp_name || "", `SCN-${String(r.dispatch_no || "").padStart(4, "0")}`)
-            );
-            const feederRowsHtml = feederRows.slice().reverse().slice(0, 30).map((row) =>
-                admEntryRow_(row["DATE(DD/MM/YYY)"] || "", `${row["33/11 KV SUBSTATION"] || ""} / ${row["33 AND 11 KV FEEDER"] || ""}`, `Consumption: ${row["CONSUMPTION"] || "-"}`)
-            );
-
-            const employeeBreakdown = admEmployeeBreakdown_([feederRows, bpInRange, bcInRange, kcInRange]);
-            const employeeBreakdownHtml = employeeBreakdown.length ? `
+            const employeeBreakdownHtml = employees.length ? `
                 <div style="margin-bottom:12px;">
                     <div style="font-size:12px; font-weight:900; color:#ffffff; margin-bottom:6px;">👤 कर्मचारी अनुसार (कुल entries)</div>
                     <div style="background:rgba(255,255,255,0.92); border-radius:14px; padding:8px; max-height:200px; overflow-y:auto;">
-                        ${employeeBreakdown.map(([name, count]) => `
+                        ${employees.map((e) => `
                             <div style="display:flex; align-items:center; justify-content:space-between; padding:7px 8px; border-bottom:1px solid #e5e7eb;">
-                                <div style="font-size:11px; font-weight:800; color:#1e293b;">${escapeHtml(name)}</div>
-                                <div style="font-size:11px; font-weight:900; color:#075985;">${count}</div>
+                                <div style="font-size:11px; font-weight:800; color:#1e293b;">${escapeHtml(e.name || "")}</div>
+                                <div style="font-size:11px; font-weight:900; color:#075985;">${escapeHtml(String(e.count ?? 0))}</div>
                             </div>
                         `).join("")}
-                    </div>
-                </div>
-            ` : "";
-
-            const photoEntries = [
-                ...bpInRange.map((e) => ({ storeName: "broken_pole", entry: e, thumb: ENTRY_STORE_CONFIG.broken_pole.getThumb(e) })),
-                ...bcInRange.map((e) => ({ storeName: "bijli_chori", entry: e, thumb: ENTRY_STORE_CONFIG.bijli_chori.getThumb(e) }))
-            ].filter((p) => p.thumb).slice(0, 40);
-
-            const photoGridHtml = photoEntries.length ? `
-                <div style="margin-bottom:12px;">
-                    <div style="font-size:12px; font-weight:900; color:#ffffff; margin-bottom:6px;">📷 Photos (${photoEntries.length})</div>
-                    <div style="display:grid; grid-template-columns:repeat(4, 1fr); gap:6px; background:rgba(255,255,255,0.92); border-radius:14px; padding:8px;">
-                        ${photoEntries.map((p) => `<img src="${escapeHtml(p.thumb)}" alt="एंट्री फोटो" referrerpolicy="no-referrer" onclick="viewEntryDetail_('${mcJsEscape_(p.storeName)}','${mcJsEscape_(getEntryUid_(p.entry))}')" style="width:100%; aspect-ratio:1; object-fit:cover; border-radius:8px; cursor:pointer;">`).join("")}
                     </div>
                 </div>
             ` : "";
@@ -390,11 +353,10 @@
             body.innerHTML = trustedHtml_(`
                 <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:14px;">${trustedHtml_(cards)}</div>
                 ${employeeBreakdownHtml}
-                ${photoGridHtml}
-                ${admEntrySection_("🔌 Feeder Reading", feederRowsHtml)}
-                ${admEntrySection_("⚡ Broken Pole", bpRows)}
-                ${admEntrySection_("⚠️ बिजली चोरी", bcRows)}
-                ${admEntrySection_("📋 कर्मचारी कार्य चरित्रावली", kcRows)}
+                <div style="background:rgba(255,255,255,0.9); border-radius:14px; padding:12px; font-size:10.5px; font-weight:700; color:#475569; line-height:1.5;">
+                    यहाँ सिर्फ़ गिनती आती है — एंट्री की सूची और फ़ोटो जान-बूझकर नहीं लाई जातीं, ताकि मोबाइल डेटा बचे।
+                    एक-एक एंट्री देखनी हो तो <b>📍 घटना मैप</b>, और पूरा ब्यौरा चाहिए तो <b>📥 Excel</b> — दोनों तभी डेटा लाते हैं जब आप दबाते हैं।
+                </div>
             `);
         }
 
