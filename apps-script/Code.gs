@@ -131,6 +131,12 @@ function doGet(e) {
     if (action === "getEmployeeNames") {
       return jsonResponse_({ status:"success", employees: getEmployeeList_() });
     }
+    if (action === "getCounts") {
+      return jsonResponse_(getAdminCounts_(
+        (e.parameter.from || "").toString(),
+        (e.parameter.to || "").toString()
+      ));
+    }
     if (action === "getEntries") {
       return jsonResponse_({ status:"success", entries: getPhotoEntries_(module) });
     }
@@ -330,6 +336,97 @@ function setEmployeePin() {
     return;
   }
   Logger.log("❌ " + EMP_ID + " nahi mila. Pehle addEmployee chalayein.");
+}
+
+// ============================================================
+// ADMIN DASHBOARD — sirf GINTI
+// ============================================================
+// Pehle dashboard har module ki SAARI entry poori download karta tha aur ginti
+// phone me karta tha. Teen dikkat thi:
+//   1. woh bojh har mahine badhta hi jaata — entry kabhi kam nahi hoti
+//   2. taarikh ka filter download ke BAAD lagta tha, to taarikh badalne par
+//      poora data dobara aata tha
+//   3. forceRefresh=true ki wajah se cache bhi kaam nahi aata tha
+// Ab ginti yahan hoti hai aur sirf sankhya jaati hai — kuch sau byte.
+//
+// Ginti ka hisaab app ke purane hisaab se HUBAHU wahi rakha gaya hai (wahi
+// taarikh wale khane, wahi "aagyaat" fallback), taaki sirf data ka kharcha
+// ghate — JE ko dikhne wale number na badlein.
+
+function pad2_(n) { return ("0" + n).slice(-2); }
+
+// js/feeder-date-picker.js ke buildFeederDateKey_ ka hamshakal. Dono taraf ek
+// jaisa hona zaroori hai, warna ginti badal jaayegi.
+function dateKey_(raw) {
+  if (raw instanceof Date && !isNaN(raw.getTime())) {
+    return raw.getFullYear() + "-" + pad2_(raw.getMonth() + 1) + "-" + pad2_(raw.getDate());
+  }
+  var s = String(raw === null || raw === undefined ? "" : raw).trim();
+  if (!s) return "";
+  if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+  var m = s.replace(/\//g, "-").match(/^(\d{2})-(\d{2})-(\d{4})$/);
+  if (m) return m[3] + "-" + m[2] + "-" + m[1];
+  var d = new Date(s);
+  if (!isNaN(d.getTime())) {
+    return d.getFullYear() + "-" + pad2_(d.getMonth() + 1) + "-" + pad2_(d.getDate());
+  }
+  return "";
+}
+
+function inDateRange_(key, fromKey, toKey) {
+  if (!key) return false;           // taarikh hi na ho to ginti me nahi — app me bhi aisa hi tha
+  if (fromKey && key < fromKey) return false;
+  if (toKey && key > toKey) return false;
+  return true;
+}
+
+function getAdminCounts_(fromKey, toKey) {
+  fromKey = String(fromKey || "").trim();
+  toKey   = String(toKey || "").trim();
+
+  function inRangeBy_(entries, field) {
+    return entries.filter(function(en) {
+      return inDateRange_(dateKey_(en[field]), fromKey, toKey);
+    });
+  }
+
+  var feederRows = getSheetRowsPlain_(FEEDER_READING_SHEET, FEEDER_READING_COLUMNS.length)
+    .filter(function(r) { return inDateRange_(dateKey_(r["DATE(DD/MM/YYY)"]), fromKey, toKey); });
+
+  var bp = inRangeBy_(getPhotoEntries_("broken_pole"), "date");
+  var bc = inRangeBy_(getPhotoEntries_("bijli_chori"), "date");
+  var kc = inRangeBy_(getPhotoEntries_("karya_charitra"), "scn_date_iso");
+
+  // Mobile update par taarikh ka filter pehle bhi nahi lagta tha ("kul ab tak")
+  var mobileTotal = getPhotoEntries_("mobile_correction").length;
+
+  // Karmchari-war ginti. DHYAN: feeder ki pankti me submitted_by_name naam ka
+  // khana FEEDER_READING_COLUMNS me hai hi nahi, isliye saari feeder entry
+  // "aagyaat" me girti hai — app me bhi aaj yahi hota hai. Theek karna ho to
+  // pehle us khane ko columns me jodna padega (alag kaam).
+  var empCounts = {};
+  [feederRows, bp, bc, kc].forEach(function(rows) {
+    rows.forEach(function(r) {
+      var name = String(r.submitted_by_name || "").trim() || "अज्ञात / पुरानी एंट्री";
+      empCounts[name] = (empCounts[name] || 0) + 1;
+    });
+  });
+
+  var employees = Object.keys(empCounts).map(function(n) {
+    return { name: n, count: empCounts[n] };
+  }).sort(function(a, b) { return b.count - a.count; });
+
+  return {
+    status: "success",
+    counts: {
+      feeder: feederRows.length,
+      broken_pole: bp.length,
+      bijli_chori: bc.length,
+      karya_charitra: kc.length,
+      mobile_correction: mobileTotal
+    },
+    employees: employees
+  };
 }
 
 // ============================================================
