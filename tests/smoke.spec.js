@@ -1575,6 +1575,135 @@ test.describe('Home reminders (Push Notification lite)', () => {
 });
 
 test.describe('Employee Login (accountability) — plumbing (gate abhi disabled hai, deploy nahi hua)', () => {
+
+  /**
+   * Gate ke dono raaste. Gate abhi app-boot se apne-aap nahi khulta (jaan-bujhkar
+   * disabled hai), isliye yahan use seedhe bulakar jaancha jaata hai.
+   * @param {import('@playwright/test').Page} page
+   * @param {{employees?: any[], namesFail?: boolean, onPost?: (params: URLSearchParams) => any}} opts
+   */
+  async function mockEmpBackend(page, opts = {}) {
+    await page.route('**/macros/**', (route) => {
+      const req = route.request();
+      if (req.method() === 'POST') {
+        const params = new URLSearchParams(req.postData() || '');
+        const body = opts.onPost ? opts.onPost(params) : { status: 'success' };
+        return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(body) });
+      }
+      const action = new URL(req.url()).searchParams.get('action');
+      if (action === 'getEmployeeNames') {
+        if (opts.namesFail) return route.abort();
+        return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ status: 'success', employees: opts.employees || [] }) });
+      }
+      return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ status: 'success', entries: [] }) });
+    });
+  }
+
+  test('पहले से दर्ज नाम सूची में से चुनकर login होता है', async ({ page }) => {
+    let sent = null;
+    await openApp(page, { employeeLoggedIn: false, beforeGoto: (p) => mockEmpBackend(p, {
+      employees: [{ emp_id: 'E1', emp_name: 'रमेश कुमार', emp_designation: 'लाइनमैन' }],
+      onPost: (params) => {
+        sent = Object.fromEntries(params);
+        return { status: 'success', emp_id: 'E1', emp_name: 'रमेश कुमार', emp_designation: 'लाइनमैन' };
+      },
+    }) });
+    await page.evaluate(() => showEmployeeLoginGate_());
+    await page.waitForFunction(() => document.querySelectorAll('#emp-login-select option').length > 2);
+
+    // naam likhne wala khana tab tak chhupa rehta hai
+    await expect(page.locator('#emp-login-newname')).toBeHidden();
+
+    await page.selectOption('#emp-login-select', 'E1');
+    await page.fill('#emp-login-pin', '483927');
+    await page.click('text=🔓 Login करें');
+
+    await expect(page.locator('#employee-login-modal')).toBeHidden();
+    expect(sent.action).toBe('verifyEmployeePin');
+    expect(sent.emp_id).toBe('E1');
+    expect(sent.pin_hash).toHaveLength(64);
+    expect(sent.pin_hash).not.toContain('483927'); // asli PIN kabhi nahi jaati
+    const saved = await page.evaluate(() => getLoggedInEmployee_());
+    expect(saved).toEqual({ emp_id: 'E1', emp_name: 'रमेश कुमार', emp_designation: 'लाइनमैन' });
+  });
+
+  test('"मेरा नाम सूची में नहीं है" चुनकर खुद का नाम लिखकर दर्ज हो सकते हैं', async ({ page }) => {
+    let sent = null;
+    await openApp(page, { employeeLoggedIn: false, beforeGoto: (p) => mockEmpBackend(p, {
+      employees: [{ emp_id: 'E1', emp_name: 'रमेश कुमार', emp_designation: '' }],
+      onPost: (params) => {
+        sent = Object.fromEntries(params);
+        return { status: 'success', emp_id: 'E2', emp_name: 'सुरेश यादव', emp_designation: '' };
+      },
+    }) });
+    await page.evaluate(() => showEmployeeLoginGate_());
+    await page.waitForFunction(() => document.querySelectorAll('#emp-login-select option').length > 2);
+
+    await page.selectOption('#emp-login-select', '__naya__');
+    await expect(page.locator('#emp-login-newname')).toBeVisible();
+    await expect(page.locator('#emp-login-newname-hint')).toContainText('हर एंट्री पर दिखेगा');
+
+    await page.fill('#emp-login-newname', '  सुरेश   यादव  ');
+    await page.fill('#emp-login-pin', '483927');
+    await page.click('text=🔓 Login करें');
+
+    await expect(page.locator('#employee-login-modal')).toBeHidden();
+    expect(sent.action).toBe('registerEmployee');
+    expect(sent.emp_name).toBe('सुरेश यादव'); // aage-peeche aur beech ki jagah saaf
+    expect(sent.emp_id).toBeUndefined();
+    const saved = await page.evaluate(() => getLoggedInEmployee_());
+    expect(saved.emp_id).toBe('E2');
+  });
+
+  test('नामों की सूची न आए तो भी नाम लिखकर आगे बढ़ा जा सकता है (रास्ता बंद न हो)', async ({ page }) => {
+    await openApp(page, { employeeLoggedIn: false, beforeGoto: (p) => mockEmpBackend(p, { namesFail: true }) });
+    await page.evaluate(() => showEmployeeLoginGate_());
+    await expect(page.locator('#emp-login-status')).toContainText('अपना नाम लिखकर आगे बढ़ें');
+    await expect(page.locator('#emp-login-newname')).toBeVisible();
+  });
+
+  test('एक भी नाम दर्ज न हो तो गेट सीधे "नाम लिखें" पर खुलता है', async ({ page }) => {
+    await openApp(page, { employeeLoggedIn: false, beforeGoto: (p) => mockEmpBackend(p, { employees: [] }) });
+    await page.evaluate(() => showEmployeeLoginGate_());
+    await expect(page.locator('#emp-login-newname')).toBeVisible();
+  });
+
+  test('अधूरा नाम या PIN के बिना आगे नहीं बढ़ता, और server को कुछ नहीं भेजता', async ({ page }) => {
+    let posts = 0;
+    await openApp(page, { employeeLoggedIn: false, beforeGoto: (p) => mockEmpBackend(p, {
+      employees: [], onPost: () => { posts++; return { status: 'success' }; },
+    }) });
+    await page.evaluate(() => showEmployeeLoginGate_());
+    await page.waitForFunction(() => document.getElementById('emp-login-newname')?.style.display !== 'none');
+
+    await page.click('text=🔓 Login करें');
+    await expect(page.locator('#emp-login-status')).toContainText('अपना नाम लिखें');
+
+    await page.fill('#emp-login-newname', 'रा');
+    await page.click('text=🔓 Login करें');
+    await expect(page.locator('#emp-login-status')).toContainText('पूरा नाम लिखें');
+
+    await page.fill('#emp-login-newname', 'रमेश कुमार');
+    await page.click('text=🔓 Login करें');
+    await expect(page.locator('#emp-login-status')).toContainText('PIN डालें');
+
+    expect(posts).toBe(0);
+  });
+
+  test('गलत PIN पर backend का संदेश दिखता है और login नहीं होता', async ({ page }) => {
+    await openApp(page, { employeeLoggedIn: false, beforeGoto: (p) => mockEmpBackend(p, {
+      employees: [], onPost: () => ({ status: 'error', message: 'गलत PIN' }),
+    }) });
+    await page.evaluate(() => showEmployeeLoginGate_());
+    await page.waitForFunction(() => document.getElementById('emp-login-newname')?.style.display !== 'none');
+    await page.fill('#emp-login-newname', 'रमेश कुमार');
+    await page.fill('#emp-login-pin', '000000');
+    await page.click('text=🔓 Login करें');
+
+    await expect(page.locator('#emp-login-status')).toContainText('गलत PIN');
+    await expect(page.locator('#employee-login-modal')).toBeVisible();
+    expect(await page.evaluate(() => getLoggedInEmployee_())).toBeNull();
+  });
   // employee-auth.js code me maujood hai (backend Apps Script action abhi manual deploy
   // nahi hui isliye) par boot-gate jaan-bujhkar disabled hai — isliye gate-flow (naya
   // login, galat PIN, logout-se-gate-khulna) ke tests yahan nahi hain, sirf yeh 2 jo

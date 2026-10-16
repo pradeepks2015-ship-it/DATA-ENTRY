@@ -52,7 +52,13 @@ var PHOTO_MODULES = [
 
 var DRIVE_ROOT_FOLDER_NAME = "Adegaon DC Shared Photos";
 var EMPLOYEES_SHEET        = "employees";
+var SETTINGS_SHEET         = "settings";
 var FEEDER_READING_SHEET   = "feeder_readings";
+
+// Saajha PIN yahan EK jagah rehta hai, har pankti me nahi. Isse do faayde:
+// naya aadmi khud ko darj karte waqt PIN jaanchi ja sakti hai (uski pankti to
+// abhi bani hi nahi), aur PIN badalna ek hi jagah ka kaam hai.
+var SHARED_PIN_KEY = "shared_pin_hash";
 
 var FEEDER_READING_COLUMNS = [
   "33/11 KV SUBSTATION","33 AND 11 KV FEEDER","METER NO",
@@ -64,6 +70,7 @@ var FEEDER_READING_COLUMNS = [
 // (app bhi PIN bhejne se pehle wahi banata hai) — isliye sheet dekhne wale ko
 // kisi ka PIN nahi pata chalta. PIN set karne ke liye neeche setEmployeePin().
 var EMPLOYEE_COLUMNS = ["emp_id","emp_name","designation","pin_hash","active"];
+var SETTINGS_COLUMNS = ["key","value"];
 
 // ============================================================
 // ONE-TIME SETUP
@@ -71,6 +78,7 @@ var EMPLOYEE_COLUMNS = ["emp_id","emp_name","designation","pin_hash","active"];
 function setupAllSheets() {
   ensureSheet_(FEEDER_READING_SHEET, FEEDER_READING_COLUMNS);
   ensureSheet_(EMPLOYEES_SHEET, EMPLOYEE_COLUMNS);
+  ensureSheet_(SETTINGS_SHEET, SETTINGS_COLUMNS);
   PHOTO_MODULES.forEach(function(m) { getPhotoModuleSheet_(m); });
   Logger.log("✅ Sabhi sheets setup ho gayi hain!");
 }
@@ -171,6 +179,12 @@ function doPost(e) {
         (e.parameter.pin_hash || "").toString()
       ));
     }
+    if (action === "registerEmployee") {
+      return jsonResponse_(registerEmployee_(
+        (e.parameter.emp_name || "").toString(),
+        (e.parameter.pin_hash || "").toString()
+      ));
+    }
 
     // ===== FEEDER READING =====
     if (module === "feeder") {
@@ -234,6 +248,40 @@ function getEmployeeSheet_() {
   return ensureSheet_(EMPLOYEES_SHEET, EMPLOYEE_COLUMNS);
 }
 
+// ---- settings sheet (key | value) ----
+function getSetting_(key) {
+  var sheet = ensureSheet_(SETTINGS_SHEET, SETTINGS_COLUMNS);
+  var lastRow = sheet.getLastRow();
+  if (lastRow < 2) return "";
+  var data = sheet.getRange(2, 1, lastRow - 1, 2).getValues();
+  for (var i = 0; i < data.length; i++) {
+    if (String(data[i][0] || "").trim() === key) return String(data[i][1] || "").trim();
+  }
+  return "";
+}
+
+function setSetting_(key, value) {
+  var sheet = ensureSheet_(SETTINGS_SHEET, SETTINGS_COLUMNS);
+  var lastRow = sheet.getLastRow();
+  if (lastRow >= 2) {
+    var data = sheet.getRange(2, 1, lastRow - 1, 1).getValues();
+    for (var i = 0; i < data.length; i++) {
+      if (String(data[i][0] || "").trim() === key) {
+        sheet.getRange(i + 2, 2).setValue(value);
+        return;
+      }
+    }
+  }
+  sheet.appendRow([key, value]);
+}
+
+// Naam milate waqt chhoti-moti alagav nazarandaz karein: aage-peeche ki jagah,
+// beech ki do space, aur angrezi me chhote-bade akshar. Isse "रमेश  कुमार" aur
+// "रमेश कुमार" do alag aadmi nahi ban jaate.
+function normName_(s) {
+  return String(s === null || s === undefined ? "" : s).replace(/\s+/g, " ").trim().toLowerCase();
+}
+
 // "active" khana khali ho to karmchari chalu maana jaata hai — JE ne nayi
 // pankti jodi aur woh khana bharna bhool gaya, to bhi kaam chalta rahe.
 // Band karne ke liye usme NO likhna padta hai.
@@ -270,6 +318,24 @@ function getEmployeeList_() {
   });
 }
 
+// PIN sahi hai ya nahi.
+//
+// Agar JE ne kisi EK ko apni alag PIN di hai (uski pankti me pin_hash bhara
+// hai) to SIRF wahi chalti hai — saajha PIN us aadmi par nahi chalti. Warna
+// "alag PIN" ka matlab hi nahi rehta: dono raaste khule rakhte to JE samajhte
+// ki unhone use alag kar diya, jabki saajha PIN se koi bhi uske naam se ghus
+// sakta tha.
+//
+// Jiski apni PIN nahi (yaani zyadatar log), woh saajha PIN se chalte hain.
+// Dono me se koi na ho to saaf sandesh — "galat PIN" nahi, warna JE ghanton
+// galat jagah dhoondte rahenge.
+function pinSahiHai_(rowPinHash, pinHash) {
+  if (rowPinHash) return rowPinHash === pinHash ? "ok" : "galat";
+  var shared = String(getSetting_(SHARED_PIN_KEY) || "").trim().toLowerCase();
+  if (!shared) return "koi-pin-nahi";
+  return shared === pinHash ? "ok" : "galat";
+}
+
 function verifyEmployeePin_(empId, pinHash) {
   empId = String(empId || "").trim();
   pinHash = String(pinHash || "").trim().toLowerCase();
@@ -282,11 +348,11 @@ function verifyEmployeePin_(empId, pinHash) {
     if (!rows[i].active) {
       return { status:"error", message:"यह कर्मचारी अभी सक्रिय नहीं है" };
     }
-    if (!rows[i].pin_hash) {
-      // PIN set hi nahi hua — JE ko saaf pata chale, "galat PIN" na dikhe
-      return { status:"error", message:"इस कर्मचारी का PIN अभी तय नहीं हुआ है — JE से कहें" };
+    var natija = pinSahiHai_(rows[i].pin_hash, pinHash);
+    if (natija === "koi-pin-nahi") {
+      return { status:"error", message:"अभी कोई PIN तय नहीं हुआ है — JE से कहें" };
     }
-    if (rows[i].pin_hash !== pinHash) {
+    if (natija !== "ok") {
       return { status:"error", message:"गलत PIN" };
     }
     return {
@@ -299,28 +365,82 @@ function verifyEmployeePin_(empId, pinHash) {
   return { status:"error", message:"कर्मचारी नहीं मिला" };
 }
 
-// ---- JE ke liye: editor se chalane wale chaar function ----
+// Karmchari khud ko darj karta hai: saajha PIN daalkar apna naam likh deta hai.
+// Isse JE ko 20-25 naam pehle se bharne nahi padte — unhe sirf PIN batana hai.
 //
-//   addManyEmployees  — sabhi naam ek saath jodein (shuruaat me yahi chalayein)
-//   addEmployee       — baad me ek naya aadmi jude to
-//   setEmployeePin    — kisi EK ka PIN badalna ho to
-//   setPinForEveryone — sabka saajha PIN badalna ho to
-//
-// SAAJHA PIN WALA TARIKA (JE ne 16 Oct 2026 ko yahi chuna):
-//   Naam sabke alag, PIN sabka ek hi. App me "apna naam chunein → wahi PIN".
-//   Isse har entry par naam chadhta hai (Admin Dashboard ki "karmchari anusar"
-//   ginti aur error log dono kaam ke rehte hain), par JE ko 20-25 alag PIN
-//   baantne aur yaad karane nahi padte.
-//
-//   Iska matlab yeh bhi hai ki PIN sirf bahar walon ko rokta hai, aapas me
-//   nahi — jab koi karmchari jaaye to uski pankti ke "active" khane me NO
-//   likhna kaafi nahi hoga, PIN bhi badalna padega (setPinForEveryone).
+// Wahi naam dobara aaye to NAYI pankti nahi banti, purani hi lautti hai. Isliye
+// ek hi aadmi naya phone le to bhi uski pehchan (emp_id) wahi rehti hai aur
+// uski purani entriyon se naata nahi tootta.
+function registerEmployee_(empName, pinHash) {
+  empName = String(empName || "").replace(/\s+/g, " ").trim();
+  pinHash = String(pinHash || "").trim().toLowerCase();
 
-// Shuruaat: saare naam ek saath. Dobara chalana surakshit hai — jo naam pehle
-// se hain woh chhod diye jaate hain, sirf naye jude hain.
+  if (!empName) return { status:"error", message:"अपना नाम लिखें" };
+  if (empName.length < 3) return { status:"error", message:"पूरा नाम लिखें" };
+  if (empName.length > 60) return { status:"error", message:"नाम बहुत लंबा है" };
+  if (!pinHash) return { status:"error", message:"PIN डालें" };
+
+  var shared = String(getSetting_(SHARED_PIN_KEY) || "").trim().toLowerCase();
+  if (!shared) {
+    return { status:"error", message:"अभी PIN तय नहीं हुआ है — JE से कहें" };
+  }
+  if (shared !== pinHash) {
+    return { status:"error", message:"गलत PIN" };
+  }
+
+  var rows = readEmployeeRows_();
+  var dhoondh = normName_(empName);
+  for (var i = 0; i < rows.length; i++) {
+    if (normName_(rows[i].emp_name) !== dhoondh) continue;
+    if (!rows[i].active) {
+      return { status:"error", message:"यह कर्मचारी अभी सक्रिय नहीं है" };
+    }
+    return {
+      status: "success",
+      emp_id: rows[i].emp_id,
+      emp_name: rows[i].emp_name,
+      emp_designation: rows[i].designation
+    };
+  }
+
+  var usedIds = {};
+  rows.forEach(function(r) { usedIds[r.emp_id] = true; });
+  var n = 1;
+  while (usedIds["E" + n]) n++;
+  var newId = "E" + n;
+
+  // pin_hash khali — yeh aadmi saajha PIN se chalega. Pad (designation) JE baad
+  // me sheet me bhar sakte hain; yahan nahi poochte taaki maidan me kam type ho.
+  getEmployeeSheet_().appendRow([newId, empName, "", "", "YES"]);
+  return { status: "success", emp_id: newId, emp_name: empName, emp_designation: "" };
+}
+
+// ---- JE ke liye: editor se chalane wale function ----
+//
+//   setPinForEveryone — saajha PIN tay karna. SABSE PEHLE YAHI, aur akelе yahi
+//                       zaroori hai. Baaki teen vaikalpik hain.
+//   addManyEmployees  — naam pehle se bhar dena ho to (ek saath)
+//   addEmployee       — ek naam pehle se bhar dena ho to
+//   setEmployeePin    — kisi EK ko alag PIN deni ho to
+//
+// KARMCHARI KHUD KO DARJ KARTA HAI (JE ne 16 Oct 2026 ko yahi chuna):
+//   JE ko naam bharne ki zaroorat nahi — bas saajha PIN batana hai. Aadmi app
+//   me PIN daalkar apna naam likh deta hai aur uski pankti khud ban jaati hai.
+//
+//   App pehle pehle se darj naamon ki soochi dikhata hai, "naam nahi mila" ka
+//   raasta uske baad — isse ek hi aadmi teen alag vartaniyon me nahi bat jaata.
+//   (Naam har entry par USI waqt chadh jaata hai, isliye baad me sheet sudharne
+//   se purani entriyan theek nahi hotin — duplicate pehle hi rokna padta hai.)
+//
+//   PIN sirf bahar walon ko rokti hai, aapas me nahi. Koi karmchari jaaye to
+//   uski pankti me "active" = NO likhna kaafi NAHI hoga — PIN bhi badalni
+//   padegi (setPinForEveryone).
+
+// Vaikalpik: naam pehle se bhar dena. Isse log app me type karne ke bajaye
+// soochi me se chun lenge — galat vartani ka khatra utna hi kam.
+// Dobara chalana surakshit hai: jo naam pehle se hain woh chhod diye jaate hain.
 function addManyEmployees() {
   // ===== yahan bharein =====
-  var PIN = "483927";                  // ← sabka ek hi PIN (kam se kam 6 ank)
   var SOOCHI = [
     "रमेश कुमार, लाइनमैन",              // ← "naam, pad" — pad chhod bhi sakte hain
     "सुरेश यादव, लाइनमैन",
@@ -346,7 +466,6 @@ function addManyEmployees() {
     return id;
   }
 
-  var hash = sha256Hex_(PIN);
   var jude = 0, chhode = 0;
 
   SOOCHI.forEach(function(line) {
@@ -365,48 +484,67 @@ function addManyEmployees() {
     }
 
     var id = nextId_();
-    sheet.appendRow([id, naam, pad, hash, "YES"]);
+    // pin_hash khali — yeh log bhi saajha PIN se hi chalenge
+    sheet.appendRow([id, naam, pad, "", "YES"]);
     usedNames[naam] = id;
     Logger.log("✅ " + id + "  " + naam + (pad ? "  (" + pad + ")" : ""));
     jude++;
   });
 
   Logger.log("————————————");
-  Logger.log(jude + " naye jude, " + chhode + " pehle se the. Sabka PIN: " + PIN);
+  Logger.log(jude + " naye jude, " + chhode + " pehle se the.");
+  if (!getSetting_(SHARED_PIN_KEY)) Logger.log("⚠️ Saajha PIN abhi tay nahi hui — setPinForEveryone chalayein.");
 }
 
-// Saajha PIN badalna (jaise koi karmchari chala jaye to)
+// SABSE PEHLE YAHI CHALAYEIN. Saajha PIN tay karta hai — iske bina koi
+// karmchari na khud ko darj kar sakta hai, na login.
+//
+// Purani alag-alag PIN (agar kisi ki thi) saaf kar deta hai, taaki ek waqt par
+// ek hi PIN chalti rahe — warna kisi ek ki purani PIN chupchap saajha PIN ko
+// dabaye rakhti aur pata hi nahi chalta.
 function setPinForEveryone() {
-  var NAYA_PIN = "483927";             // ← naya saajha PIN
+  var NAYA_PIN = "483927";             // ← saajha PIN (kam se kam 6 ank)
+
+  if (String(NAYA_PIN).length < 4) { Logger.log("❌ PIN bahut chhoti hai."); return; }
+
+  setSetting_(SHARED_PIN_KEY, sha256Hex_(NAYA_PIN));
 
   var sheet = getEmployeeSheet_();
   var rows = readEmployeeRows_();
-  if (!rows.length) { Logger.log("❌ employees sheet khali hai."); return; }
+  var saaf = 0;
+  rows.forEach(function(r) {
+    if (r.pin_hash) { sheet.getRange(r.row, 4).setValue(""); saaf++; }
+  });
 
-  var hash = sha256Hex_(NAYA_PIN);
-  rows.forEach(function(r) { sheet.getRange(r.row, 4).setValue(hash); });
-  Logger.log("✅ " + rows.length + " karmchariyon ka PIN badal diya. Naya PIN: " + NAYA_PIN);
-  Logger.log("Sabko naya PIN bata dein — purana ab kaam nahi karega.");
+  Logger.log("✅ Saajha PIN tay ho gaya: " + NAYA_PIN);
+  if (saaf) Logger.log("   (" + saaf + " logon ki purani alag PIN hata di gayi)");
+  Logger.log("Ab sabko yahi PIN bata dein — purani ab kaam nahi karegi.");
 }
 
-// Baad me ek naya aadmi jude to: neeche wali pankti bhar kar dropdown se
-// addEmployee chunein → ▷ चलाएं
+// Vaikalpik: ek naam pehle se bhar dena. emp_id apne-aap milta hai.
 function addEmployee() {
-  var EMP_ID      = "E1";              // ← har karmchari ka alag, chhota sa pehchan (E1, E2, ...)
-  var NAAM        = "रमेश कुमार";       // ← app me yahi dikhega
-  var PAD         = "लाइनमैन";          // ← khali bhi chhod sakte hain
-  var PIN         = "123456";          // ← kam se kam 6 ank rakhein
+  var NAAM = "रमेश कुमार";              // ← app me yahi dikhega
+  var PAD  = "लाइनमैन";                 // ← khali bhi chhod sakte hain
 
-  var sheet = getEmployeeSheet_();
+  var naam = String(NAAM).replace(/\s+/g, " ").trim();
+  if (!naam) { Logger.log("❌ NAAM khali hai."); return; }
+
   var rows = readEmployeeRows_();
+  var usedIds = {};
   for (var i = 0; i < rows.length; i++) {
-    if (rows[i].emp_id === EMP_ID) {
-      Logger.log("⚠️ " + EMP_ID + " pehle se hai. PIN badalna ho to setEmployeePin chalayein.");
+    usedIds[rows[i].emp_id] = true;
+    if (normName_(rows[i].emp_name) === normName_(naam)) {
+      Logger.log("⚠️ " + naam + " pehle se hai (" + rows[i].emp_id + ") — kuch nahi kiya.");
       return;
     }
   }
-  sheet.appendRow([EMP_ID, NAAM, PAD, sha256Hex_(PIN), "YES"]);
-  Logger.log("✅ " + NAAM + " (" + EMP_ID + ") jud gaya, PIN bhi set ho gaya.");
+  var n = 1;
+  while (usedIds["E" + n]) n++;
+
+  // pin_hash khali — saajha PIN se chalega
+  getEmployeeSheet_().appendRow(["E" + n, naam, String(PAD).trim(), "", "YES"]);
+  Logger.log("✅ " + naam + " (E" + n + ") jud gaya.");
+  if (!getSetting_(SHARED_PIN_KEY)) Logger.log("⚠️ Saajha PIN abhi tay nahi hui — setPinForEveryone chalayein.");
 }
 
 // Kisi ka PIN badalna: neeche ki do pankti bhar kar dropdown se
