@@ -29,7 +29,7 @@ async function openApp(page, opts = {}) {
     });
   }
   if (opts.beforeGoto) await opts.beforeGoto(page);
-  await page.goto('/');
+  await page.goto(opts.url || '/');
   await page.waitForFunction(() => document.getElementById('home-view').classList.contains('active'), null, { timeout: 15000 });
 }
 
@@ -1688,6 +1688,25 @@ test.describe('Employee Login (accountability) — plumbing (gate abhi disabled 
     await expect(page.locator('#emp-login-status')).toContainText('PIN डालें');
 
     expect(posts).toBe(0);
+  });
+
+  test('?shortcut=login से गेट हाथ से खोला जा सकता है (switch चालू करने से पहले जाँच के लिए)', async ({ page }) => {
+    await openApp(page, { employeeLoggedIn: false, beforeGoto: (p) => mockEmpBackend(p, {
+      employees: [{ emp_id: 'E1', emp_name: 'रमेश कुमार', emp_designation: '' }],
+    }), url: '/?shortcut=login' });
+    await expect(page.locator('#employee-login-modal')).toBeVisible();
+  });
+
+  test('Logout बटन सिर्फ़ login होने पर दिखता है', async ({ page }) => {
+    // Bina login ke dikhta to click par gate khul jata, aur gate me "rad karein"
+    // ka raasta nahi hai — device atak jata.
+    await openApp(page, { employeeLoggedIn: false });
+    await page.evaluate(() => updateHeaderMenuEmpName_());
+    await expect(page.locator('#header-menu-logout-btn')).toBeHidden();
+
+    await openApp(page, { employeeLoggedIn: true });
+    await page.evaluate(() => updateHeaderMenuEmpName_());
+    await expect(page.locator('#header-menu-logout-btn')).toHaveCSS('display', 'block');
   });
 
   test('गलत PIN पर backend का संदेश दिखता है और login नहीं होता', async ({ page }) => {
