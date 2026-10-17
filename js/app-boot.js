@@ -25,10 +25,6 @@
             });
 
             updateHeaderMenuEmpName_();
-            // Employee-login gate abhi jaan-bujhkar disabled hai — backend Apps Script
-            // (getEmployeeNames/verifyEmployeePin) abhi manually deploy nahi hui, aur gate
-            // ka koi "skip/cancel" raasta nahi hai, isliye enable karne se pehle ussi backend
-            // ka deploy hona zaroori hai (warna sabhi devices permanently gate par atak jaayenge).
             switchView("home");
 
             // manifest.json ke "shortcuts" (home-screen icon long-press) se ?shortcut=...
@@ -43,5 +39,20 @@
             // sakte hain (naam darj karna + login) switch chalu karne se PEHLE.
             // Baad me bhi kaam ka rehta hai: karmchari badalna ho to.
             else if (shortcut === "login") showEmployeeLoginGate_();
+
+            // Employee-login gate CHAALU (JE ne 17 Oct 2026 ko kaha, backend deploy
+            // ho jaane ke baad). Jis phone par abhi tak koi login nahi hua, wahan
+            // app khulte hi yeh gate aata hai; ek baar login ho jane par naam us
+            // phone me yaad rehta hai (localStorage) aur gate dobara nahi aata.
+            //
+            // DHYAN: pehle login ke liye internet zaroori hai — naam aur PIN server
+            // se jaanche jaate hain. Jo phone kabhi login na hua ho aur network se
+            // bahar ho, woh gate paar nahi kar payega (sandesh saaf dikhta hai,
+            // "Network error — फिर कोशिश करें", par aage nahi badh sakta). JE ko yeh
+            // batakar hi chaalu kiya gaya.
+            //
+            // Shortcut ke baad rakha hai taaki ?shortcut=admin / errorlog bhi khul
+            // sake (unke overlay is gate ke upar aate hain).
+            if (!getLoggedInEmployee_()) showEmployeeLoginGate_();
         });
 

@@ -1690,6 +1690,22 @@ test.describe('Employee Login (accountability) — plumbing (gate abhi disabled 
     expect(posts).toBe(0);
   });
 
+  test('login न हुआ हो तो ऐप खुलते ही गेट अपने-आप आता है', async ({ page }) => {
+    await openApp(page, { employeeLoggedIn: false, beforeGoto: (p) => mockEmpBackend(p, {
+      employees: [{ emp_id: 'E1', emp_name: 'रमेश कुमार', emp_designation: '' }],
+    }) });
+    await expect(page.locator('#employee-login-modal')).toBeVisible();
+  });
+
+  test('एक बार login हो जाने पर गेट दोबारा नहीं आता', async ({ page }) => {
+    // Yahi wajah hai ki roz PIN nahi poochi jaati — naam phone me yaad rehta hai.
+    await openApp(page, { employeeLoggedIn: true, beforeGoto: (p) => mockEmpBackend(p, {
+      employees: [{ emp_id: 'E1', emp_name: 'रमेश कुमार', emp_designation: '' }],
+    }) });
+    await expect(page.locator('#employee-login-modal')).toBeHidden();
+    await expect(page.locator('#home-view')).toHaveClass(/active/);
+  });
+
   test('?shortcut=login से गेट हाथ से खोला जा सकता है (switch चालू करने से पहले जाँच के लिए)', async ({ page }) => {
     await openApp(page, { employeeLoggedIn: false, beforeGoto: (p) => mockEmpBackend(p, {
       employees: [{ emp_id: 'E1', emp_name: 'रमेश कुमार', emp_designation: '' }],
