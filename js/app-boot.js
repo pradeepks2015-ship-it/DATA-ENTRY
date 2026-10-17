@@ -38,5 +38,10 @@
             const shortcut = new URLSearchParams(location.search).get("shortcut");
             if (shortcut === "admin") openAdminDashboardGate_();
             else if (shortcut === "errorlog") openErrorLogModal_();
+            // ?shortcut=login — gate ko haath se kholne ka raasta. Gate apne-aap
+            // abhi nahi khulta, isliye JE isse apne phone par poori jaanch kar
+            // sakte hain (naam darj karna + login) switch chalu karne se PEHLE.
+            // Baad me bhi kaam ka rehta hai: karmchari badalna ho to.
+            else if (shortcut === "login") showEmployeeLoginGate_();
         });
 

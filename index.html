@@ -13,7 +13,7 @@
     <link rel="manifest" href="./manifest.json">
     <meta name="theme-color" content="#6cb1e1">
     <link rel="apple-touch-icon" href="./icon-192.png">
-    <script>window.__APP_VERSION__ = 49;</script>
+    <script>window.__APP_VERSION__ = 50;</script>
 </head>
 <body>
     <div id="toast-notif"></div>
@@ -78,8 +78,10 @@
                         <button type="button" onclick="closeHeaderMenu_(); openErrorLogModal_();" aria-label="एरर लॉग देखें" style="display:block; width:100%; text-align:left; background:none; border:none; padding:12px 14px; font-size:12px; font-weight:800; color:#1e293b; cursor:pointer; border-top:1px solid #e5e7eb;">🐞 Error Log</button>
                         <button type="button" onclick="closeHeaderMenu_(); openAdminDashboardGate_();" style="display:block; width:100%; text-align:left; background:none; border:none; padding:12px 14px; font-size:12px; font-weight:800; color:#1e293b; cursor:pointer; border-top:1px solid #e5e7eb;">📊 Admin Dashboard</button>
                         <button type="button" onclick="manualRefreshAppNow_()" style="display:block; width:100%; text-align:left; background:none; border:none; padding:12px 14px; font-size:12px; font-weight:800; color:#1e293b; cursor:pointer; border-top:1px solid #e5e7eb;">🔄 App Refresh करें</button>
-                        <!-- Logout button abhi hidden hai — employee-login gate khud hi disabled hai (backend Apps Script deploy hone tak), aur is gate ka koi skip/cancel raasta nahi hai, isliye galti se yahan click hone se koi bhi device permanently atak sakta hai. -->
-                        <button type="button" onclick="closeHeaderMenu_(); logoutEmployee_();" style="display:none; width:100%; text-align:left; background:none; border:none; padding:12px 14px; font-size:12px; font-weight:800; color:#b91c1c; cursor:pointer; border-top:1px solid #e5e7eb;">🚪 Logout (कर्मचारी बदलें)</button>
+                        <!-- Sirf tab dikhta hai jab koi karmchari logged-in ho (updateHeaderMenuEmpName_).
+                             Logged-in na ho aur yeh dikh jaye to click karne par gate khul jata —
+                             aur gate me "rad karein" ka raasta nahi hai, yaani device atak jata. -->
+                        <button type="button" id="header-menu-logout-btn" onclick="closeHeaderMenu_(); logoutEmployee_();" style="display:none; width:100%; text-align:left; background:none; border:none; padding:12px 14px; font-size:12px; font-weight:800; color:#b91c1c; cursor:pointer; border-top:1px solid #e5e7eb;">🚪 Logout (कर्मचारी बदलें)</button>
                     </div>
                 </div>
             </div>

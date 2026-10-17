@@ -19,10 +19,13 @@
         }
 
         function updateHeaderMenuEmpName_() {
-            const el = document.getElementById("header-menu-emp-name");
-            if (!el) return;
             const emp = getLoggedInEmployee_();
-            el.textContent = emp ? `👤 ${emp.emp_name}` : "";
+            const el = document.getElementById("header-menu-emp-name");
+            if (el) el.textContent = emp ? `👤 ${emp.emp_name}` : "";
+            // Logout tabhi dikhe jab koi logged-in ho. Bina login ke dikhta to
+            // click karne par gate khul jata, aur gate me "rad karein" nahi hai.
+            const btn = document.getElementById("header-menu-logout-btn");
+            if (btn) btn.style.display = emp ? "block" : "none";
         }
 
         // Gate par do raaste hain:
