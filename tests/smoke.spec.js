@@ -75,7 +75,7 @@ test.describe('DC dashboard — hidden/removed features', () => {
 
     const buttons = await page.locator('#dc-dashboard-view .dashboard-btn').allTextContents();
     expect(buttons.map((b) => b.trim().replace(/\s+/g, ' '))).toEqual([
-      '1. ₹ VASOOLI TRACKER',
+      '1. VASOOLI TRACKER',
       '2. Mobile No Update',
       '3. Broken Pole / Damage Line',
       '4. FEEDER / SS WISE INPUT',
@@ -84,10 +84,10 @@ test.describe('DC dashboard — hidden/removed features', () => {
       '7. DTR (ट्रांसफार्मर) हेल्थ लॉग',
       '8. स्थाई विच्छेदन योग्य उपभोक्ता',
     ]);
-    // Sabhi 8 buttons ab custom SVG icon use karte hain (emoji nahi) — VASOOLI
-    // TRACKER ke andar ₹ ek SVG <text> hai isliye woh textContent me bhi aata hai.
+    // Sabhi 8 buttons ka apna chihn hai (emoji nahi): 1/3/7 par JE ke bheje
+    // chitra (<img>), baaki par inline SVG.
     for (let i = 0; i < 8; i++) {
-      await expect(page.locator('#dc-dashboard-view .dashboard-btn').nth(i).locator('svg')).toBeVisible();
+      await expect(page.locator('#dc-dashboard-view .dashboard-btn').nth(i).locator('svg, img.db-pic').first()).toBeVisible();
     }
     expect(errors).toEqual([]);
   });
