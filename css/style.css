@@ -184,6 +184,8 @@
            जान-बूझकर है — चित्रों की लकीरें गहरे नीले रंग की हैं, जो सीधे
            हरे/बैंगनी बटन पर रखने से डूब जातीं. */
         .db-pic { display: block; border-radius: 9px; background: #ffffff; }
+        /* वसूली वाला चित्र ख़ुद गोल है — चौकोर चौकी में उसके चारों कोने सफ़ेद पड़े रहते थे */
+        .db-pic-round { border-radius: 50%; }
         .db-label { flex: 1 1 auto; min-width: 0; line-height: 1.25; }
         /* Pehli tile doosra app nayi window me kholti hai, par dikhti baaki jaisi hi thi —
            ab dabane se pehle hi pata chal jaata hai */
