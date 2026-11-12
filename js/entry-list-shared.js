@@ -149,7 +149,7 @@
                         const uidJs = mcJsEscape_(getEntryUid_(e));
                         return `
                         <div style="display:flex; align-items:center; gap:10px; padding:8px; border-bottom:1px solid #e5e7eb;">
-                            ${thumb ? `<img src="${escapeHtml(thumb)}" alt="एंट्री थंबनेल" referrerpolicy="no-referrer" style="width:46px; height:46px; object-fit:cover; border-radius:8px; border:1px solid #e5e7eb; flex-shrink:0;">` : `<div style="width:46px; height:46px; border-radius:8px; background:#f1f5f9; flex-shrink:0;"></div>`}
+                            ${thumb ? `<img class="zoomable-photo" src="${escapeHtml(thumb)}" alt="एंट्री थंबनेल" referrerpolicy="no-referrer" style="width:46px; height:46px; object-fit:cover; border-radius:8px; border:1px solid #e5e7eb; flex-shrink:0;">` : `<div style="width:46px; height:46px; border-radius:8px; background:#f1f5f9; flex-shrink:0;"></div>`}
                             <div style="flex:1; min-width:0;">
                                 <div style="font-size:11px; font-weight:900; color:#1e293b; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${escapeHtml(config.getTitle(e))}</div>
                                 <div style="font-size:10px; font-weight:700; color:#64748b; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${escapeHtml(config.getSubtitle(e))}</div>
@@ -193,7 +193,7 @@
             let bodyHtml = "";
             if (storeName === "broken_pole") {
                 bodyHtml = `
-                    ${entry.photo_data ? `<img src="${escapeHtml(entry.photo_data)}" alt="एंट्री फोटो" style="width:100%; max-height:240px; object-fit:cover; border-radius:10px; margin-bottom:8px;">` : (entry.photo_url ? `<img src="${escapeHtml(normalizeDrivePhotoUrl_(entry.photo_url))}" alt="एंट्री फोटो" style="width:100%; max-height:240px; object-fit:cover; border-radius:10px; margin-bottom:8px;" referrerpolicy="no-referrer">` : "")}
+                    ${entry.photo_data ? `<img class="zoomable-photo" src="${escapeHtml(entry.photo_data)}" alt="एंट्री फोटो" style="width:100%; max-height:240px; object-fit:cover; border-radius:10px; margin-bottom:8px;">` : (entry.photo_url ? `<img class="zoomable-photo" src="${escapeHtml(normalizeDrivePhotoUrl_(entry.photo_url))}" alt="एंट्री फोटो" style="width:100%; max-height:240px; object-fit:cover; border-radius:10px; margin-bottom:8px;" referrerpolicy="no-referrer">` : "")}
                     <div class="photo-meta-row"><strong>Date:</strong> ${escapeHtml(entry.date || "")}</div>
                     <div class="photo-meta-row"><strong>Remark 1:</strong> ${escapeHtml(entry.remark1 || "")}</div>
                     <div class="photo-meta-row"><strong>Remark 2:</strong> ${escapeHtml(entry.remark2 || "")}</div>
@@ -210,7 +210,7 @@
                     ${trustedHtml_((entry.photos || []).map((p, idx) => `
                         <div style="margin-top:10px; padding-top:10px; border-top:1px solid #e5e7eb;">
                             <div style="font-size:11px; font-weight:900; color:#1e293b; margin-bottom:6px;">${escapeHtml(p.name || ("Photo " + (idx + 1)))}</div>
-                            ${p.photo_data ? `<img src="${escapeHtml(p.photo_data)}" alt="एंट्री फोटो" style="width:100%; max-height:200px; object-fit:cover; border-radius:10px; margin-bottom:6px;">` : (p.photo_url ? `<img src="${escapeHtml(normalizeDrivePhotoUrl_(p.photo_url))}" alt="एंट्री फोटो" style="width:100%; max-height:200px; object-fit:cover; border-radius:10px; margin-bottom:6px;" referrerpolicy="no-referrer">` : "")}
+                            ${p.photo_data ? `<img class="zoomable-photo" src="${escapeHtml(p.photo_data)}" alt="एंट्री फोटो" style="width:100%; max-height:200px; object-fit:cover; border-radius:10px; margin-bottom:6px;">` : (p.photo_url ? `<img class="zoomable-photo" src="${escapeHtml(normalizeDrivePhotoUrl_(p.photo_url))}" alt="एंट्री फोटो" style="width:100%; max-height:200px; object-fit:cover; border-radius:10px; margin-bottom:6px;" referrerpolicy="no-referrer">` : "")}
                             <div class="photo-meta-row"><strong>GPS:</strong> ${escapeHtml((p.gps_latitude && p.gps_longitude) ? `${p.gps_latitude}, ${p.gps_longitude}` : "N/A")}</div>
                             <div class="photo-meta-row"><strong>Location:</strong> ${escapeHtml(p.gps_location || "N/A")}</div>
                             ${isValidLatLon_(p.gps_latitude, p.gps_longitude) ? `<div style="margin-top:6px;"><a href="https://www.google.com/maps/dir/?api=1&destination=${trustedHtml_(p.gps_latitude)},${trustedHtml_(p.gps_longitude)}" target="_blank" rel="noopener" style="display:inline-flex; align-items:center; gap:6px; background:linear-gradient(135deg,#16a34a,#15803d); color:#fff; font-size:11px; font-weight:900; text-transform:uppercase; padding:8px 14px; border-radius:10px; text-decoration:none;">Get Directions</a></div>` : ""}
@@ -229,7 +229,7 @@
                         <div style="margin-top:10px; padding-top:10px; border-top:1px solid #e5e7eb;">
                             <div style="font-size:11px; font-weight:900; color:#1e293b; margin-bottom:6px;">${escapeHtml(p.name || ("दस्तावेज़ " + (idx + 1)))}</div>
                             ${isImg
-                                ? (p.photo_data ? `<img src="${escapeHtml(p.photo_data)}" alt="दस्तावेज़" style="width:100%; max-height:200px; object-fit:cover; border-radius:10px; margin-bottom:6px;">` : (p.photo_url ? `<img src="${escapeHtml(normalizeDrivePhotoUrl_(p.photo_url))}" alt="दस्तावेज़" style="width:100%; max-height:200px; object-fit:cover; border-radius:10px; margin-bottom:6px;" referrerpolicy="no-referrer">` : ""))
+                                ? (p.photo_data ? `<img class="zoomable-photo" src="${escapeHtml(p.photo_data)}" alt="दस्तावेज़" style="width:100%; max-height:200px; object-fit:cover; border-radius:10px; margin-bottom:6px;">` : (p.photo_url ? `<img class="zoomable-photo" src="${escapeHtml(normalizeDrivePhotoUrl_(p.photo_url))}" alt="दस्तावेज़" style="width:100%; max-height:200px; object-fit:cover; border-radius:10px; margin-bottom:6px;" referrerpolicy="no-referrer">` : ""))
                                 : `<a href="${escapeHtml(p.photo_data || normalizeDrivePhotoUrl_(p.photo_url) || "")}" target="_blank" rel="noopener" style="display:inline-block; margin-bottom:6px; font-size:11px; font-weight:800; color:#5b21b6; background:#ede9fe; border-radius:8px; padding:6px 10px;">📄 दस्तावेज़ देखें</a>`
                             }
                             ${(p.gps_latitude && p.gps_longitude) ? `
@@ -243,7 +243,7 @@
                 `;
             } else if (storeName === "dtr_health") {
                 bodyHtml = `
-                    ${entry.photo_data ? `<img src="${escapeHtml(entry.photo_data)}" alt="एंट्री फोटो" style="width:100%; max-height:240px; object-fit:cover; border-radius:10px; margin-bottom:8px;">` : (entry.photo_url ? `<img src="${escapeHtml(normalizeDrivePhotoUrl_(entry.photo_url))}" alt="एंट्री फोटो" style="width:100%; max-height:240px; object-fit:cover; border-radius:10px; margin-bottom:8px;" referrerpolicy="no-referrer">` : "")}
+                    ${entry.photo_data ? `<img class="zoomable-photo" src="${escapeHtml(entry.photo_data)}" alt="एंट्री फोटो" style="width:100%; max-height:240px; object-fit:cover; border-radius:10px; margin-bottom:8px;">` : (entry.photo_url ? `<img class="zoomable-photo" src="${escapeHtml(normalizeDrivePhotoUrl_(entry.photo_url))}" alt="एंट्री फोटो" style="width:100%; max-height:240px; object-fit:cover; border-radius:10px; margin-bottom:8px;" referrerpolicy="no-referrer">` : "")}
                     <div class="photo-meta-row"><strong>Date:</strong> ${escapeHtml(entry.date || "")}</div>
                     <div class="photo-meta-row"><strong>DTR No / स्थान:</strong> ${escapeHtml(entry.dtr_no || "")}</div>
                     <div class="photo-meta-row"><strong>समस्या का प्रकार:</strong> ${escapeHtml(entry.issue_type || "")}</div>
