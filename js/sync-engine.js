@@ -26,10 +26,61 @@
             } catch (qErr) { console.error(qErr); }
         }
 
+        // Ek photo Drive par bhejta hai — teen koshish, phir haar maan leta hai.
+        //
+        // Pehle yeh kaam seedhe syncEntryToCloud_ ke andar hota tha aur uska
+        // nateeja ek local `uploaded` flag me rakha jaata tha JISE KOI PADHTA HI
+        // NAHI THA. Teenon koshish girne par bhi function "safal" lautaata tha:
+        // entry server par chadh jaati, qatar se woh item mit jaata, aur photo
+        // hamesha ke liye gayab. Kamzor network me photo (2-5 lakh akshar) 30
+        // second me nahi jaati, isliye khet me yahi hota tha — JE ne 12 Nov 2026
+        // ko bijli chori wale button par yahi pakda.
+        //
+        // Ab nateeja lautaaya jaata hai, aur bulane wala us par kuch karta hai.
+        async function uploadOnePhoto_(module, entryId, photo) {
+            let message = "";
+            let netJaisi = false;
+            for (let attempt = 0; attempt < 3; attempt++) {
+                try {
+                    const payload = new URLSearchParams();
+                    payload.append("module", module);
+                    payload.append("action", "uploadPhoto");
+                    payload.append("entry_id", entryId);
+                    payload.append("photo_data", photo.data);
+                    payload.append("photo_name", photo.name || "");
+                    payload.append("photo_index", String(photo.index));
+                    payload.append("auth_token", APPS_SCRIPT_AUTH_TOKEN);
+
+                    const res = await fetchWithTimeout_(sharedModuleSyncScriptUrl, {
+                        method: "POST",
+                        headers: { "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8" },
+                        body: payload.toString()
+                    }, 30000); // photo bada hota hai, isliye lamba samay
+                    let parsed = null;
+                    try { parsed = JSON.parse((await res.text()) || "{}"); } catch (_) {}
+                    if (parsed && parsed.status === "success") return { ok: true, netJaisi: false, message: "" };
+                    // Server ne jawab to diya, par "success" nahi — dobara peetne se
+                    // kuch nahi badlega, par ek-do baar aur dekh lete hain
+                    netJaisi = false;
+                    message = (parsed && parsed.message) || `Server ne HTTP ${res.status} diya`;
+                } catch (err) {
+                    netJaisi = navigator.onLine === false || err instanceof TypeError || err?.name === "AbortError";
+                    message = netJaisi
+                        ? `नेटवर्क/समय-सीमा: ${String(err?.message || err || "").slice(0, 120)}`
+                        : String(err?.message || err || "").slice(0, 150);
+                    await new Promise((r) => setTimeout(r, 1000));
+                }
+                // Net hi nahi hai to teen baar peetne ka koi matlab nahi
+                if (navigator.onLine === false) break;
+            }
+            return { ok: false, netJaisi, message };
+        }
+
         async function syncEntryToCloud_(module, entry, isReplay = false) {
             window.__lastSyncQueued = false;
             window.__lastSyncErrorReason = "";
             window.__lastSyncErrorMessage = "";
+            window.__lastPhotosQueued = 0;   // warna pichhle submit ka aankda bacha reh jata
             if (!sharedModuleSyncEnabled) { window.__lastSyncErrorReason = "disabled"; return ""; }
             try {
                 // Step 1: Send entry metadata only (no photo_data) to get entry_id
@@ -85,35 +136,21 @@
                     });
                 }
 
-                // Upload photos sequentially with retry (sequential avoids overwhelming Apps Script)
+                // Ek-ek karke bhejte hain (saath me bhejne se Apps Script dab jaati hai).
+                // Jo photo nahi ja paayi woh apni alag qatar me chali jaati hai —
+                // entry to chadh chuki hai, sirf photo baaki hai. Net aate hi
+                // apne aap chali jaayegi.
+                let photosAtki = 0;
                 for (const photo of photoUploads) {
-                    let uploaded = false;
-                    for (let attempt = 0; attempt < 3 && !uploaded; attempt++) {
-                        try {
-                            const photoPayload = new URLSearchParams();
-                            photoPayload.append("module", module);
-                            photoPayload.append("action", "uploadPhoto");
-                            photoPayload.append("entry_id", entryId);
-                            photoPayload.append("photo_data", photo.data);
-                            photoPayload.append("photo_name", photo.name);
-                            photoPayload.append("photo_index", String(photo.index));
-                            photoPayload.append("auth_token", APPS_SCRIPT_AUTH_TOKEN);
-
-                            const photoResponse = await fetchWithTimeout_(sharedModuleSyncScriptUrl, {
-                                method: "POST",
-                                headers: { "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8" },
-                                body: photoPayload.toString()
-                            }, 30000); // photo data bada ho sakta hai, isliye lamba timeout
-                            const photoResult = JSON.parse((await photoResponse.text()) || "{}");
-                            if (photoResult && photoResult.status === "success") {
-                                uploaded = true;
-                            }
-                        } catch (_) {
-                            // Wait 1s before retry
-                            await new Promise((r) => setTimeout(r, 1000));
-                        }
-                    }
+                    const r = await uploadOnePhoto_(module, entryId, photo);
+                    if (r.ok) continue;
+                    photosAtki++;
+                    logErr_(`photo-${module}`, null, r.message || "photo upload nakaam");
+                    try {
+                        await queueOfflineSync_({ kind: "photo_upload", module, entryId, photo });
+                    } catch (qErr) { console.error(qErr); }
                 }
+                window.__lastPhotosQueued = photosAtki;
 
                 // Invalidate cache so other users get fresh data with photos on next fetch
                 sharedModuleLastFetch[module] = 0;
@@ -375,6 +412,16 @@
                             } else if (window.__lastSyncErrorReason === "network") {
                                 netJaisi = true;
                             }
+                        } else if (item.kind === "photo_upload") {
+                            // Entry to pehle hi chadh chuki hai, sirf uski photo baaki thi
+                            const r = await uploadOnePhoto_(item.module, item.entryId, item.photo);
+                            ok = r.ok;
+                            if (ok) {
+                                sharedModuleLastFetch[item.module] = 0;
+                            } else {
+                                netJaisi = r.netJaisi;
+                                window.__lastQueueErrorMessage = r.message;
+                            }
                         } else if (item.kind === "post_form") {
                             ok = await queuePostOk_("queue-post_form", APPS_SCRIPT_EXEC_URL, item.body);
                         } else if (item.kind === "kc_update") {
@@ -441,6 +488,7 @@
         // pade to hataya ja sakta hai.
         function syncQueueItemLabel_(it) {
             if (it.kind === "shared_entry") return `नई एंट्री · ${it.module || "?"}`;
+            if (it.kind === "photo_upload") return `फ़ोटो · ${it.module || "?"}`;
             if (it.kind === "entry_update") return `बदलाव · ${it.module || "?"}`;
             if (it.kind === "kc_update") return "बदलाव · कर्मचारी कार्य चरित्रावली";
             if (it.kind === "post_form") {

@@ -164,7 +164,18 @@
                     return showToast("Save karne mein error aaya, dobara try karein", false);
                 }
 
-                showToast("Entry Saved! Photos sabhi users ko dikh sakti hain.", true);
+                // Photo chadhi ya nahi, yeh sach-sach batana zaroori hai. Pehle yahan
+                // hamesha "Photos sabhi users ko dikh sakti hain" likha aata tha —
+                // chahe ek bhi photo gayi ho ya na gayi ho.
+                const atki = window.__lastPhotosQueued || 0;
+                if (entryId && atki) {
+                    showToast(`Entry Saved! ${atki} फ़ोटो अभी नहीं जा पाई — 🔄 नेटवर्क आने पर अपने आप चली जाएगी`, true);
+                } else if (entryId) {
+                    showToast("Entry Saved! Photos sabhi users ko dikh sakti hain.", true);
+                } else {
+                    // Upar wala toast pehle hi bata chuka hai ki qatar me gayi hai
+                    showToast("Entry Saved!", true);
+                }
 
                 // Reset form
                 document.getElementById("bc-ivrs").value = "";
