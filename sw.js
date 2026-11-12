@@ -1,4 +1,4 @@
-// Seoni Circle App — pure cache-first service worker (v3.1)
+// Seoni Circle App — pure cache-first service worker (v3.2)
 // App ki apni files (JS/CSS/HTML) ek baar cache hone ke baad seedhe cache se
 // milti hain — koi background revalidation nahi (pehle har request par bhi
 // ek chupchaap network refetch chalti thi, jisse data cost bewajah badhta
@@ -20,11 +20,22 @@
 // kuch dabaye, sirf agli baar app kholte hi apne-aap theek ho jaayenge
 // (browser SW script ka byte-diff khud detect karke naya SW activate karta
 // hai, jo purana-naam-wala cache activate hote hi delete kar deta hai).
-const CACHE = "seoni-circle-v5.3";
+const CACHE = "seoni-circle-v5.4";
 const CORE = ["./", "./index.html", "./manifest.json"];
 
+// BUG FIX (v3.2): `c.addAll(CORE)` saadharan fetch karta tha, jo browser ke
+// APNE HTTP cache se jawab le leta hai. GitHub Pages assets par max-age bhejta
+// hai, isliye naye deploy ke baad bhi purani index.html HTTP cache se aakar
+// SW cache me dobara bhar jaati thi — aur "App Refresh करें" dabane par bhi
+// wahi purana panna lautta tha. (JE ne 12 Nov 2026 ko pakda: version 58 merge
+// hone aur deploy safal hone ke baad bhi phone par nahi aa raha tha.)
+//
+// `cache: "reload"` HTTP cache ko bilkul lanaghta hai — seedha network se.
+// Isse koi extra request nahi lagti, bas purana jawab nahi milta.
+const freshCore = () => CORE.map((u) => new Request(u, { cache: "reload" }));
+
 self.addEventListener("install", (e) => {
-  e.waitUntil(caches.open(CACHE).then((c) => c.addAll(CORE)).then(() => self.skipWaiting()));
+  e.waitUntil(caches.open(CACHE).then((c) => c.addAll(freshCore())).then(() => self.skipWaiting()));
 });
 
 self.addEventListener("activate", (e) => {
@@ -43,7 +54,7 @@ self.addEventListener("message", (e) => {
   e.waitUntil(
     caches.delete(CACHE)
       .then(() => caches.open(CACHE))
-      .then((c) => c.addAll(CORE))
+      .then((c) => c.addAll(freshCore()))
       .catch(() => {})
       .then(() => { e.source?.postMessage({ type: "FORCE_REFRESH_DONE" }); })
   );
@@ -73,8 +84,19 @@ self.addEventListener("fetch", (e) => {
       // FORCE_REFRESH se hi aati hai.
       if (cached) return cached;
 
-      // Cache me nahi mila (pehli baar) — network se laao aur cache kar lo.
-      return fetch(req)
+      // Cache me nahi mila (pehli baar, ya FORCE_REFRESH ne cache saaf kiya) —
+      // network se laao aur cache kar lo.
+      //
+      // Yahan bhi cache:"reload" zaroori hai. FORCE_REFRESH poora cache mitata
+      // hai, yaani uske baad HAR file "miss" hoti hai — agar yeh fetch browser
+      // ke HTTP cache se jawab le le to saari purani files wapas bhar jaati
+      // hain, aur refresh ka koi matlab hi nahi rehta. Naya index.html aur
+      // purani js/*.js ka mela-jula haal usse bhi bura hota hai.
+      //
+      // Extra data nahi lagta: miss hai, yaani fetch to karni hi thi.
+      let freshReq = req;
+      try { freshReq = new Request(req, { cache: "reload" }); } catch (_) {}
+      return fetch(freshReq)
         .then((res) => {
           if (res && res.ok) {
             const copy = res.clone();
