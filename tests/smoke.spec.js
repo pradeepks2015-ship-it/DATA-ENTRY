@@ -1147,6 +1147,33 @@ test.describe('फ़ोटो अपलोड — नेटवर्क कम�
     await expect(page.locator('#sq-list')).toContainText('bijli_chori');
   });
 
+  test('बिजली चोरी की photo दबाकर भेजी जाती है (भारी सेटिंग वापस न आ जाए)', async ({ page }) => {
+    // Pehle yahan default (1280/0.78) chalta tha — ek photo ~332 KB, do khaane
+    // yaani ek entry me ~664 KB. Kamzor gaon ke network par itna 30 second ki
+    // seema me nahi jaata tha aur photo atak jaati thi. Ab 1024/0.65 (~165 KB).
+    // Agar kal koi galti se phir se bada kar de, yeh test use pakad lega.
+    await openApp(page, { beforeGoto: (p2) => p2.route('**/macros/**', (r) => r.abort()) });
+    await page.evaluate(() => switchView('bijli-chori'));
+    await page.waitForFunction(() => !!document.getElementById('bc-photo-0'));
+
+    await page.evaluate(() => {
+      window.__seen = [];
+      const asli = window.resizeImageForUpload;
+      window.resizeImageForUpload = (file, w, q) => { window.__seen.push({ w, q }); return asli(file, w, q); };
+    });
+
+    await page.setInputFiles('#bc-photo-0', {
+      name: 'evidence.png', mimeType: 'image/png',
+      buffer: Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=', 'base64'),
+    });
+    await page.waitForFunction(() => !!bcPhotoSlots[0]?.photoData);
+
+    const seen = await page.evaluate(() => window.__seen);
+    expect(seen.length).toBe(1);
+    expect(seen[0].w).toBeLessThanOrEqual(1024);   // default (1280) wapas na aa jaaye
+    expect(seen[0].q).toBeLessThanOrEqual(0.7);    // default (0.78) bhi nahi
+  });
+
   test('पूरी तरह offline हो तो entry अपनी photo समेत क़तार में जाती है', async ({ page }) => {
     await openApp(page, { beforeGoto: (p) => p.route('**/macros/**', (route) => route.abort('failed')) });
     const r = await page.evaluate(async (entry) => {

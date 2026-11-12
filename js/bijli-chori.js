@@ -44,7 +44,17 @@
             const input = document.getElementById(`bc-photo-${idx}`);
             if (!input.files || !input.files[0]) return;
             try {
-                const photoData = await resizeImageForUpload(input.files[0]);
+                // 1024/0.65 — pehle yahan default (1280/0.78) chalta tha, jo ek
+                // photo ko ~332 KB bana deta tha; do khaane hain, yaani ek entry
+                // me ~664 KB. Kamzor gaon ke network par itna data 30 second ki
+                // seema me nahi jaata tha aur photo atak jaati thi (JE ne 12 Nov
+                // 2026 ko yahi pakda). Ab ~165 KB — aadha.
+                //
+                // 900/0.6 par aur ghat sakta tha (~124 KB, jaisa broken-pole aur
+                // dtr-health mahinon se chal rahe hain), par bijli chori me meter
+                // ka number aur taar ka hook dikhana padta hai — isliye yahan
+                // thoda zyada byora rakha gaya hai.
+                const photoData = await resizeImageForUpload(input.files[0], 1024, 0.65);
                 bcPhotoSlots[idx] = {
                     name: bcPhotoSlots[idx]?.name || bcDefaultPhotoNames[idx] || "",
                     photoData,
