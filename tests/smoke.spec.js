@@ -1186,6 +1186,57 @@ test.describe('फ़ोटो अपलोड — नेटवर्क कम�
   });
 });
 
+test.describe('App Refresh सचमुच नया वर्शन लाता है', () => {
+  // 12 Nov 2026: version 58 merge hua, deploy safal, phir bhi phone par nahi
+  // aaya. Wajah — sw.js ka `c.addAll(CORE)` aur miss wali `fetch(req)` dono
+  // saadharan fetch karte the, jo browser ke APNE HTTP cache se jawab le lete
+  // hain. FORCE_REFRESH poora cache mitata hai, yaani uske baad har file miss
+  // hoti hai — aur saari purani files HTTP cache se wapas bhar jaati thi.
+  // Ab dono jagah cache:"reload" hai.
+  //
+  // Yeh jaanch source par hai, chalte hue SW par nahi: SW ka HTTP-cache wala
+  // vyavhaar headless test me bharosemand tarike se banaya nahi ja sakta.
+  // Isliye seedhe wahi shart jaanchi jaati hai jo toot gayi thi.
+  const fs = require('fs');
+  // Tippaniyan hata kar jaanchte hain — warna khud tippani me likha
+  // "addAll(CORE)" hi test ko gira deta hai.
+  const code = (f) => fs.readFileSync(f, 'utf8').split('\n').map((l) => l.replace(/^\s*\/\/.*$/, '')).join('\n');
+
+  test('CORE फ़ाइलें HTTP cache को लाँघकर आती हैं', async () => {
+    const sw = code('sw.js');
+    // CORE kabhi seedhe addAll na ho — hamesha freshCore() se
+    expect(sw).not.toMatch(/addAll\(CORE\)/);
+    expect(sw).toMatch(/freshCore\s*=\s*\(\)\s*=>\s*CORE\.map/);
+    expect(sw).toMatch(/new Request\(u,\s*\{\s*cache:\s*"reload"\s*\}\)/);
+    // install aur FORCE_REFRESH, dono freshCore() istemal karein
+    expect((sw.match(/addAll\(freshCore\(\)\)/g) || []).length).toBe(2);
+  });
+
+  test('cache-miss पर भी HTTP cache से पुरानी फ़ाइल नहीं उठती', async () => {
+    const sw = code('sw.js');
+    expect(sw).toMatch(/new Request\(req,\s*\{\s*cache:\s*"reload"\s*\}\)/);
+    expect(sw).toMatch(/fetch\(freshReq\)/);
+    expect(sw).not.toMatch(/return fetch\(req\)/);
+  });
+
+  test('version.json की जाँच SW को पूरी तरह बायपास करती है', async () => {
+    // Warna naya version kabhi pata hi na chale
+    const init = code('js/init.js');
+    expect(init).toMatch(/fetch\("\.\/version\.json\?t=" \+ Date\.now\(\),\s*\{\s*cache:\s*"reload"\s*\}\)/);
+    const sw = code('sw.js');
+    expect(sw).toMatch(/req\.cache === "reload"/);
+  });
+
+  test('APP_VER, version.json और CACHE तीनों साथ बढ़े हैं', async () => {
+    // Teenon ka saath badhna zaroori hai: APP_VER/version.json se banner dikhta
+    // hai, aur CACHE naam badalne se purana cache mitta hai.
+    const html = fs.readFileSync('index.html', 'utf8');
+    const vJson = JSON.parse(fs.readFileSync('version.json', 'utf8'));
+    const appVer = Number(/window\.__APP_VERSION__ = (\d+);/.exec(html)?.[1]);
+    expect(appVer).toBe(vJson.v);
+  });
+});
+
 test.describe('छूटी हुई फ़ोटो दोबारा भेजना', () => {
   // 12 Nov se pehle jo photo chup-chaap gayab ho gayi thi, woh asal me phone me
   // padi hai (entry poori sahejti hai — photo_data + server ka entry_id). Yeh
