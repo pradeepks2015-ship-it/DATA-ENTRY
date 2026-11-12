@@ -1186,6 +1186,122 @@ test.describe('फ़ोटो अपलोड — नेटवर्क कम�
   });
 });
 
+test.describe('छूटी हुई फ़ोटो दोबारा भेजना', () => {
+  // 12 Nov se pehle jo photo chup-chaap gayab ho gayi thi, woh asal me phone me
+  // padi hai (entry poori sahejti hai — photo_data + server ka entry_id). Yeh
+  // kaam server se milakar dhoondhta hai ki kaun si chhooti, aur unhi ko bhejta hai.
+  const IMG = 'data:image/png;base64,AAAA';
+
+  /**
+   * @param {import('@playwright/test').Page} page
+   * @param {{server?: any[], uploadFails?: boolean, asked?: string[], uploads?: any[]}} o
+   */
+  async function mockServer(page, o = {}) {
+    await page.route('**/macros/**', (route) => {
+      const req = route.request();
+      const url = new URL(req.url());
+      if (req.method() === 'POST') {
+        const body = new URLSearchParams(req.postData() || '');
+        if (body.get('action') === 'uploadPhoto') {
+          o.uploads?.push({ module: body.get('module'), entryId: body.get('entry_id'), index: body.get('photo_index') });
+          if (o.uploadFails) return route.abort('failed');
+        }
+        return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ status: 'success' }) });
+      }
+      if (url.searchParams.get('action') === 'getEntries') {
+        const m = url.searchParams.get('module');
+        o.asked?.push(m);
+        return route.fulfill({ status: 200, contentType: 'application/json',
+          body: JSON.stringify({ status: 'success', entries: m === 'bijli_chori' ? (o.server || []) : [] }) });
+      }
+      return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ status: 'success', entries: [] }) });
+    });
+  }
+
+  test('जिस photo का server पर photo_url नहीं है, सिर्फ़ वही भेजी जाती है', async ({ page }) => {
+    // E1 ki pehli photo chadh chuki hai, doosri nahi — sirf doosri jaani chahiye
+    const uploads = [];
+    await openApp(page, { beforeGoto: (p) => mockServer(p, {
+      server: [{ entry_id: 'E1', photos: [{ photo_url: 'https://x/1' }, {}] }], uploads,
+    }) });
+    await page.evaluate(async (img) => {
+      await idbAdd_('bijli_chori', { entry_id: 'E1', client_id: 'C1', date: '01-01-2026',
+        photos: [{ name: 'a', photo_data: img }, { name: 'b', photo_data: img }] });
+      await repairMissingPhotos_();
+    }, IMG);
+    expect(uploads).toEqual([{ module: 'bijli_chori', entryId: 'E1', index: '1' }]);
+  });
+
+  test('सब photo पहले से चढ़ी हों तो कुछ नहीं भेजता', async ({ page }) => {
+    const uploads = [];
+    await openApp(page, { beforeGoto: (p) => mockServer(p, {
+      server: [{ entry_id: 'E1', photos: [{ photo_url: 'https://x/1' }] }], uploads,
+    }) });
+    await page.evaluate(async (img) => {
+      await idbAdd_('bijli_chori', { entry_id: 'E1', client_id: 'C1', photos: [{ photo_data: img }] });
+      await repairMissingPhotos_();
+    }, IMG);
+    expect(uploads).toEqual([]);
+  });
+
+  test('जो entry server तक पहुँची ही नहीं (entry_id नहीं) उसे नहीं छूता', async ({ page }) => {
+    // Aisi entry pehle hi shared_entry qatar me hoti hai — yahan dobara daalna galat hoga
+    const uploads = [];
+    await openApp(page, { beforeGoto: (p) => mockServer(p, { server: [], uploads }) });
+    await page.evaluate(async (img) => {
+      await idbAdd_('bijli_chori', { client_id: 'C1', photos: [{ photo_data: img }] });
+      await repairMissingPhotos_();
+    }, IMG);
+    expect(uploads).toEqual([]);
+  });
+
+  test('upload गिर जाए तो photo क़तार में रहती है, और दोबारा दबाने पर दुगुनी नहीं होती', async ({ page }) => {
+    await openApp(page, { beforeGoto: (p) => mockServer(p, {
+      server: [{ entry_id: 'E1', photos: [{}] }], uploadFails: true,
+    }) });
+    const n = await page.evaluate(async (img) => {
+      await idbAdd_('bijli_chori', { entry_id: 'E1', client_id: 'C1', photos: [{ photo_data: img }] });
+      await repairMissingPhotos_();
+      await repairMissingPhotos_();
+      return (await idbGetAll_('sync_queue')).filter((i) => i.kind === 'photo_upload').length;
+    }, IMG);
+    expect(n).toBe(1);   // qatar me bani rahi, par ek hi baar
+  });
+
+  test('offline हो तो साफ़ संदेश दे और server से कुछ न माँगे', async ({ page }) => {
+    const asked = [];
+    await openApp(page, { beforeGoto: (p) => mockServer(p, { asked }) });
+    await page.waitForLoadState('networkidle');
+    asked.length = 0;   // app ke shuruaati request ginti me na aayein
+
+    const msg = await page.evaluate(async () => {
+      Object.defineProperty(navigator, 'onLine', { value: false, configurable: true });
+      let m = null;
+      const asli = window.showToast;
+      window.showToast = (t) => { m = t; };
+      await repairMissingPhotos_();
+      window.showToast = asli;
+      Object.defineProperty(navigator, 'onLine', { value: true, configurable: true });
+      return m;
+    });
+    expect(msg).toContain('इंटरनेट चाहिए');
+    expect(asked).toEqual([]);
+  });
+
+  test('जिस module की कोई local entry नहीं, उसके लिए server से पूछता ही नहीं (डेटा बचे)', async ({ page }) => {
+    const asked = [];
+    await openApp(page, { beforeGoto: (p) => mockServer(p, { server: [], asked }) });
+    await page.waitForLoadState('networkidle');
+    asked.length = 0;
+
+    await page.evaluate(async (img) => {
+      await idbAdd_('bijli_chori', { entry_id: 'E1', client_id: 'C1', photos: [{ photo_data: img }] });
+      await repairMissingPhotos_();
+    }, IMG);
+    expect(asked).toEqual(['bijli_chori']);   // baaki teen module chhue hi nahi
+  });
+});
+
 test.describe('फ़ोटो ज़ूम करके देखना', () => {
   // Zaroorat kyun: index.html ke viewport me user-scalable=no hai (ungli se zoom
   // har jagah band), aur entry ki photo 240px ki patti me object-fit:cover se
