@@ -1063,6 +1063,102 @@ test.describe('Backend auth token', () => {
   });
 });
 
+test.describe('फ़ोटो अपलोड — नेटवर्क कमज़ोर/बंद हो तो क़तार में जाए, गुम न हो', () => {
+  // 12 Nov 2026: JE ne bijli chori wale button par pakda ki bina network ke photo
+  // chadhti hi nahi. Wajah — syncEntryToCloud_ photo ki teenon koshish girne par
+  // bhi "safal" lautaata tha (uska `uploaded` flag koi padhta hi nahi tha), isliye
+  // entry chadh jaati, qatar se item mit jaata, aur photo hamesha ke liye gayab.
+
+  const ENTRY = {
+    ivrs: '12345', name: 'Test', remark: 'test',
+    date: '01-01-2026', client_id: 'CTEST1',
+    photos: [{ photo_data: 'data:image/jpeg;base64,AAAA', name: 'p1.jpg' }],
+  };
+
+  /**
+   * entry chadhne deta hai par photo wali request rok deta hai
+   * @param {import('@playwright/test').Page} page
+   */
+  async function entryOkPhotoFail(page) {
+    await page.route('**/macros/**', (route) => {
+      const body = route.request().postData() || '';
+      if (body.includes('action=uploadPhoto')) return route.abort('failed');
+      return route.fulfill({ status: 200, contentType: 'application/json',
+        body: JSON.stringify({ status: 'success', entry_id: 'E_SERVER_1' }) });
+    });
+  }
+
+  test('photo न जा पाए तो entry चढ़ती है और photo अलग से क़तार में जाती है', async ({ page }) => {
+    await openApp(page, { beforeGoto: entryOkPhotoFail });
+    const r = await page.evaluate(async (entry) => {
+      const entryId = await syncEntryToCloud_('bijli_chori', entry);
+      const q = (await idbGetAll_('sync_queue')).filter((i) => i.kind === 'photo_upload');
+      return { entryId, queued: window.__lastPhotosQueued, n: q.length,
+               module: q[0]?.module, forEntry: q[0]?.entryId, hasData: !!q[0]?.photo?.data };
+    }, ENTRY);
+
+    expect(r.entryId).toBe('E_SERVER_1');   // entry to chadh gayi
+    expect(r.queued).toBe(1);               // par photo atki — aur yeh baat batai gayi
+    expect(r.n).toBe(1);
+    expect(r.module).toBe('bijli_chori');
+    expect(r.forEntry).toBe('E_SERVER_1');
+    expect(r.hasData).toBe(true);           // photo ka data qatar me bacha hai
+  });
+
+  test('नेटवर्क आने पर क़तार से photo अपने आप चढ़ जाती है', async ({ page }) => {
+    await openApp(page, {
+      beforeGoto: (p) => p.route('**/macros/**', (route) => route.fulfill({
+        status: 200, contentType: 'application/json', body: JSON.stringify({ status: 'success' }) })),
+    });
+    const r = await page.evaluate(async () => {
+      await idbAdd_('sync_queue', { kind: 'photo_upload', module: 'bijli_chori',
+        entryId: 'E_SERVER_1', photo: { data: 'data:image/jpeg;base64,AAAA', name: 'p1.jpg', index: 0 },
+        createdAt: Date.now() });
+      await processSyncQueue_();
+      return (await idbGetAll_('sync_queue')).length;
+    });
+    expect(r).toBe(0);   // chadhne ke baad qatar se hat gayi
+  });
+
+  test('photo फिर भी न जाए तो क़तार में बनी रहती है (चुपचाप मिटती नहीं)', async ({ page }) => {
+    await openApp(page, {
+      beforeGoto: (p) => p.route('**/macros/**', (route) => route.abort('failed')),
+    });
+    const r = await page.evaluate(async () => {
+      await idbAdd_('sync_queue', { kind: 'photo_upload', module: 'bijli_chori',
+        entryId: 'E_SERVER_1', photo: { data: 'data:image/jpeg;base64,AAAA', name: 'p1.jpg', index: 0 },
+        createdAt: Date.now() });
+      await processSyncQueue_();
+      const q = await idbGetAll_('sync_queue');
+      return { n: q.length, fails: q[0]?.failCount };
+    });
+    expect(r.n).toBe(1);
+    expect(r.fails).toBeGreaterThan(0);   // nakami darj bhi hui
+  });
+
+  test('अटकी हुई photo "अटकी एंट्री" पन्ने पर नाम के साथ दिखती है', async ({ page }) => {
+    await openApp(page, { beforeGoto: (p) => p.route('**/macros/**', (route) => route.abort('failed')) });
+    await page.evaluate(async () => {
+      await idbAdd_('sync_queue', { kind: 'photo_upload', module: 'bijli_chori',
+        entryId: 'E1', photo: { data: 'x', name: 'p.jpg', index: 0 }, createdAt: Date.now() });
+      await openSyncQueueModal_();
+    });
+    await expect(page.locator('#sq-list')).toContainText('फ़ोटो');
+    await expect(page.locator('#sq-list')).toContainText('bijli_chori');
+  });
+
+  test('पूरी तरह offline हो तो entry अपनी photo समेत क़तार में जाती है', async ({ page }) => {
+    await openApp(page, { beforeGoto: (p) => p.route('**/macros/**', (route) => route.abort('failed')) });
+    const r = await page.evaluate(async (entry) => {
+      await syncEntryToCloud_('bijli_chori', entry);
+      const q = (await idbGetAll_('sync_queue')).filter((i) => i.kind === 'shared_entry');
+      return { n: q.length, photoBacha: !!q[0]?.entry?.photos?.[0]?.photo_data };
+    }, ENTRY);
+    expect(r.n).toBe(1);
+    expect(r.photoBacha).toBe(true);   // photo ka data entry ke saath qatar me gaya
+  });
+});
+
 test.describe('Offline sync queue (Karya Charitra)', () => {
   test('offline में बनाया SCN sync_queue में जाता है, local record से client_id मैच करता है', async ({ page }) => {
     await openApp(page, {
