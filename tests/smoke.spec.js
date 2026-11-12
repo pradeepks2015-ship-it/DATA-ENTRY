@@ -1186,6 +1186,96 @@ test.describe('फ़ोटो अपलोड — नेटवर्क कम�
   });
 });
 
+test.describe('फ़ोटो ज़ूम करके देखना', () => {
+  // Zaroorat kyun: index.html ke viewport me user-scalable=no hai (ungli se zoom
+  // har jagah band), aur entry ki photo 240px ki patti me object-fit:cover se
+  // dikhti thi — chhoti bhi, kati hui bhi. Meter ka number padha hi nahi jaata tha.
+
+  /** asli naap ki ek tasveer, taaki #pv-img ki jagah bane aur us par click ho sake */
+  const makeImg = () => `(() => { const c = document.createElement('canvas');
+    c.width = 240; c.height = 180; const x = c.getContext('2d');
+    x.fillStyle = '#4477aa'; x.fillRect(0, 0, 240, 180);
+    x.fillStyle = '#fff'; x.font = 'bold 40px sans-serif'; x.fillText('65432', 30, 110);
+    return c.toDataURL('image/png'); })()`;
+
+  test('photo पर दबाने से viewer खुलता है और पूरी photo दिखती है (कटी हुई नहीं)', async ({ page }) => {
+    await openApp(page);
+    await page.evaluate((js) => {
+      const src = eval(js);
+      const d = document.createElement('div');
+      d.style.cssText = 'position:fixed; inset:0; z-index:5000; background:#fff;';
+      d.innerHTML = `<img class="zoomable-photo" src="${src}" alt="एंट्री फोटो" style="width:240px; height:180px;">`;
+      document.body.appendChild(d);
+    }, makeImg());
+    await page.click('.zoomable-photo');
+
+    await expect(page.locator('#photo-viewer-overlay')).toBeVisible();
+    // contain = POORI photo; soochi wali cover (kati hui) se yahi fark hai
+    await expect(page.locator('#pv-img')).toHaveCSS('object-fit', 'contain');
+    await expect(page.locator('#pv-zoom-label')).toHaveText('1.0×');
+  });
+
+  test('photo पर दो बार दबाने से बड़ी होती है, फिर वापस', async ({ page }) => {
+    await openApp(page);
+    await page.evaluate((js) => openPhotoViewer_(eval(js)), makeImg());
+
+    await page.locator('#pv-img').dblclick();
+    await expect(page.locator('#pv-zoom-label')).toHaveText('3.0×');
+    await page.locator('#pv-img').dblclick();
+    await expect(page.locator('#pv-zoom-label')).toHaveText('1.0×');
+  });
+
+  test('✕ और Escape दोनों से बंद होता है', async ({ page }) => {
+    await openApp(page);
+    await page.evaluate((js) => openPhotoViewer_(eval(js)), makeImg());
+    await page.click('#pv-close-btn');
+    await expect(page.locator('#photo-viewer-overlay')).toHaveCount(0);
+
+    await page.evaluate((js) => openPhotoViewer_(eval(js)), makeImg());
+    await page.keyboard.press('Escape');
+    await expect(page.locator('#photo-viewer-overlay')).toHaveCount(0);
+  });
+
+  test('zoom किया हो तो खाली जगह दबाने से बंद न हो (pan करते वक़्त गलती से)', async ({ page }) => {
+    await openApp(page);
+    await page.evaluate((js) => { openPhotoViewer_(eval(js)); pvSetScale_(3); }, makeImg());
+    await page.locator('#pv-stage').click({ position: { x: 4, y: 4 } });
+    await expect(page.locator('#photo-viewer-overlay')).toBeVisible();   // khula hi rahe
+
+    // pvLastTap bhi saaf — warna do click 300ms ke andar padne par doosra
+    // "do baar dabana" maan liya jaata hai aur yahan wo baat jaanchni nahi hai
+    await page.evaluate(() => { pvSetScale_(1); pvLastTap = 0; });
+    await page.locator('#pv-stage').click({ position: { x: 4, y: 4 } });
+    await expect(page.locator('#photo-viewer-overlay')).toHaveCount(0);  // ab band ho
+  });
+
+  test('zoom 1× से नीचे और 6× से ऊपर नहीं जाता', async ({ page }) => {
+    await openApp(page);
+    const r = await page.evaluate((js) => {
+      openPhotoViewer_(eval(js));
+      pvSetScale_(0.2); const neeche = pvScale;
+      pvSetScale_(99);  const upar = pvScale;
+      return { neeche, upar };
+    }, makeImg());
+    expect(r.neeche).toBe(1);
+    expect(r.upar).toBe(6);
+  });
+
+  test('एंट्री की सूची में thumbnail भी ज़ूम होती है', async ({ page }) => {
+    await openApp(page, { beforeGoto: (p2) => p2.route('**/macros/**', (r) => r.abort()) });
+    await page.evaluate(() => switchView('bijli-chori'));
+    await page.evaluate(async (js) => {
+      await idbAdd_('bijli_chori', {
+        date: '01-01-2026', ivrs: '111', name: 'जाँच', remark: 'test',
+        client_id: 'CZOOM', photos: [{ name: 'p', photo_data: eval(js) }],
+      });
+      await toggleEntriesList('bijli_chori');
+    }, makeImg());
+    await page.locator('#entries-list-bijli_chori .zoomable-photo').first().click();
+    await expect(page.locator('#photo-viewer-overlay')).toBeVisible();
+  });
+});
+
 test.describe('Offline sync queue (Karya Charitra)', () => {
   test('offline में बनाया SCN sync_queue में जाता है, local record से client_id मैच करता है', async ({ page }) => {
     await openApp(page, {

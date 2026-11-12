@@ -488,3 +488,34 @@
             margin-bottom: 8px;
         }
         .pwd-card-btn:active { filter: brightness(0.93); }
+
+        /* Photo viewer — khinchi photo ko bada karke dekhne ke liye.
+           Stage par touch-action:none zaroori hai: warna browser pinch/drag ko
+           khud le leta hai aur hamara apna zoom chalta hi nahi. */
+        #photo-viewer-overlay {
+            position: fixed; inset: 0; z-index: 10000;
+            background: #0b0f1a; display: flex; flex-direction: column;
+        }
+        #pv-bar {
+            flex: 0 0 auto; display: flex; align-items: center; gap: 10px;
+            padding: 10px 12px; background: rgba(255, 255, 255, 0.07); color: #ffffff;
+        }
+        #pv-zoom-label {
+            font-size: 12px; font-weight: 900; min-width: 44px;
+            background: rgba(255, 255, 255, 0.14); border-radius: 999px; padding: 5px 9px; text-align: center;
+        }
+        #pv-hint { flex: 1 1 auto; font-size: 10.5px; font-weight: 700; opacity: 0.72; line-height: 1.3; }
+        #pv-close-btn {
+            flex: 0 0 auto; width: 38px; height: 38px; border: none; border-radius: 10px;
+            background: rgba(255, 255, 255, 0.16); color: #ffffff; font-size: 17px; font-weight: 900;
+        }
+        #pv-stage {
+            flex: 1 1 auto; min-height: 0; display: flex; align-items: center; justify-content: center;
+            overflow: hidden; touch-action: none; user-select: none;
+        }
+        /* contain — yaani POORI photo dikhe. Soochi me cover se kati hui dikhti hai. */
+        #pv-img {
+            max-width: 100%; max-height: 100%; object-fit: contain;
+            transform-origin: center center; will-change: transform; -webkit-user-drag: none;
+        }
+        .zoomable-photo { cursor: zoom-in; }
